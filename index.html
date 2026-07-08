@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Aman AI</title>
+
+    <link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+
+    <!-- Animated Background -->
+    <div class="background">
+
+        <div class="orb orb1"></div>
+        <div class="orb orb2"></div>
+        <div class="grid"></div>
+
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+
+        <div class="sidebar-header">
+
+            <h2>🤖 Aman AI</h2>
+
+            <button id="closeSidebarBtn" class="icon-btn">
+                ✕
+            </button>
+
+        </div>
+
+        <button id="newChatBtn" class="new-chat-btn">
+            ＋ New Chat
+        </button>
+
+        <div class="history-title">
+            Chats
+        </div>
+
+        <div id="chatList" class="chat-list">
+
+        </div>
+
+    </aside>
+
+    <!-- Overlay -->
+    <div id="overlay" class="overlay"></div>
+
+    <!-- Main -->
+    <main class="main">
+
+        <!-- Header -->
+        <header class="header">
+
+            <div class="left-header">
+
+                <button id="menuBtn" class="icon-btn">
+                    ☰
+                </button>
+
+                <div>
+
+                    <div class="logo">
+
+                        🤖 Aman AI
+
+                    </div>
+
+                    <div class="status">
+
+                        ● Online
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <button id="deleteChatBtn" class="icon-btn danger">
+
+                🗑
+
+            </button>
+
+        </header>
+
+        <!-- Chat -->
+        <section
+            id="chat"
+            class="chat">
+
+            <!-- Messages appear here -->
+
+        </section>
+
+        <!-- Input -->
+        <footer class="composer">
+
+            <button
+                id="voiceBtn"
+                class="composer-btn">
+
+                🎤
+
+            </button>
+
+            <textarea
+                id="input"
+                rows="1"
+                placeholder="Message Aman AI..."></textarea>
+
+            <button
+                id="sendBtn"
+                class="send-btn">
+
+                ➤
+
+            </button>
+
+        </footer>
+
+    </main>
+
+    <!-- Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- Highlight.js -->
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <!-- Main Script -->
+     <input
+           type="file"
+           id="fileInput"
+           hidden
+        accept=".pdf, .txt, .doc, .docx, .csv, image/*">
+
+     <script
+     src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <script src="script.js"></script>
+
+</body>
+
+</html>
