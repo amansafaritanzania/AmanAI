@@ -606,7 +606,7 @@ async function sendMessage(){
         const response =
         await fetch(
 
-        "http://localhost:3000/chat",
+       "http://amanai-mdtj.onrender.com/chat",
 
         {
 
@@ -906,7 +906,7 @@ async function loadChats(){
         const res =
         await fetch(
 
-        "http://localhost:3000/chat/chats/"
+        "http://amanai-mdtj.onrender.com/chat",
         +
         userId
 
@@ -1020,7 +1020,7 @@ async function loadCurrentChat(){
         const res =
         await fetch(
 
-        "http://localhost:3000/chat/"
+        "http://amanai-mdtj.onrender.com/chat",
         +
         userId
         +
@@ -1092,7 +1092,7 @@ async function createNewChat(){
     const res =
     await fetch(
 
-    "http://localhost:3000/chat/new-chat",
+    "http://amanai-mdtj.onrender.com/chat",
 
     {
 
@@ -1175,7 +1175,7 @@ async function deleteCurrentChat(){
 
     await fetch(
 
-    "http://localhost:3000/chat/"
+    "http://amanai-mdtj.onrender.com/chat"
     +
     userId
     +
