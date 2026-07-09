@@ -399,7 +399,7 @@ transform:translate(0,0);
 
 }
 
-.overlay.show{
+overlay.show{
 
     opacity:1;
 
@@ -1173,9 +1173,9 @@ height:48px;
 
 .sidebar{
 
-width:100%;
+width:85%;
 
-left:-100%;
+left:-85%;
 
 }
 
