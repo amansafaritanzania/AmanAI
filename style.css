@@ -51,6 +51,7 @@ body{
     sans-serif;
 
     overflow:hidden;
+    height:100%
 
 }
 
@@ -179,11 +180,12 @@ transform:translate(0,0);
 
 .main{
 
-    height:100vh;
+    height:100dvh;
 
     display:flex;
 
     flex-direction:column;
+    overflow:hidden;
 
 }
 
@@ -516,6 +518,8 @@ transform:translate(0,0);
 .chat{
 
     flex:1;
+
+    min-height:0;
 
     overflow-y:auto;
 
@@ -1203,6 +1207,19 @@ display:none;
 
 }
 
+@media(max-width:700px){
+
+    body{
+        overflow:hidden;
+        height:100dvh;
+    }
+
+    .composer{
+        position:relative;
+        flex-shrink:0;
+    }
+}
+
 .copy-code-btn{
 
     position:absolute;
@@ -1268,6 +1285,32 @@ background:transparent;
 background:var(--primary);
 
 color:white;
+
+}
+
+@media(max-width:700px){
+
+    .main{
+
+        height:100dvh;
+
+    }
+
+    .composer{
+
+        flex-shrink:0;
+
+        padding:10px;
+
+    }
+
+    .composer textarea{
+
+        min-height:45px;
+
+        font-size:16px;
+
+    }
 
 }
 
