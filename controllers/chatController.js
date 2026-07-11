@@ -24,6 +24,9 @@ async function chat(req, res) {
 
         } = req.body;
 
+        console.log("USER ID:", userId);
+        console.log("CHAT ID:", chatId);
+
         // --------------------------
         // Validate message
         // --------------------------
@@ -59,6 +62,8 @@ async function chat(req, res) {
             chatId = createChat(userId);
 
         }
+
+        console.log("USING CHAT ID:", chatId);
 
        // --------------------------
 // Load history BEFORE saving
