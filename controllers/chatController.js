@@ -60,30 +60,31 @@ async function chat(req, res) {
 
         }
 
-        // --------------------------
-        // Save user message
-        // --------------------------
+       // --------------------------
+// Load history BEFORE saving
+// --------------------------
 
-        saveMessage(
+let history = getChat(
+    userId,
+    chatId
+);
 
-            userId,
-            chatId,
-            "user",
-            message
+// Save current user message
+saveMessage(
+    userId,
+    chatId,
+    "user",
+    message
+);
 
-        );
-
-        // --------------------------
-        // Load history
-        // --------------------------
-
-        const history = getChat(
-
-            userId,
-            chatId
-
-        );
-
+// Add current message to local history
+history = [
+    ...history,
+    {
+        role: "user",
+        content: message
+    }
+];
         // --------------------------
         // Select Expert
         // --------------------------
@@ -102,9 +103,7 @@ async function chat(req, res) {
     }
 
 ];
-
-
-// Add previous conversation
+// Add conversation history
 history.slice(-20).forEach(msg => {
 
     messages.push({
@@ -114,16 +113,6 @@ history.slice(-20).forEach(msg => {
         content: msg.content
 
     });
-
-});
-
-
-// Add current user message
-messages.push({
-
-    role: "user",
-
-    content: message
 
 });
 
