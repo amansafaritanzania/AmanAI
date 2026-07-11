@@ -1035,6 +1035,8 @@ async function loadCurrentChat(){
         const data =
         await res.json();
 
+        console.log("Server returned:, data.chatId");
+
 
 
         chat.innerHTML="";
@@ -1126,15 +1128,12 @@ async function createNewChat(){
     currentChatId =
     data.chatId;
 
-
-
     localStorage.setItem(
-
     "AmanChat",
-
     currentChatId
-
     );
+
+    console.log("Current Chat:", currentChatId);
 
 
 
