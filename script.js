@@ -1019,17 +1019,8 @@ async function loadCurrentChat(){
 
         const res =
         await fetch(
-
-        "https://amanai-mdtj.onrender.com/chat/chats/${userId}
-        +
-        userId
-        +
-        "/"
-        +
-        currentChatId
-
+            `https://amanai-mdtj.onrender.com/chat/chats/${userId}/${currentChatId}`
         );
-
 
 
         const data =
@@ -1173,18 +1164,10 @@ async function deleteCurrentChat(){
 
 
     await fetch(
-
-    "https://amanai-mdtj.onrender.com/chat
-    /${userId}/${currentChatId}`,
-    +
-    currentChatId,
-
-    {
-
-    method:"DELETE"
-
-    }
-
+        `https://amanai-mdtj.onrender.com/chat/${userId}/${currentChatId}`,
+        {
+            method: "DELETE"
+        }
     );
 
 
