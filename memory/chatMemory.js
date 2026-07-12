@@ -233,16 +233,16 @@ function saveMessage(
     loadDatabase();
 
 
-
-    if(
-        !db[userId] ||
-        !db[userId][chatId]
-    ){
-
-        return;
-
+    if(!db[userId]){
+        db[userId] = {};
     }
-
+    
+    if(!db[userId] [chatId]){
+        db[userId] [chatId] = {
+            title:"New Chat",
+            messages:[]
+        };
+    }
 
 
     db[userId][chatId]
