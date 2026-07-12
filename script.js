@@ -1,65 +1,42 @@
-// =====================================================
-// Aman AI v3.0
+// ======================================================
+// Aman AI v4.0
 // Premium Frontend
-// Part 1 - Foundation
-// =====================================================
+// PART 1
+// ======================================================
 
+// ----------------------
+// API
+// ----------------------
 
-// ============================================
+const API =
+"https://amanai-mdtj.onrender.com/chat";
+
+// ----------------------
 // DOM
-// ============================================
+// ----------------------
 
-const sidebar =
-document.getElementById("sidebar");
+const sidebar=document.getElementById("sidebar");
+const overlay=document.getElementById("overlay");
+const chat=document.getElementById("chat");
+const input=document.getElementById("input");
+const sendBtn=document.getElementById("sendBtn");
+const voiceBtn=document.getElementById("voiceBtn");
+const menuBtn=document.getElementById("menuBtn");
+const closeSidebarBtn=document.getElementById("closeSidebarBtn");
+const deleteChatBtn=document.getElementById("deleteChatBtn");
+const newChatBtn=document.getElementById("newChatBtn");
+const chatList=document.getElementById("chatList");
+const fileInput=document.getElementById("fileInput");
 
-const overlay =
-document.getElementById("overlay");
-
-const chat =
-document.getElementById("chat");
-
-const input =
-document.getElementById("input");
-
-const sendBtn =
-document.getElementById("sendBtn");
-
-const voiceBtn =
-document.getElementById("voiceBtn");
-
-const menuBtn =
-document.getElementById("menuBtn");
-
-const closeSidebarBtn =
-document.getElementById("closeSidebarBtn");
-
-const deleteChatBtn =
-document.getElementById("deleteChatBtn");
-
-const newChatBtn =
-document.getElementById("newChatBtn");
-
-const chatList =
-document.getElementById("chatList");
-
-const fileInput =
-document.getElementById("fileInput");
-
-
-// ============================================
+// ----------------------
 // USER
-// ============================================
+// ----------------------
 
-let userId =
-localStorage.getItem(
-"AmanUser"
-);
+let userId=localStorage.getItem("AmanUser");
 
 if(!userId){
 
-userId =
-"user_" +
-Date.now();
+userId="user_"+Date.now();
 
 localStorage.setItem(
 "AmanUser",
@@ -68,133 +45,74 @@ userId
 
 }
 
-let currentChatId =
-localStorage.getItem(
-"AmanChat"
-) || null;
+let currentChatId=
+localStorage.getItem("AmanChat");
 
+if(currentChatId==="null"){
 
+currentChatId=null;
 
-// ============================================
+}
+
+// ----------------------
 // SIDEBAR
-// ============================================
+// ----------------------
 
 function openSidebar(){
 
-sidebar.classList.add(
-"open"
-);
+sidebar.classList.add("open");
 
-overlay.classList.add(
-"show"
-);
+overlay.classList.add("show");
 
 }
-
 
 function closeSidebar(){
 
-sidebar.classList.remove(
-"open"
-);
+sidebar.classList.remove("open");
 
-overlay.classList.remove(
-"show"
-);
+overlay.classList.remove("show");
 
 }
 
+menuBtn.onclick=openSidebar;
 
-function toggleSidebar(){
+closeSidebarBtn.onclick=closeSidebar;
 
-if(
-sidebar.classList.contains(
-"open"
-)
-){
+overlay.onclick=closeSidebar;
 
-closeSidebar();
+document.addEventListener("keydown",e=>{
 
-}
-else{
-
-openSidebar();
-
-}
-
-}
-
-
-
-// ============================================
-// EVENTS
-// ============================================
-
-menuBtn.onclick =
-openSidebar;
-
-closeSidebarBtn.onclick =
-closeSidebar;
-
-overlay.onclick =
-closeSidebar;
-
-
-
-document.addEventListener(
-"keydown",
-e=>{
-
-if(
-e.key==="Escape"
-){
+if(e.key==="Escape"){
 
 closeSidebar();
 
 }
 
-}
-);
+});
 
+// ----------------------
+// AUTO RESIZE
+// ----------------------
 
+input.addEventListener("input",()=>{
 
-// ============================================
-// AUTO RESIZE INPUT
-// ============================================
+input.style.height="auto";
 
-input.addEventListener(
-"input",
-()=>{
+input.style.height=input.scrollHeight+"px";
 
-input.style.height=
-"auto";
+});
 
-input.style.height=
-input.scrollHeight+
-"px";
+// ----------------------
+// PLUS BUTTON
+// ----------------------
 
-}
-);
+const plusButton=document.createElement("button");
 
-
-
-// ============================================
-// FILE PICKER
-// ============================================
-
-const plusButton =
-document.createElement(
-"button"
-);
+plusButton.className="composer-btn";
 
 plusButton.innerHTML="➕";
 
-plusButton.className=
-"composer-btn";
-
-document.querySelector(
-".composer"
-).insertBefore(
+document.querySelector(".composer").insertBefore(
 
 plusButton,
 
@@ -202,39 +120,31 @@ voiceBtn
 
 );
 
-
-
 plusButton.onclick=()=>{
 
 fileInput.click();
 
 };
 
-
-
 fileInput.onchange=()=>{
 
-const file =
-fileInput.files[0];
+const file=fileInput.files[0];
 
-if(!file)
-return;
+if(!file)return;
 
-console.log(
-"Selected:",
-file.name
+addMessage(
+
+"📎 "+file.name,
+
+"user"
+
 );
-
-// Upload logic
-// Part 3
 
 };
 
-
-
-// ============================================
-// EMPTY CHAT
-// ============================================
+// ----------------------
+// WELCOME
+// ----------------------
 
 function showWelcome(){
 
@@ -242,21 +152,17 @@ chat.innerHTML=`
 
 <div class="empty-chat">
 
-<h1>
-🤖
-</h1>
+<h1>🤖</h1>
 
-<h2>
-Welcome to Aman AI
-</h2>
+<h2>Welcome to Aman AI</h2>
 
 <p>
 
 Ask anything...
 
-Upload files...
-
 Generate code...
+
+Upload files...
 
 Learn faster...
 
@@ -268,22 +174,32 @@ Learn faster...
 
 }
 
+// ----------------------
+// CLEAR CHAT
+// ----------------------
 
+function clearChat(){
 
-// ============================================
+chat.innerHTML="";
+
+}
+
+// ----------------------
 // START
-// ============================================
+// ----------------------
+
+if(!currentChatId){
 
 showWelcome();
-// =====================================================
+
+}
+// ======================================================
 // PART 2 - CHAT ENGINE
-// =====================================================
+// ======================================================
 
-
-
-// ============================================
-// MARKDOWN SETUP
-// ============================================
+// ----------------------
+// Markdown
+// ----------------------
 
 function renderMarkdown(text){
 
@@ -296,974 +212,541 @@ function renderMarkdown(text){
     return text;
 
 }
+
+// ----------------------
+// Copy Button
+// ----------------------
+
 function attachCodeCopyButtons(container){
 
-    const blocks =
-    container.querySelectorAll("pre");
+    const blocks=container.querySelectorAll("pre");
 
     blocks.forEach(pre=>{
 
-        if(pre.querySelector(".copy-code-btn"))
-        return;
+        if(pre.querySelector(".copy-code-btn")) return;
 
-        const button =
-        document.createElement("button");
+        const btn=document.createElement("button");
 
-        button.className =
-        "copy-code-btn";
+        btn.className="copy-code-btn";
 
-        button.textContent =
-        "📋 Copy";
+        btn.textContent="📋 Copy";
 
-        button.onclick = ()=>{
+        btn.onclick=()=>{
 
-            const code =
-            pre.querySelector("code");
+            const code=pre.querySelector("code");
 
-            navigator.clipboard.writeText(
-                code.innerText
-            );
+            navigator.clipboard.writeText(code.innerText);
 
-            button.textContent =
-            "✅ Copied";
+            btn.textContent="✅ Copied";
 
             setTimeout(()=>{
 
-                button.textContent =
-                "📋 Copy";
+                btn.textContent="📋 Copy";
 
             },2000);
 
         };
 
-        pre.style.position =
-        "relative";
+        pre.style.position="relative";
 
-        pre.appendChild(button);
+        pre.appendChild(btn);
 
     });
 
 }
 
-
-
-
-// ============================================
-// ADD MESSAGE
-// ============================================
-
-function addMessage(
-    content,
-    role
-){
-
-    const wrapper =
-    document.createElement(
-        "div"
-    );
-
-
-    wrapper.className =
-    "message " + role;
-
-
-
-    const bubble =
-    document.createElement(
-        "div"
-    );
-
-
-    bubble.className =
-    "bubble";
-
-
-    bubble.innerHTML =
-    renderMarkdown(content);
-    
-    attachCodeCopyButtons(
-        bubble
-    );
-
-
-
-    wrapper.appendChild(
-        bubble
-    );
-
-
-
-    chat.appendChild(
-        wrapper
-    );
-
-
-    scrollChat();
-
-
-
-    if(role === "ai"){
-
-        addMessageActions(
-            wrapper,
-            content
-        );
-
-    }
-
-
-    return wrapper;
-
-}
-
-
-
-
-
-// ============================================
-// TYPING EFFECT
-// ============================================
-
-async function typeAI(
-    element,
-    text
-){
-
-    element.innerHTML="";
-
-
-    let current="";
-
-
-    for(
-        let i=0;
-        i<text.length;
-        i++
-    ){
-
-        current +=
-        text[i];
-
-
-        element.innerHTML =
-        current;
-
-
-        scrollChat();
-
-
-        await new Promise(
-            resolve =>
-            setTimeout(
-                resolve,
-                15
-            )
-        );
-
-    }
-
-
-    element.innerHTML =
-    renderMarkdown(text);
-
-    attachCodeCopyButtons(
-        element
-    );
-
-
-}
-
-
-
-
-
-// ============================================
-// SCROLL
-// ============================================
+// ----------------------
+// Scroll
+// ----------------------
 
 function scrollChat(){
 
-    chat.scrollTop =
-    chat.scrollHeight;
+    chat.scrollTop=chat.scrollHeight;
 
 }
 
+// ----------------------
+// Message
+// ----------------------
 
+function addMessage(content,role){
 
+    const wrapper=document.createElement("div");
 
+    wrapper.className="message "+role;
 
-// ============================================
-// LOADING MESSAGE
-// ============================================
+    const bubble=document.createElement("div");
 
-function createLoading(){
+    bubble.className="bubble";
 
-    const wrapper =
-    document.createElement(
-        "div"
-    );
+    bubble.innerHTML=renderMarkdown(content);
 
+    wrapper.appendChild(bubble);
 
-    wrapper.className =
-    "message ai";
+    chat.appendChild(wrapper);
 
-
-    const bubble =
-    document.createElement(
-        "div"
-    );
-
-
-    bubble.className =
-    "bubble";
-
-
-    bubble.innerHTML=`
-
-    <div class="typing">
-
-        <span></span>
-        <span></span>
-        <span></span>
-
-    </div>
-
-    `;
-
-
-    wrapper.appendChild(
-        bubble
-    );
-
-
-    chat.appendChild(
-        wrapper
-    );
-
+    attachCodeCopyButtons(bubble);
 
     scrollChat();
 
+    if(role==="ai"){
+
+        addMessageActions(wrapper,content);
+
+    }
 
     return bubble;
 
 }
 
+// ----------------------
+// Typing
+// ----------------------
 
+function createLoading(){
 
+    const wrapper=document.createElement("div");
 
+    wrapper.className="message ai";
 
-// ============================================
-// SEND MESSAGE
-// ============================================
+    wrapper.innerHTML=`
 
-async function sendMessage(){
+    <div class="bubble">
 
+        <div class="typing">
 
-    const message =
-    input.value.trim();
+            <span></span>
 
+            <span></span>
 
-    if(!message)
-    return;
+            <span></span>
 
+        </div>
 
+    </div>
 
-    // remove welcome screen
+    `;
 
-    if(
-        document.querySelector(
-        ".empty-chat"
-        )
-    ){
+    chat.appendChild(wrapper);
 
-        chat.innerHTML="";
+    scrollChat();
+
+    return wrapper;
+
+}
+
+// ----------------------
+// AI Typing Effect
+// ----------------------
+
+async function typeAI(element,text){
+
+    element.innerHTML="";
+
+    let output="";
+
+    for(let i=0;i<text.length;i++){
+
+        output+=text[i];
+
+        element.innerHTML=output;
+
+        scrollChat();
+
+        await new Promise(r=>setTimeout(r,12));
 
     }
 
+    element.innerHTML=renderMarkdown(text);
 
+    attachCodeCopyButtons(element);
 
-    addMessage(
-        message,
-        "user"
-    );
+}
 
+// ----------------------
+// Send Message
+// ----------------------
+
+async function sendMessage(){
+
+    const message=input.value.trim();
+
+    if(!message) return;
+
+    if(document.querySelector(".empty-chat")){
+
+        clearChat();
+
+    }
+
+    addMessage(message,"user");
 
     input.value="";
 
     input.style.height="auto";
 
-
-
-    const loading =
-    createLoading();
-
-         console.log({
-            message,
-            userId,
-            currentChatId
-         });
-
+    const loading=createLoading();
 
     try{
 
+        const res=await fetch(API,{
 
-        const response =
-        await fetch(
+            method:"POST",
 
-       "https://amanai-mdtj.onrender.com/chat",
+            headers:{
 
-        {
+                "Content-Type":"application/json"
 
-        method:"POST",
+            },
 
-        headers:{
+            body:JSON.stringify({
 
-        "Content-Type":
-        "application/json"
+                message,
 
-        },
+                userId,
 
+                chatId:currentChatId
 
-        body:JSON.stringify({
+            })
 
-            message,
+        });
 
-            userId,
+        const data=await res.json();
 
-            chatId:
-            currentChatId
-
-        })
-
-        }
-
-        );
-
-
-
-        const data =
-        await response.json();
-
-
-
+        loading.remove();
 
         if(data.chatId){
 
-
-            currentChatId =
-            data.chatId;
-
+            currentChatId=data.chatId;
 
             localStorage.setItem(
 
-            "AmanChat",
+                "AmanChat",
 
-            currentChatId
+                currentChatId
 
             );
 
         }
 
-
-
-        loading.parentElement.remove();
-
-
-
-        const aiMessage =
-        addMessage(
-            "",
-            "ai"
-        );
-
-
-        const bubble =
-        aiMessage.querySelector(
-        ".bubble"
-        );
-
+        const bubble=addMessage("","ai");
 
         await typeAI(
 
             bubble,
 
-            data.reply ||
-            "No response received."
+            data.reply || "No response."
 
         );
-
-
 
         loadChats();
 
-
-
     }
 
+    catch(err){
 
-    catch(error){
-
-
-        loading.parentElement.remove();
-
-
+        loading.remove();
 
         addMessage(
 
-        "⚠️ Unable to connect to Aman AI server.",
+            "⚠️ Unable to connect to Aman AI server.",
 
-        "ai"
+            "ai"
 
         );
 
-
-        console.error(
-        error
-        );
-
+        console.error(err);
 
     }
 
-
-
 }
 
+sendBtn.onclick=sendMessage;
 
+input.addEventListener("keydown",e=>{
 
+    if(e.key==="Enter" && !e.shiftKey){
 
+        e.preventDefault();
 
-// ============================================
-// BUTTON EVENTS
-// ============================================
+        sendMessage();
 
-
-sendBtn.onclick =
-sendMessage;
-
-
-
-input.addEventListener(
-"keydown",
-e=>{
-
-if(
-e.key==="Enter" &&
-!e.shiftKey
-){
-
-e.preventDefault();
-
-sendMessage();
-
-}
+    }
 
 });
-// =====================================================
-// PART 3 - ACTIONS + MEMORY
-// =====================================================
 
+// ======================================================
+// PART 3 - MEMORY + CHAT HISTORY
+// ======================================================
 
+// ----------------------
+// Message Actions
+// ----------------------
 
-// ============================================
-// MESSAGE ACTION BUTTONS
-// ============================================
+function addMessageActions(messageBox,text){
 
-function addMessageActions(
-    messageBox,
-    text
-){
+    const actions=document.createElement("div");
 
-    const actions =
-    document.createElement(
-        "div"
-    );
-
-
-    actions.className =
-    "message-actions";
-
+    actions.className="message-actions";
 
     actions.innerHTML=`
+<button>📋</button>
+<button>👍</button>
+<button>👎</button>
+<button>🔗</button>
+`;
 
-    <button title="Copy">
-        📋
-    </button>
+    const btn=actions.querySelectorAll("button");
 
-    <button title="Like">
-        👍
-    </button>
+    btn[0].onclick=()=>navigator.clipboard.writeText(text);
 
-    <button title="Dislike">
-        👎
-    </button>
+    btn[1].onclick=()=>btn[1].innerHTML="👍✅";
 
-    <button title="Share">
-        🔗
-    </button>
+    btn[2].onclick=()=>btn[2].innerHTML="👎✅";
 
-    `;
+    btn[3].onclick=async()=>{
 
+        if(navigator.share){
 
+            navigator.share({text});
 
-    const buttons =
-    actions.querySelectorAll(
-    "button"
-    );
+        }else{
 
-
-
-    // Copy
-
-    buttons[0].onclick =
-    ()=>{
-
-        navigator.clipboard.writeText(
-            text
-        );
-
-
-        buttons[0].innerHTML="✅";
-
-
-    };
-
-
-
-    // Like
-
-    buttons[1].onclick =
-    ()=>{
-
-        buttons[1].innerHTML=
-        "👍✅";
-
-    };
-
-
-
-    // Dislike
-
-    buttons[2].onclick =
-    ()=>{
-
-        buttons[2].innerHTML=
-        "👎✅";
-
-    };
-
-
-
-    // Share
-
-    buttons[3].onclick =
-    async ()=>{
-
-
-        if(
-        navigator.share
-        ){
-
-            await navigator.share({
-
-                text:text
-
-            });
-
+            navigator.clipboard.writeText(text);
 
         }
 
-        else{
-
-
-            navigator.clipboard.writeText(
-                text
-            );
-
-
-        }
-
-
     };
 
-
-
-    messageBox.appendChild(
-        actions
-    );
-
+    messageBox.appendChild(actions);
 
 }
 
-
-
-
-// ============================================
-// LOAD CHAT HISTORY
-// ============================================
+// ----------------------
+// Load Chats
+// ----------------------
 
 async function loadChats(){
 
-
     try{
 
+        const res=await fetch(
 
-        const res =
-        await fetch(
-
-        "https://amanai-mdtj.onrender.com/chat",
-        +
-        userId
+            `${API}/chats/${userId}`
 
         );
 
-
-
-        const chats =
-        await res.json();
-
-
+        const chats=await res.json();
 
         chatList.innerHTML="";
 
+        Object.keys(chats).forEach(id=>{
 
+            const div=document.createElement("div");
 
-        Object.keys(chats)
-        .forEach(id=>{
+            div.className="chat-item";
 
+            div.innerHTML="💬 "+(chats[id].title||"New Chat");
 
-            const item =
-            document.createElement(
-                "div"
-            );
-
-
-            item.className=
-            "chat-item";
-
-
-
-            item.innerHTML=
-
-            "💬 "
-            +
-            (
-            chats[id].title
-            ||
-            "New Chat"
-            );
-
-
-
-            item.onclick =
-            ()=>{
-
+            div.onclick=()=>{
 
                 currentChatId=id;
 
-
                 localStorage.setItem(
 
-                "AmanChat",
+                    "AmanChat",
 
-                id
+                    id
 
                 );
 
+                loadCurrentChat();
 
                 closeSidebar();
 
-
-                loadCurrentChat();
-
-
             };
 
-
-
-            chatList.appendChild(
-                item
-            );
-
+            chatList.appendChild(div);
 
         });
 
-
     }
 
-    catch(error){
+    catch(err){
 
-        console.error(
-        "History error",
-        error
-        );
+        console.error(err);
 
     }
-
 
 }
 
-
-
-
-
-// ============================================
-// LOAD SINGLE CHAT
-// ============================================
+// ----------------------
+// Load Current Chat
+// ----------------------
 
 async function loadCurrentChat(){
 
+    if(!currentChatId){
 
-    if(!currentChatId)
-    return;
+        showWelcome();
 
+        return;
 
+    }
 
     try{
 
+        const res=await fetch(
 
-        const res =
-        await fetch(
-            `https://amanai-mdtj.onrender.com/chat/chats/${userId}/${currentChatId}`
+            `${API}/${userId}/${currentChatId}`
+
         );
 
-
-        const data =
-        await res.json();
-
-        console.log("Server returned:, data.chatId");
-
-
+        const data=await res.json();
 
         chat.innerHTML="";
 
-
-
-        const history =
-        data.history || [];
-
-
-
-        history.forEach(
-        msg=>{
-
+        (data.history||[]).forEach(msg=>{
 
             addMessage(
 
-            msg.content,
+                msg.content,
 
-            msg.role === "user"
-            ?
-            "user"
-            :
-            "ai"
+                msg.role==="user"
+
+                ?"user"
+
+                :"ai"
 
             );
 
-
         });
 
-
-
     }
 
-    catch(error){
+    catch(err){
 
-        console.error(error);
+        console.error(err);
 
     }
-
 
 }
 
-
-
-
-
-// ============================================
-// NEW CHAT
-// ============================================
+// ----------------------
+// New Chat
+// ----------------------
 
 async function createNewChat(){
 
+    try{
 
-    const res =
-    await fetch(
+        const res=await fetch(
 
-    "https://amanai-mdtj.onrender.com/chat",
+            `${API}/new-chat`,
 
-    {
+            {
 
-    method:"POST",
+                method:"POST",
 
-    headers:{
+                headers:{
 
-    "Content-Type":
-    "application/json"
+                    "Content-Type":"application/json"
 
-    },
+                },
 
+                body:JSON.stringify({
 
-    body:JSON.stringify({
+                    userId
 
-        userId
+                })
 
-    })
+            }
+
+        );
+
+        const data=await res.json();
+
+        currentChatId=data.chatId;
+
+        localStorage.setItem(
+
+            "AmanChat",
+
+            currentChatId
+
+        );
+
+        showWelcome();
+
+        loadChats();
 
     }
 
-    );
+    catch(err){
 
+        console.error(err);
 
-
-    const data =
-    await res.json();
-
-
-
-    currentChatId =
-    data.chatId;
-
-    localStorage.setItem(
-    "AmanChat",
-    currentChatId
-    );
-
-    console.log("Current Chat:", currentChatId);
-
-
-
-    chat.innerHTML="";
-
-
-
-    showWelcome();
-
-
-    loadChats();
-
+    }
 
 }
 
+newChatBtn.onclick=createNewChat;
 
-
-
-
-newChatBtn.onclick =
-createNewChat;
-
-
-
-
-
-// ============================================
-// DELETE CHAT
-// ============================================
+// ----------------------
+// Delete Chat
+// ----------------------
 
 async function deleteCurrentChat(){
 
+    if(!currentChatId) return;
 
-    if(!currentChatId)
-    return;
+    try{
 
+        await fetch(
 
+            `${API}/${userId}/${currentChatId}`,
 
-    await fetch(
-        `https://amanai-mdtj.onrender.com/chat/${userId}/${currentChatId}`,
-        {
-            method: "DELETE"
-        }
-    );
+            {
 
+                method:"DELETE"
 
-   
+            }
 
+        );
+
+    }
+
+    catch(err){
+
+        console.error(err);
+
+    }
 
     currentChatId=null;
 
-
-
-    localStorage.removeItem(
-    "AmanChat"
-    );
-
-
-
-    chat.innerHTML="";
-
+    localStorage.removeItem("AmanChat");
 
     showWelcome();
 
-
     loadChats();
-
 
 }
 
+deleteChatBtn.onclick=deleteCurrentChat;
 
+// ----------------------
+// Voice
+// ----------------------
 
-deleteChatBtn.onclick =
-deleteCurrentChat;
+voiceBtn.onclick=()=>{
 
-
-
-
-
-// ============================================
-// FILE SELECT
-// ============================================
-
-fileInput.addEventListener(
-"change",
-()=>{
-
-
-    const file =
-    fileInput.files[0];
-
-
-
-    if(!file)
-    return;
-
-
-
-    addMessage(
-
-    "📎 Selected file: "
-    +
-    file.name,
-
-    "user"
-
-    );
-
-
-});
-
-
-
-
-
-// ============================================
-// VOICE PLACEHOLDER
-// ============================================
-
-voiceBtn.onclick =
-()=>{
-
-    alert(
-    "🎤 Voice input will be added soon."
-    );
+    alert("🎤 Voice Mode coming soon.");
 
 };
 
-
-
-
-
-// ============================================
-// START APP
-// ============================================
+// ----------------------
+// Start
+// ----------------------
 
 loadChats();
 
