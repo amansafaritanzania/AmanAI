@@ -57,19 +57,9 @@ async function chat(req, res) {
         // Create chat if needed
         // --------------------------
 
-        if (!chatId) {
-
-            chatId = createChat(userId);
-
-        }
        console.log("CHAT ID:", chatId);
         console.log("USING CHAT ID:", chatId);
 
-       res.json({
-        success:true,
-        chatId, 
-        reply
-    });
 
        // --------------------------
 // Load history BEFORE saving
