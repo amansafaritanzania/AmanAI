@@ -65,9 +65,10 @@ async function chat(req, res) {
        console.log("CHAT ID:", chatId);
         console.log("USING CHAT ID:", chatId);
 
-       res.json({success:true,
-       chatId, 
-    replay})
+       res.json({
+        success:true,
+        chatId, 
+        reply});
 
        // --------------------------
 // Load history BEFORE saving
