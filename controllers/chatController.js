@@ -69,6 +69,8 @@ let history = getChat(
     userId,
     chatId
 );
+   console.log("OLD HISTORY:", history
+ );
 
 // Save current user message
 saveMessage(
@@ -77,6 +79,11 @@ saveMessage(
     "user",
     message
 );
+
+    console.log("SAVED USER MESSAGE:", message );
+    console.log("NEW HISTORY:", 
+        getChat(userId, chatId)
+    );
 
 // Add current message to local history
 history = [
