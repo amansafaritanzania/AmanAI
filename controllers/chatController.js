@@ -68,7 +68,8 @@ async function chat(req, res) {
        res.json({
         success:true,
         chatId, 
-        reply});
+        reply
+    });
 
        // --------------------------
 // Load history BEFORE saving
