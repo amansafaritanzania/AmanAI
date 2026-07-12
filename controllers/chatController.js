@@ -62,8 +62,12 @@ async function chat(req, res) {
             chatId = createChat(userId);
 
         }
-
+       console.log("CHAT ID:", chatId);
         console.log("USING CHAT ID:", chatId);
+
+       res.json({success:true,
+       chatId, 
+    replay})
 
        // --------------------------
 // Load history BEFORE saving

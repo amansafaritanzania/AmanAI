@@ -597,7 +597,11 @@ async function sendMessage(){
     const loading =
     createLoading();
 
-
+         console.log({
+            message,
+            userId,
+            currentChatId
+         });
 
 
     try{
