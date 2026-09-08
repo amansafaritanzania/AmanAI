@@ -1,4 +1,3 @@
-```js
 const groq = require("../config/groq");
 const chooseExpert = require("../services/expertRouter");
 const {
