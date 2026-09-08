@@ -1,211 +1,333 @@
-// ======================================================
-// Chat Routes
-// ======================================================
-
 const express = require("express");
 
-const router = express.Router();
+const router =
+    express.Router();
 
-const { chat } = require("../controllers/chatController");
+const {
+    chat
+} = require("../controllers/chatController");
 
 const {
     createChat,
     getUserChats,
     getChat,
     deleteChat,
-    deleteAllChats
+    deleteAllChats,
+    getUserMemory,
+    saveUserMemory
 } = require("../memory/chatMemory");
 
-// ======================================================
-// AI CHAT
-// ======================================================
 
 router.post("/", chat);
 
-// ======================================================
-// CREATE NEW CHAT
-// ======================================================
 
-router.post("/new-chat", (req, res) => {
+/*
+========================================
+NEW CHAT
+========================================
+*/
 
-    try {
+router.post(
+    "/new-chat",
+    async (req, res) => {
 
-        const { userId = "guest" } = req.body;
+        try {
 
-        const chatId = createChat(userId);
+            const {
+                userId = "guest"
+            } = req.body;
 
-        res.json({
+            const chatId =
+                await createChat(userId);
 
-            success: true,
-            chatId
+            res.json({
 
-        });
+                success: true,
 
-    }
+                chatId
 
-    catch (error) {
+            });
 
-        console.error(error);
+        } catch (error) {
 
-        res.status(500).json({
+            console.error(error);
 
-            success: false,
-            message: "Unable to create chat."
+            res.status(500).json({
 
-        });
+                success: false,
 
-    }
+                message:
+                    "Unable to create chat."
 
-});
+            });
 
-// ======================================================
-// GET USER CHATS
-// ======================================================
-
-router.get("/chats/:userId", (req, res) => {
-
-    try {
-
-        const { userId } = req.params;
-
-        const chats = getUserChats(userId);
-
-        res.json(chats);
+        }
 
     }
+);
 
-    catch (error) {
 
-        console.error(error);
+/*
+========================================
+ALL CHATS
+========================================
+*/
 
-        res.status(500).json([]);
+router.get(
+    "/chats/:userId",
+    async (req, res) => {
 
-    }
+        try {
 
-});
+            const {
+                userId
+            } = req.params;
 
-// ======================================================
-// GET SINGLE CHAT
-// ======================================================
+            const chats =
+                await getUserChats(userId);
 
-router.get("/:userId/:chatId", (req, res) => {
+            res.json(chats);
 
-    try {
+        } catch (error) {
 
-        const {
+            console.error(error);
 
-            userId,
-            chatId
+            res.status(500).json([]);
 
-        } = req.params;
-
-        const history = getChat(
-
-            userId,
-            chatId
-
-        );
-
-        res.json({
-
-            success: true,
-            history
-
-        });
+        }
 
     }
+);
 
-    catch (error) {
 
-        console.error(error);
+/*
+========================================
+ONE CHAT
+========================================
+*/
 
-        res.status(500).json({
+router.get(
+    "/:userId/:chatId",
+    async (req, res) => {
 
-            success: false,
-            history: []
+        try {
 
-        });
+            const {
+                userId,
+                chatId
+            } = req.params;
 
-    }
+            const history =
+                await getChat(
+                    userId,
+                    chatId
+                );
 
-});
+            res.json({
 
-// ======================================================
-// DELETE ONE CHAT
-// ======================================================
+                success: true,
 
-router.delete("/:userId/:chatId", (req, res) => {
+                history
 
-    try {
+            });
 
-        const {
+        } catch (error) {
 
-            userId,
-            chatId
+            console.error(error);
 
-        } = req.params;
+            res.status(500).json({
 
-        deleteChat(
+                success: false,
 
-            userId,
-            chatId
+                history: []
 
-        );
+            });
 
-        res.json({
-
-            success: true
-
-        });
-
-    }
-
-    catch (error) {
-
-        console.error(error);
-
-        res.status(500).json({
-
-            success: false
-
-        });
+        }
 
     }
+);
 
-});
 
-// ======================================================
-// DELETE ALL CHATS
-// ======================================================
+/*
+========================================
+PERMANENT MEMORY
+========================================
+*/
 
-router.delete("/chats/:userId", (req, res) => {
+router.get(
+    "/memory/:userId",
+    async (req, res) => {
 
-    try {
+        try {
 
-        const { userId } = req.params;
+            const {
+                userId
+            } = req.params;
 
-        deleteAllChats(userId);
+            const memory =
+                await getUserMemory(
+                    userId
+                );
 
-        res.json({
+            res.json({
 
-            success: true
+                success: true,
 
-        });
+                memory
+
+            });
+
+        } catch (error) {
+
+            console.error(error);
+
+            res.status(500).json({
+
+                success: false,
+
+                memory: {}
+
+            });
+
+        }
 
     }
+);
 
-    catch (error) {
 
-        console.error(error);
+/*
+========================================
+UPDATE MEMORY MANUALLY
+========================================
+*/
 
-        res.status(500).json({
+router.put(
+    "/memory/:userId",
+    async (req, res) => {
 
-            success: false
+        try {
 
-        });
+            const {
+                userId
+            } = req.params;
+
+            const memory =
+                req.body.memory || {};
+
+            await saveUserMemory(
+                userId,
+                memory
+            );
+
+            res.json({
+
+                success: true,
+
+                memory
+
+            });
+
+        } catch (error) {
+
+            console.error(error);
+
+            res.status(500).json({
+
+                success: false
+
+            });
+
+        }
 
     }
+);
 
-});
+
+/*
+========================================
+DELETE ONE CHAT
+========================================
+*/
+
+router.delete(
+    "/:userId/:chatId",
+    async (req, res) => {
+
+        try {
+
+            const {
+                userId,
+                chatId
+            } = req.params;
+
+            await deleteChat(
+                userId,
+                chatId
+            );
+
+            res.json({
+
+                success: true
+
+            });
+
+        } catch (error) {
+
+            console.error(error);
+
+            res.status(500).json({
+
+                success: false
+
+            });
+
+        }
+
+    }
+);
+
+
+/*
+========================================
+DELETE ALL CHATS
+========================================
+*/
+
+router.delete(
+    "/chats/:userId",
+    async (req, res) => {
+
+        try {
+
+            const {
+                userId
+            } = req.params;
+
+            await deleteAllChats(
+                userId
+            );
+
+            res.json({
+
+                success: true
+
+            });
+
+        } catch (error) {
+
+            console.error(error);
+
+            res.status(500).json({
+
+                success: false
+
+            });
+
+        }
+
+    }
+);
+
 
 module.exports = router;
