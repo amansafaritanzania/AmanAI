@@ -1,7 +1,9 @@
 // ======================================================
-// Aman AI - Permanent Memory
-// PostgreSQL Memory Layer
+// Aman AI v4.0
+// Permanent Memory System
+// PostgreSQL
 // ======================================================
+
 
 const {
     getUserMemory,
@@ -16,6 +18,26 @@ const {
 
 
 // ======================================================
+// NORMALIZE MEMORY TEXT
+// ======================================================
+
+function normalizeMemoryText(message) {
+
+    if (
+        !message ||
+        typeof message !== "string"
+    ) {
+        return "";
+    }
+
+    return message
+        .trim()
+        .replace(/\s+/g, " ")
+        .replace(/-+/g, " ");
+}
+
+
+// ======================================================
 // EXTRACT PERMANENT MEMORY
 // ======================================================
 
@@ -23,17 +45,12 @@ function extractMemory(message) {
 
     const memories = {};
 
-    if (
-        !message ||
-        typeof message !== "string"
-    ) {
+    const text =
+        normalizeMemoryText(message);
+
+    if (!text) {
         return memories;
     }
-
-    const text =
-        message
-            .trim()
-            .replace(/\s+/g, " ");
 
 
     // ==================================================
@@ -42,18 +59,22 @@ function extractMemory(message) {
 
     const namePatterns = [
 
-        // English
+        // My name is Aman
         /\bmy\s+name\s+is\s+([A-Za-z][A-Za-z'-]{1,30})\b/i,
 
+        // Call me Aman
         /\bcall\s+me\s+([A-Za-z][A-Za-z'-]{1,30})\b/i,
 
+        // I am Aman
         /\bi\s+am\s+([A-Za-z][A-Za-z'-]{1,30})\b/i,
 
+        // I'm Aman
         /\bi'm\s+([A-Za-z][A-Za-z'-]{1,30})\b/i,
 
-        // Swahili
+        // Jina langu ni Aman
         /\bjina\s+langu\s+ni\s+([A-Za-z][A-Za-z'-]{1,30})\b/i,
 
+        // Naitwa Aman
         /\bnaitwa\s+([A-Za-z][A-Za-z'-]{1,30})\b/i
     ];
 
@@ -82,15 +103,12 @@ function extractMemory(message) {
                         ""
                     );
 
-            if (name.length >= 2) {
+            if (
+                name.length >= 2
+            ) {
 
                 memories.name =
                     name;
-
-                console.log(
-                    "🧠 NAME DETECTED:",
-                    name
-                );
 
                 break;
             }
@@ -122,9 +140,9 @@ async function updateMemory(
     );
 
 
-    // --------------------------------------------------
-    // Load existing permanent memory
-    // --------------------------------------------------
+    // ==================================================
+    // LOAD EXISTING MEMORY
+    // ==================================================
 
     const oldMemory =
         await getUserMemory(
@@ -137,9 +155,9 @@ async function updateMemory(
     );
 
 
-    // --------------------------------------------------
-    // Extract new memories
-    // --------------------------------------------------
+    // ==================================================
+    // EXTRACT NEW MEMORY
+    // ==================================================
 
     const newMemory =
         extractMemory(
@@ -152,9 +170,9 @@ async function updateMemory(
     );
 
 
-    // --------------------------------------------------
-    // Nothing new to save
-    // --------------------------------------------------
+    // ==================================================
+    // NOTHING NEW
+    // ==================================================
 
     if (
         Object.keys(newMemory)
@@ -169,9 +187,9 @@ async function updateMemory(
     }
 
 
-    // --------------------------------------------------
-    // Merge old + new memory
-    // --------------------------------------------------
+    // ==================================================
+    // MERGE MEMORY
+    // ==================================================
 
     const updatedMemory = {
 
@@ -182,9 +200,9 @@ async function updateMemory(
     };
 
 
-    // --------------------------------------------------
-    // Save permanently to PostgreSQL
-    // --------------------------------------------------
+    // ==================================================
+    // SAVE TO POSTGRESQL
+    // ==================================================
 
     await saveUserMemory(
         userId,
