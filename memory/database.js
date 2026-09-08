@@ -1,7 +1,7 @@
 const { Pool } = require("pg");
 
 if (!process.env.DATABASE_URL) {
-    throw new Error("postgresql://aman_ai_db_user:R9fZHbBFIj1VgtP7XCZ9jKUwBqvWTdLj@dpg-dag6gouq1p3s73fa22cg-a/aman_ai_db");
+    throw new Error("Missing DATABASE_URL");
 }
 
 const pool = new Pool({
