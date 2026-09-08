@@ -1,4 +1,3 @@
-```js
 // ===============================================
 // Aman AI Advanced Memory System
 // Chats + Safe Long-Term User Profile
@@ -263,4 +262,3 @@ module.exports = {
     getProfile,
     updateProfile
 };
-```
