@@ -1,147 +1,88 @@
 const groq = require("../config/groq");
 const chooseExpert = require("../services/expertRouter");
-const {
-  createChat,
-  getChat,
-  saveMessage
-} = require("../memory/chatMemory");
+const { createChat, getChat, saveMessage } = require("../memory/chatMemory");
 
 async function chat(req, res) {
-  try {
-    let {
-      message,
-      userId = "guest",
-      chatId
-    } = req.body;
+    try {
+        let { message, userId = "guest", chatId } = req.body;
 
-    console.log("USER ID:", userId);
-    console.log("CHAT ID:", chatId);
+        if (!message || typeof message !== "string") {
+            return res.status(400).json({
+                success: false,
+                reply: "Please enter a message."
+            });
+        }
 
-    // Validate message
-    if (!message || typeof message !== "string") {
-      return res.status(400).json({
-        reply: "Please enter a message."
-      });
-    }
+        message = message.trim();
 
-    message = message.trim();
+        if (!message) {
+            return res.status(400).json({
+                success: false,
+                reply: "Message cannot be empty."
+            });
+        }
 
-    if (!message) {
-      return res.status(400).json({
-        reply: "Message cannot be empty."
-      });
-    }
+        if (!chatId) {
+            chatId = createChat(userId);
+        }
 
-    // Create a chat automatically if no chatId exists
-    if (!chatId) {
-      chatId = createChat(userId);
-      console.log("NEW CHAT CREATED:", chatId);
-    }
+        let history = getChat(userId, chatId);
 
-    // Load previous history BEFORE saving current message
-    let history = getChat(userId, chatId);
+        saveMessage(userId, chatId, "user", message);
 
-    console.log("OLD HISTORY:", history);
+        history = [
+            ...history,
+            {
+                role: "user",
+                content: message
+            }
+        ];
 
-    // Save current user message
-    saveMessage(
-      userId,
-      chatId,
-      "user",
-      message
-    );
+        const expert = chooseExpert(message);
 
-    console.log("SAVED USER MESSAGE:", message);
+        const messages = [
+            {
+                role: "system",
+                content: expert
+            }
+        ];
 
-    // Add current message to the history sent to the AI
-    history = [
-      ...history,
-      {
-        role: "user",
-        content: message
-      }
-    ];
-
-    // Choose the correct expert
-    const expert = chooseExpert(message);
-
-    // Build messages for Groq
-    const messages = [
-      {
-        role: "system",
-        content: expert
-      }
-    ];
-
-    history
-      .slice(-20)
-      .forEach((msg) => {
-        messages.push({
-          role: msg.role,
-          content: msg.content
+        history.slice(-20).forEach(function (msg) {
+            messages.push({
+                role: msg.role,
+                content: msg.content
+            });
         });
-      });
 
-    console.log("\n========== MESSAGES SENT TO GROQ ==========");
+        const completion = await groq.chat.completions.create({
+            model: "llama-3.1-8b-instant",
+            temperature: 0.2,
+            max_tokens: 2048,
+            messages: messages
+        });
 
-    messages.forEach((msg, index) => {
-      console.log(
-        `\n----- ${index + 1} (${msg.role}) -----`
-      );
+        let reply = completion.choices[0].message.content;
 
-      console.log(msg.content);
-    });
+        if (!reply) {
+            reply = "Sorry, I couldn't generate a response.";
+        }
 
-    console.log(
-      "\n===========================================\n"
-    );
+        saveMessage(userId, chatId, "assistant", reply);
 
-    // Ask Groq
-    const completion =
-      await groq.chat.completions.create({
-        model: "llama-3.1-8b-instant",
-        temperature: 0.2,
-        max_tokens: 2048,
-        messages
-      });
+        res.json({
+            success: true,
+            chatId: chatId,
+            reply: reply
+        });
 
-    // Get AI response
-    let reply =
-      completion.choices?.[0]?.message?.content;
+    } catch (error) {
+        console.error("CHAT ERROR:", error);
 
-    if (!reply) {
-      reply =
-        "Sorry, I couldn't generate a response.";
+        res.status(500).json({
+            success: false,
+            reply: "Internal AI server error."
+        });
     }
-
-    // Save AI response
-    saveMessage(
-      userId,
-      chatId,
-      "assistant",
-      reply
-    );
-
-    // Send response to frontend
-    res.json({
-      success: true,
-      chatId,
-      reply
-    });
-
-  } catch (error) {
-
-    console.error("CHAT ERROR:", error);
-
-    res.status(500).json({
-      success: false,
-      reply: "Internal AI server error."
-    });
-
-  }
 }
 
-module.exports = {
-  chat
-};
-```
+module.exports = { chat };
