@@ -1,209 +1,320 @@
 // ======================================================
 // Aman AI v4.0
 // Premium Frontend
-// PART 1
+// COMPLETE SCRIPT
 // ======================================================
 
-// ----------------------
+
+// ======================================================
 // API
-// ----------------------
+// ======================================================
 
 const API =
 "https://amanai-mdtj.onrender.com/chat";
 
-// ----------------------
+
+// ======================================================
 // DOM
-// ----------------------
+// ======================================================
 
-const sidebar=document.getElementById("sidebar");
-const overlay=document.getElementById("overlay");
-const chat=document.getElementById("chat");
-const input=document.getElementById("input");
-const sendBtn=document.getElementById("sendBtn");
-const voiceBtn=document.getElementById("voiceBtn");
-const menuBtn=document.getElementById("menuBtn");
-const closeSidebarBtn=document.getElementById("closeSidebarBtn");
-const deleteChatBtn=document.getElementById("deleteChatBtn");
-const newChatBtn=document.getElementById("newChatBtn");
-const chatList=document.getElementById("chatList");
-const fileInput=document.getElementById("fileInput");
+const sidebar =
+document.getElementById("sidebar");
 
-// ----------------------
-// USER
-// ----------------------
+const overlay =
+document.getElementById("overlay");
 
-let userId=localStorage.getItem("AmanUser");
+const chat =
+document.getElementById("chat");
 
-if(!userId){
+const input =
+document.getElementById("input");
 
-userId="user_"+Date.now();
+const sendBtn =
+document.getElementById("sendBtn");
 
-localStorage.setItem(
-"AmanUser",
-userId
-);
+const voiceBtn =
+document.getElementById("voiceBtn");
 
+const menuBtn =
+document.getElementById("menuBtn");
+
+const closeSidebarBtn =
+document.getElementById("closeSidebarBtn");
+
+const deleteChatBtn =
+document.getElementById("deleteChatBtn");
+
+const newChatBtn =
+document.getElementById("newChatBtn");
+
+const chatList =
+document.getElementById("chatList");
+
+const fileInput =
+document.getElementById("fileInput");
+
+
+// ======================================================
+// USER ID
+// ======================================================
+
+let userId =
+localStorage.getItem("AmanUser");
+
+
+// Create permanent browser identity
+// only if one does not already exist.
+
+if (!userId) {
+
+    userId =
+    "user_" + Date.now();
+
+    localStorage.setItem(
+        "AmanUser",
+        userId
+    );
 }
 
-let currentChatId=
+
+// ======================================================
+// CURRENT CHAT ID
+// ======================================================
+
+// IMPORTANT:
+// Never allow 0, "0", "null", "undefined"
+// or empty values to become a chat ID.
+
+let currentChatId =
 localStorage.getItem("AmanChat");
 
-if(currentChatId==="null"){
 
-currentChatId=null;
+function isValidChatId(id) {
 
+    if (!id) {
+        return false;
+    }
+
+    if (id === "0") {
+        return false;
+    }
+
+    if (id === 0) {
+        return false;
+    }
+
+    if (id === "null") {
+        return false;
+    }
+
+    if (id === "undefined") {
+        return false;
+    }
+
+    if (typeof id !== "string") {
+        return false;
+    }
+
+    if (!id.startsWith("chat_")) {
+        return false;
+    }
+
+    return true;
 }
 
-// ----------------------
+
+// Remove old/broken chat ID.
+
+if (!isValidChatId(currentChatId)) {
+
+    currentChatId = null;
+
+    localStorage.removeItem(
+        "AmanChat"
+    );
+}
+
+
+// ======================================================
 // SIDEBAR
-// ----------------------
+// ======================================================
 
-function openSidebar(){
+function openSidebar() {
 
-sidebar.classList.add("open");
+    sidebar.classList.add("open");
 
-overlay.classList.add("show");
-
+    overlay.classList.add("show");
 }
 
-function closeSidebar(){
 
-sidebar.classList.remove("open");
+function closeSidebar() {
 
-overlay.classList.remove("show");
+    sidebar.classList.remove("open");
 
+    overlay.classList.remove("show");
 }
 
-menuBtn.onclick=openSidebar;
 
-closeSidebarBtn.onclick=closeSidebar;
-
-overlay.onclick=closeSidebar;
-
-document.addEventListener("keydown",e=>{
-
-if(e.key==="Escape"){
-
-closeSidebar();
-
+if (menuBtn) {
+    menuBtn.onclick = openSidebar;
 }
 
-});
 
-// ----------------------
+if (closeSidebarBtn) {
+    closeSidebarBtn.onclick =
+    closeSidebar;
+}
+
+
+if (overlay) {
+    overlay.onclick =
+    closeSidebar;
+}
+
+
+document.addEventListener(
+    "keydown",
+    (e) => {
+
+        if (e.key === "Escape") {
+
+            closeSidebar();
+
+        }
+
+    }
+);
+
+
+// ======================================================
 // AUTO RESIZE
-// ----------------------
+// ======================================================
 
-input.addEventListener("input",()=>{
+if (input) {
 
-input.style.height="auto";
+    input.addEventListener(
+        "input",
+        () => {
 
-input.style.height=input.scrollHeight+"px";
+            input.style.height =
+            "auto";
 
-});
+            input.style.height =
+            input.scrollHeight + "px";
 
-// ----------------------
+        }
+    );
+
+}
+
+
+// ======================================================
 // PLUS BUTTON
-// ----------------------
+// ======================================================
 
-const plusButton=document.createElement("button");
+const plusButton =
+document.createElement("button");
 
-plusButton.className="composer-btn";
+plusButton.className =
+"composer-btn";
 
-plusButton.innerHTML="➕";
+plusButton.innerHTML =
+"➕";
 
-document.querySelector(".composer").insertBefore(
 
-plusButton,
+const composer =
+document.querySelector(".composer");
 
-voiceBtn
 
-);
+if (composer && voiceBtn) {
 
-plusButton.onclick=()=>{
+    composer.insertBefore(
+        plusButton,
+        voiceBtn
+    );
 
-fileInput.click();
+}
 
-};
 
-fileInput.onchange=()=>{
+plusButton.onclick = () => {
 
-const file=fileInput.files[0];
-
-if(!file)return;
-
-addMessage(
-
-"📎 "+file.name,
-
-"user"
-
-);
+    if (fileInput) {
+        fileInput.click();
+    }
 
 };
 
-// ----------------------
+
+if (fileInput) {
+
+    fileInput.onchange = () => {
+
+        const file =
+        fileInput.files[0];
+
+        if (!file) {
+            return;
+        }
+
+        addMessage(
+            "📎 " + file.name,
+            "user"
+        );
+
+    };
+
+}
+
+
+// ======================================================
 // WELCOME
-// ----------------------
+// ======================================================
 
-function showWelcome(){
+function showWelcome() {
 
-chat.innerHTML=`
+    chat.innerHTML = `
 
-<div class="empty-chat">
+        <div class="empty-chat">
 
-<h1>🤖</h1>
+            <h1>🤖</h1>
 
-<h2>Welcome to Aman AI</h2>
+            <h2>Welcome to Aman AI</h2>
 
-<p>
+            <p>
+                Ask anything...
+                Generate code...
+                Upload files...
+                Learn faster...
+            </p>
 
-Ask anything...
+        </div>
 
-Generate code...
-
-Upload files...
-
-Learn faster...
-
-</p>
-
-</div>
-
-`;
+    `;
 
 }
 
-// ----------------------
+
+// ======================================================
 // CLEAR CHAT
-// ----------------------
+// ======================================================
 
-function clearChat(){
+function clearChat() {
 
-chat.innerHTML="";
+    chat.innerHTML = "";
 
 }
 
-// ----------------------
-// START
-// ----------------------
 
-if(!currentChatId){
-
-showWelcome();
-
-}
 // ======================================================
-// PART 2 - CHAT ENGINE
+// MARKDOWN
 // ======================================================
 
-// ----------------------
-// Markdown
-// ----------------------
+function renderMarkdown(text) {
 
-function renderMarkdown(text){
-
-    if(typeof marked !== "undefined"){
+    if (
+        typeof marked !==
+        "undefined"
+    ) {
 
         return marked.parse(text);
 
@@ -213,380 +324,830 @@ function renderMarkdown(text){
 
 }
 
-// ----------------------
-// Copy Button
-// ----------------------
 
-function attachCodeCopyButtons(container){
+// ======================================================
+// COPY CODE BUTTONS
+// ======================================================
 
-    const blocks=container.querySelectorAll("pre");
+function attachCodeCopyButtons(
+    container
+) {
 
-    blocks.forEach(pre=>{
+    const blocks =
+    container.querySelectorAll(
+        "pre"
+    );
 
-        if(pre.querySelector(".copy-code-btn")) return;
 
-        const btn=document.createElement("button");
+    blocks.forEach(
+        (pre) => {
 
-        btn.className="copy-code-btn";
+            if (
+                pre.querySelector(
+                    ".copy-code-btn"
+                )
+            ) {
 
-        btn.textContent="📋 Copy";
+                return;
 
-        btn.onclick=()=>{
+            }
 
-            const code=pre.querySelector("code");
 
-            navigator.clipboard.writeText(code.innerText);
+            const btn =
+            document.createElement(
+                "button"
+            );
 
-            btn.textContent="✅ Copied";
 
-            setTimeout(()=>{
+            btn.className =
+            "copy-code-btn";
 
-                btn.textContent="📋 Copy";
+            btn.textContent =
+            "📋 Copy";
 
-            },2000);
 
-        };
+            btn.onclick = () => {
 
-        pre.style.position="relative";
+                const code =
+                pre.querySelector(
+                    "code"
+                );
 
-        pre.appendChild(btn);
 
-    });
+                if (!code) {
+                    return;
+                }
+
+
+                navigator.clipboard
+                .writeText(
+                    code.innerText
+                );
+
+
+                btn.textContent =
+                "✅ Copied";
+
+
+                setTimeout(
+                    () => {
+
+                        btn.textContent =
+                        "📋 Copy";
+
+                    },
+                    2000
+                );
+
+            };
+
+
+            pre.style.position =
+            "relative";
+
+
+            pre.appendChild(btn);
+
+        }
+    );
 
 }
 
-// ----------------------
-// Scroll
-// ----------------------
 
-function scrollChat(){
+// ======================================================
+// SCROLL
+// ======================================================
 
-    chat.scrollTop=chat.scrollHeight;
+function scrollChat() {
+
+    chat.scrollTop =
+    chat.scrollHeight;
 
 }
 
-// ----------------------
-// Message
-// ----------------------
 
-function addMessage(content,role){
+// ======================================================
+// ADD MESSAGE
+// ======================================================
 
-    const wrapper=document.createElement("div");
+function addMessage(
+    content,
+    role
+) {
 
-    wrapper.className="message "+role;
+    const wrapper =
+    document.createElement(
+        "div"
+    );
 
-    const bubble=document.createElement("div");
 
-    bubble.className="bubble";
+    wrapper.className =
+    "message " + role;
 
-    bubble.innerHTML=renderMarkdown(content);
 
-    wrapper.appendChild(bubble);
+    const bubble =
+    document.createElement(
+        "div"
+    );
 
-    chat.appendChild(wrapper);
 
-    attachCodeCopyButtons(bubble);
+    bubble.className =
+    "bubble";
+
+
+    bubble.innerHTML =
+    renderMarkdown(content);
+
+
+    wrapper.appendChild(
+        bubble
+    );
+
+
+    chat.appendChild(
+        wrapper
+    );
+
+
+    attachCodeCopyButtons(
+        bubble
+    );
+
 
     scrollChat();
 
-    if(role==="ai"){
 
-        addMessageActions(wrapper,content);
+    if (role === "ai") {
+
+        addMessageActions(
+            wrapper,
+            content
+        );
 
     }
+
 
     return bubble;
 
 }
 
-// ----------------------
-// Typing
-// ----------------------
 
-function createLoading(){
+// ======================================================
+// LOADING / TYPING
+// ======================================================
 
-    const wrapper=document.createElement("div");
+function createLoading() {
 
-    wrapper.className="message ai";
+    const wrapper =
+    document.createElement(
+        "div"
+    );
 
-    wrapper.innerHTML=`
 
-    <div class="bubble">
+    wrapper.className =
+    "message ai";
 
-        <div class="typing">
 
-            <span></span>
+    wrapper.innerHTML = `
 
-            <span></span>
+        <div class="bubble">
 
-            <span></span>
+            <div class="typing">
+
+                <span></span>
+                <span></span>
+                <span></span>
+
+            </div>
 
         </div>
 
-    </div>
-
     `;
 
-    chat.appendChild(wrapper);
+
+    chat.appendChild(
+        wrapper
+    );
+
 
     scrollChat();
+
 
     return wrapper;
 
 }
 
-// ----------------------
-// AI Typing Effect
-// ----------------------
 
-async function typeAI(element,text){
+// ======================================================
+// AI TYPING EFFECT
+// ======================================================
 
-    element.innerHTML="";
+async function typeAI(
+    element,
+    text
+) {
 
-    let output="";
+    element.innerHTML =
+    "";
 
-    for(let i=0;i<text.length;i++){
 
-        output+=text[i];
+    let output = "";
 
-        element.innerHTML=output;
+
+    for (
+        let i = 0;
+        i < text.length;
+        i++
+    ) {
+
+        output += text[i];
+
+        element.innerHTML =
+        output;
 
         scrollChat();
 
-        await new Promise(r=>setTimeout(r,12));
+
+        await new Promise(
+            (resolve) =>
+            setTimeout(
+                resolve,
+                12
+            )
+        );
 
     }
 
-    element.innerHTML=renderMarkdown(text);
 
-    attachCodeCopyButtons(element);
+    element.innerHTML =
+    renderMarkdown(text);
+
+
+    attachCodeCopyButtons(
+        element
+    );
 
 }
 
-// ----------------------
-// Send Message
-// ----------------------
 
-async function sendMessage(){
+// ======================================================
+// SEND MESSAGE
+// ======================================================
 
-    const message=input.value.trim();
+async function sendMessage() {
 
-    if(!message) return;
+    const message =
+    input.value.trim();
 
-    if(document.querySelector(".empty-chat")){
+
+    if (!message) {
+        return;
+    }
+
+
+    if (
+        document.querySelector(
+            ".empty-chat"
+        )
+    ) {
 
         clearChat();
 
     }
 
-    addMessage(message,"user");
 
-    input.value="";
+    addMessage(
+        message,
+        "user"
+    );
 
-    input.style.height="auto";
 
-    const loading=createLoading();
+    input.value = "";
 
-    try{
+    input.style.height =
+    "auto";
 
-        const res=await fetch(API,{
 
-            method:"POST",
+    const loading =
+    createLoading();
 
-            headers:{
 
-                "Content-Type":"application/json"
+    try {
 
-            },
+        /*
+        ==================================================
+        IMPORTANT
 
-            body:JSON.stringify({
+        If there is no valid current chat,
+        DO NOT send 0/null/undefined.
 
-                message,
+        The backend will create a real chat.
+        ==================================================
+        */
 
-                userId,
+        const requestBody = {
 
-                chatId:currentChatId
+            message,
 
-            })
+            userId
 
-        });
+        };
 
-        const data=await res.json();
+
+        if (
+            isValidChatId(
+                currentChatId
+            )
+        ) {
+
+            requestBody.chatId =
+            currentChatId;
+
+        }
+
+
+        console.log(
+            "SENDING:",
+            requestBody
+        );
+
+
+        const res =
+        await fetch(
+            API,
+            {
+
+                method: "POST",
+
+                headers: {
+
+                    "Content-Type":
+                    "application/json"
+
+                },
+
+                body:
+                JSON.stringify(
+                    requestBody
+                )
+
+            }
+        );
+
+
+        const data =
+        await res.json();
+
 
         loading.remove();
 
-        if(data.chatId){
 
-            currentChatId=data.chatId;
+        /*
+        ==================================================
+        SERVER MUST RETURN A REAL CHAT ID
+        ==================================================
+        */
+
+        if (
+            data.chatId &&
+            isValidChatId(
+                data.chatId
+            )
+        ) {
+
+            currentChatId =
+            data.chatId;
+
 
             localStorage.setItem(
-
                 "AmanChat",
-
                 currentChatId
+            );
 
+
+            console.log(
+                "CURRENT CHAT:",
+                currentChatId
             );
 
         }
 
-        const bubble=addMessage("","ai");
+
+        /*
+        ==================================================
+        ERROR RESPONSE
+        ==================================================
+        */
+
+        if (
+            data.success === false
+        ) {
+
+            addMessage(
+                data.reply ||
+                "⚠️ Aman AI returned an error.",
+                "ai"
+            );
+
+            return;
+
+        }
+
+
+        /*
+        ==================================================
+        AI RESPONSE
+        ==================================================
+        */
+
+        const bubble =
+        addMessage(
+            "",
+            "ai"
+        );
+
 
         await typeAI(
-
             bubble,
-
-            data.reply || "No response."
-
+            data.reply ||
+            "No response."
         );
+
 
         loadChats();
 
-    }
 
-    catch(err){
+    }
+    catch (err) {
 
         loading.remove();
 
+
         addMessage(
-
             "⚠️ Unable to connect to Aman AI server.",
-
             "ai"
-
         );
 
-        console.error(err);
+
+        console.error(
+            "CHAT ERROR:",
+            err
+        );
 
     }
 
 }
 
-sendBtn.onclick=sendMessage;
 
-input.addEventListener("keydown",e=>{
+if (sendBtn) {
 
-    if(e.key==="Enter" && !e.shiftKey){
+    sendBtn.onclick =
+    sendMessage;
 
-        e.preventDefault();
+}
 
-        sendMessage();
 
-    }
+if (input) {
 
-});
+    input.addEventListener(
+        "keydown",
+        (e) => {
+
+            if (
+                e.key === "Enter" &&
+                !e.shiftKey
+            ) {
+
+                e.preventDefault();
+
+                sendMessage();
+
+            }
+
+        }
+    );
+
+}
+
 
 // ======================================================
-// PART 3 - MEMORY + CHAT HISTORY
+// MESSAGE ACTIONS
 // ======================================================
 
-// ----------------------
-// Message Actions
-// ----------------------
+function addMessageActions(
+    messageBox,
+    text
+) {
 
-function addMessageActions(messageBox,text){
+    const actions =
+    document.createElement(
+        "div"
+    );
 
-    const actions=document.createElement("div");
 
-    actions.className="message-actions";
+    actions.className =
+    "message-actions";
 
-    actions.innerHTML=`
-<button>📋</button>
-<button>👍</button>
-<button>👎</button>
-<button>🔗</button>
-`;
 
-    const btn=actions.querySelectorAll("button");
+    actions.innerHTML = `
 
-    btn[0].onclick=()=>navigator.clipboard.writeText(text);
+        <button>📋</button>
+        <button>👍</button>
+        <button>👎</button>
+        <button>🔗</button>
 
-    btn[1].onclick=()=>btn[1].innerHTML="👍✅";
+    `;
 
-    btn[2].onclick=()=>btn[2].innerHTML="👎✅";
 
-    btn[3].onclick=async()=>{
+    const btn =
+    actions.querySelectorAll(
+        "button"
+    );
 
-        if(navigator.share){
 
-            navigator.share({text});
+    btn[0].onclick =
+    () => {
 
-        }else{
+        navigator.clipboard
+        .writeText(text);
 
-            navigator.clipboard.writeText(text);
+    };
+
+
+    btn[1].onclick =
+    () => {
+
+        btn[1].innerHTML =
+        "👍✅";
+
+    };
+
+
+    btn[2].onclick =
+    () => {
+
+        btn[2].innerHTML =
+        "👎✅";
+
+    };
+
+
+    btn[3].onclick =
+    async () => {
+
+        if (
+            navigator.share
+        ) {
+
+            navigator.share({
+                text
+            });
+
+        }
+        else {
+
+            navigator.clipboard
+            .writeText(text);
 
         }
 
     };
 
-    messageBox.appendChild(actions);
+
+    messageBox.appendChild(
+        actions
+    );
 
 }
 
-// ----------------------
-// Load Chats
-// ----------------------
 
-async function loadChats(){
+// ======================================================
+// LOAD CHATS
+// ======================================================
 
-    try{
+async function loadChats() {
 
-        const res=await fetch(
+    try {
 
+        const res =
+        await fetch(
             `${API}/chats/${userId}`
-
         );
 
-        const chats=await res.json();
 
-        chatList.innerHTML="";
+        if (!res.ok) {
 
-        Object.keys(chats).forEach(id=>{
+            throw new Error(
+                "Failed to load chats"
+            );
 
-            const div=document.createElement("div");
+        }
 
-            div.className="chat-item";
 
-            div.innerHTML="💬 "+(chats[id].title||"New Chat");
+        const chats =
+        await res.json();
 
-            div.onclick=()=>{
 
-                currentChatId=id;
+        chatList.innerHTML =
+        "";
 
-                localStorage.setItem(
 
-                    "AmanChat",
+        /*
+        ==================================================
+        NEW POSTGRESQL FORMAT
 
-                    id
+        Backend returns:
 
-                );
+        [
+            {
+                chat_id: "...",
+                title: "..."
+            }
+        ]
 
-                loadCurrentChat();
+        ==================================================
+        */
 
-                closeSidebar();
+        if (
+            Array.isArray(chats)
+        ) {
 
-            };
+            chats.forEach(
+                (item) => {
 
-            chatList.appendChild(div);
+                    const id =
+                    item.chat_id;
 
-        });
+
+                    if (
+                        !isValidChatId(
+                            id
+                        )
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    const div =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                    div.className =
+                    "chat-item";
+
+
+                    div.innerHTML =
+                    "💬 " +
+                    (
+                        item.title ||
+                        "New Chat"
+                    );
+
+
+                    div.onclick =
+                    () => {
+
+                        currentChatId =
+                        id;
+
+
+                        localStorage.setItem(
+                            "AmanChat",
+                            id
+                        );
+
+
+                        loadCurrentChat();
+
+                        closeSidebar();
+
+                    };
+
+
+                    chatList.appendChild(
+                        div
+                    );
+
+                }
+            );
+
+        }
+
+
+        /*
+        ==================================================
+        OLD FORMAT SUPPORT
+
+        This keeps compatibility if an older
+        server response is ever encountered.
+        ==================================================
+        */
+
+        else if (
+            chats &&
+            typeof chats === "object"
+        ) {
+
+            Object.keys(chats)
+            .forEach(
+                (id) => {
+
+                    if (
+                        !isValidChatId(
+                            id
+                        )
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    const div =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                    div.className =
+                    "chat-item";
+
+
+                    div.innerHTML =
+                    "💬 " +
+                    (
+                        chats[id]
+                        ?.title ||
+                        "New Chat"
+                    );
+
+
+                    div.onclick =
+                    () => {
+
+                        currentChatId =
+                        id;
+
+
+                        localStorage.setItem(
+                            "AmanChat",
+                            id
+                        );
+
+
+                        loadCurrentChat();
+
+                        closeSidebar();
+
+                    };
+
+
+                    chatList.appendChild(
+                        div
+                    );
+
+                }
+            );
+
+        }
 
     }
+    catch (err) {
 
-    catch(err){
-
-        console.error(err);
+        console.error(
+            "LOAD CHATS ERROR:",
+            err
+        );
 
     }
 
 }
 
-// ----------------------
-// Load Current Chat
-// ----------------------
 
-async function loadCurrentChat(){
+// ======================================================
+// LOAD CURRENT CHAT
+// ======================================================
 
-    if(!currentChatId){
+async function loadCurrentChat() {
+
+    if (
+        !isValidChatId(
+            currentChatId
+        )
+    ) {
+
+        currentChatId =
+        null;
+
+
+        localStorage.removeItem(
+            "AmanChat"
+        );
+
 
         showWelcome();
 
@@ -594,164 +1155,318 @@ async function loadCurrentChat(){
 
     }
 
-    try{
 
-        const res=await fetch(
+    try {
 
+        const res =
+        await fetch(
             `${API}/${userId}/${currentChatId}`
-
         );
 
-        const data=await res.json();
 
-        chat.innerHTML="";
+        if (!res.ok) {
 
-        (data.history||[]).forEach(msg=>{
+            /*
+            ==============================================
+            If the browser has a chat ID that no longer
+            exists in PostgreSQL, remove it safely.
+            ==============================================
+            */
 
-            addMessage(
+            currentChatId =
+            null;
 
-                msg.content,
 
-                msg.role==="user"
-
-                ?"user"
-
-                :"ai"
-
+            localStorage.removeItem(
+                "AmanChat"
             );
 
-        });
+
+            showWelcome();
+
+            return;
+
+        }
+
+
+        const data =
+        await res.json();
+
+
+        chat.innerHTML =
+        "";
+
+
+        (
+            data.history || []
+        )
+        .forEach(
+            (msg) => {
+
+                addMessage(
+
+                    msg.content,
+
+                    msg.role === "user"
+                    ? "user"
+                    : "ai"
+
+                );
+
+            }
+        );
+
+
+        if (
+            !data.history ||
+            data.history.length === 0
+        ) {
+
+            showWelcome();
+
+        }
 
     }
+    catch (err) {
 
-    catch(err){
-
-        console.error(err);
+        console.error(
+            "LOAD CHAT ERROR:",
+            err
+        );
 
     }
 
 }
 
-// ----------------------
-// New Chat
-// ----------------------
 
-async function createNewChat(){
+// ======================================================
+// NEW CHAT
+// ======================================================
 
-    try{
+async function createNewChat() {
 
-        const res=await fetch(
+    try {
 
+        const res =
+        await fetch(
             `${API}/new-chat`,
-
             {
 
-                method:"POST",
+                method: "POST",
 
-                headers:{
+                headers: {
 
-                    "Content-Type":"application/json"
+                    "Content-Type":
+                    "application/json"
 
                 },
 
-                body:JSON.stringify({
+                body:
+                JSON.stringify({
 
                     userId
 
                 })
 
             }
-
         );
 
-        const data=await res.json();
 
-        currentChatId=data.chatId;
+        const data =
+        await res.json();
+
+
+        /*
+        ==================================================
+        ONLY ACCEPT A REAL DATABASE CHAT ID
+        ==================================================
+        */
+
+        if (
+            !data.chatId ||
+            !isValidChatId(
+                data.chatId
+            )
+        ) {
+
+            console.error(
+                "INVALID CHAT ID:",
+                data
+            );
+
+            return;
+
+        }
+
+
+        currentChatId =
+        data.chatId;
+
 
         localStorage.setItem(
-
             "AmanChat",
-
             currentChatId
-
         );
+
 
         showWelcome();
 
+
         loadChats();
 
+
+        closeSidebar();
+
+
+        console.log(
+            "NEW CHAT:",
+            currentChatId
+        );
+
     }
+    catch (err) {
 
-    catch(err){
-
-        console.error(err);
+        console.error(
+            "CREATE CHAT ERROR:",
+            err
+        );
 
     }
 
 }
 
-newChatBtn.onclick=createNewChat;
 
-// ----------------------
-// Delete Chat
-// ----------------------
+if (newChatBtn) {
 
-async function deleteCurrentChat(){
+    newChatBtn.onclick =
+    createNewChat;
 
-    if(!currentChatId) return;
+}
 
-    try{
+
+// ======================================================
+// DELETE CURRENT CHAT
+// ======================================================
+
+async function deleteCurrentChat() {
+
+    if (
+        !isValidChatId(
+            currentChatId
+        )
+    ) {
+
+        currentChatId =
+        null;
+
+
+        localStorage.removeItem(
+            "AmanChat"
+        );
+
+
+        showWelcome();
+
+        return;
+
+    }
+
+
+    try {
 
         await fetch(
-
             `${API}/${userId}/${currentChatId}`,
-
             {
 
-                method:"DELETE"
+                method: "DELETE"
 
             }
+        );
 
+    }
+    catch (err) {
+
+        console.error(
+            "DELETE CHAT ERROR:",
+            err
         );
 
     }
 
-    catch(err){
 
-        console.error(err);
+    currentChatId =
+    null;
 
-    }
 
-    currentChatId=null;
+    localStorage.removeItem(
+        "AmanChat"
+    );
 
-    localStorage.removeItem("AmanChat");
 
     showWelcome();
+
 
     loadChats();
 
 }
 
-deleteChatBtn.onclick=deleteCurrentChat;
 
-// ----------------------
-// Voice
-// ----------------------
+if (deleteChatBtn) {
 
-voiceBtn.onclick=()=>{
+    deleteChatBtn.onclick =
+    deleteCurrentChat;
 
-    alert("🎤 Voice Mode coming soon.");
+}
 
-};
 
-// ----------------------
-// Start
-// ----------------------
+// ======================================================
+// VOICE
+// ======================================================
 
-loadChats();
+if (voiceBtn) {
 
-if(currentChatId){
+    voiceBtn.onclick =
+    () => {
+
+        alert(
+            "🎤 Voice Mode coming soon."
+        );
+
+    };
+
+}
+
+
+// ======================================================
+// START APPLICATION
+// ======================================================
+
+if (
+    !isValidChatId(
+        currentChatId
+    )
+) {
+
+    currentChatId =
+    null;
+
+    localStorage.removeItem(
+        "AmanChat"
+    );
+
+    showWelcome();
+
+}
+else {
 
     loadCurrentChat();
 
 }
+
+
+loadChats();
+
+
+// ======================================================
+// END
+// ======================================================
