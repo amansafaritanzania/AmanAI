@@ -1,7 +1,7 @@
+```js
 const express = require("express");
 
-const router =
-    express.Router();
+const router = express.Router();
 
 const {
     chat
@@ -18,14 +18,19 @@ const {
 } = require("../memory/chatMemory");
 
 
-router.post("/", chat);
+// ======================================================
+// CHAT
+// ======================================================
+
+router.post(
+    "/",
+    chat
+);
 
 
-/*
-========================================
-NEW CHAT
-========================================
-*/
+// ======================================================
+// NEW CHAT
+// ======================================================
 
 router.post(
     "/new-chat",
@@ -41,37 +46,30 @@ router.post(
                 await createChat(userId);
 
             res.json({
-
                 success: true,
-
                 chatId
-
             });
 
         } catch (error) {
 
-            console.error(error);
+            console.error(
+                "NEW CHAT ERROR:",
+                error
+            );
 
             res.status(500).json({
-
                 success: false,
-
                 message:
                     "Unable to create chat."
-
             });
-
         }
-
     }
 );
 
 
-/*
-========================================
-ALL CHATS
-========================================
-*/
+// ======================================================
+// ALL CHATS
+// ======================================================
 
 router.get(
     "/chats/:userId",
@@ -84,76 +82,30 @@ router.get(
             } = req.params;
 
             const chats =
-                await getUserChats(userId);
+                await getUserChats(
+                    userId
+                );
 
             res.json(chats);
 
         } catch (error) {
 
-            console.error(error);
+            console.error(
+                "GET CHATS ERROR:",
+                error
+            );
 
             res.status(500).json([]);
-
         }
-
     }
 );
 
 
-/*
-========================================
-ONE CHAT
-========================================
-*/
-
-router.get(
-    "/:userId/:chatId",
-    async (req, res) => {
-
-        try {
-
-            const {
-                userId,
-                chatId
-            } = req.params;
-
-            const history =
-                await getChat(
-                    userId,
-                    chatId
-                );
-
-            res.json({
-
-                success: true,
-
-                history
-
-            });
-
-        } catch (error) {
-
-            console.error(error);
-
-            res.status(500).json({
-
-                success: false,
-
-                history: []
-
-            });
-
-        }
-
-    }
-);
-
-
-/*
-========================================
-PERMANENT MEMORY
-========================================
-*/
+// ======================================================
+// PERMANENT MEMORY
+// IMPORTANT:
+// This MUST be before /:userId/:chatId
+// ======================================================
 
 router.get(
     "/memory/:userId",
@@ -171,36 +123,29 @@ router.get(
                 );
 
             res.json({
-
                 success: true,
-
                 memory
-
             });
 
         } catch (error) {
 
-            console.error(error);
+            console.error(
+                "GET MEMORY ERROR:",
+                error
+            );
 
             res.status(500).json({
-
                 success: false,
-
                 memory: {}
-
             });
-
         }
-
     }
 );
 
 
-/*
-========================================
-UPDATE MEMORY MANUALLY
-========================================
-*/
+// ======================================================
+// UPDATE PERMANENT MEMORY
+// ======================================================
 
 router.put(
     "/memory/:userId",
@@ -221,34 +166,72 @@ router.put(
             );
 
             res.json({
-
                 success: true,
-
                 memory
-
             });
 
         } catch (error) {
 
-            console.error(error);
+            console.error(
+                "UPDATE MEMORY ERROR:",
+                error
+            );
 
             res.status(500).json({
-
                 success: false
-
             });
-
         }
-
     }
 );
 
 
-/*
-========================================
-DELETE ONE CHAT
-========================================
-*/
+// ======================================================
+// ONE CHAT
+// IMPORTANT:
+// Keep this AFTER the specific routes above.
+// ======================================================
+
+router.get(
+    "/:userId/:chatId",
+    async (req, res) => {
+
+        try {
+
+            const {
+                userId,
+                chatId
+            } = req.params;
+
+            const history =
+                await getChat(
+                    userId,
+                    chatId
+                );
+
+            res.json({
+                success: true,
+                history
+            });
+
+        } catch (error) {
+
+            console.error(
+                "GET CHAT ERROR:",
+                error
+            );
+
+            res.status(500).json({
+                success: false,
+                history: []
+            });
+        }
+    }
+);
+
+
+// ======================================================
+// DELETE ONE CHAT
+// ======================================================
 
 router.delete(
     "/:userId/:chatId",
@@ -267,32 +250,27 @@ router.delete(
             );
 
             res.json({
-
                 success: true
-
             });
 
         } catch (error) {
 
-            console.error(error);
+            console.error(
+                "DELETE CHAT ERROR:",
+                error
+            );
 
             res.status(500).json({
-
                 success: false
-
             });
-
         }
-
     }
 );
 
 
-/*
-========================================
-DELETE ALL CHATS
-========================================
-*/
+// ======================================================
+// DELETE ALL CHATS
+// ======================================================
 
 router.delete(
     "/chats/:userId",
@@ -309,25 +287,23 @@ router.delete(
             );
 
             res.json({
-
                 success: true
-
             });
 
         } catch (error) {
 
-            console.error(error);
+            console.error(
+                "DELETE ALL CHATS ERROR:",
+                error
+            );
 
             res.status(500).json({
-
                 success: false
-
             });
-
         }
-
     }
 );
 
 
 module.exports = router;
+```
