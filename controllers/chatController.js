@@ -189,17 +189,19 @@ history.slice(-20).forEach(msg => {
 
     catch (error) {
 
-        console.error(error);
+    console.error("========== AI CHAT ERROR ==========");
+    console.error(error);
+    console.error("===================================");
 
-        res.status(500).json({
+    res.status(500).json({
 
-            success: false,
+        success: false,
 
-            reply: "Internal AI server error."
+        reply: "Aman AI error: " + (
+            error?.message || "Unknown server error"
+        )
 
-        });
-
-    }
+    });
 
 }
 
