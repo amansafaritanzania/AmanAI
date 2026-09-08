@@ -1,3 +1,4 @@
+```js
 // ======================================================
 // Aman AI Advanced Chat Controller
 // Memory + Smart Routing + Fresh Web Search
@@ -437,3 +438,4 @@ ${buildProfileContext(profile)}
 module.exports = {
     chat
 };
+```
