@@ -509,7 +509,12 @@ overlay.show{
 
 }
 
-
+.dashboard-link{
+    padding:10px 14px;
+    border-radius:10px;
+    text-decoration:none;
+    font-weight:700;
+}
 
 /* ====================================
    CHAT AREA
