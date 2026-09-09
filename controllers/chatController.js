@@ -880,6 +880,82 @@ agricultural terminology.
 }
 
 // ======================================================
+// HEALTH MEDICATION DOSE SAFETY
+// ======================================================
+
+function detectMedicationDoseRequest(message = "") {
+    const text = String(message || "").toLowerCase().trim();
+
+    const doseSignals = [
+        "how many tablets", "how many pills", "how many capsules",
+        "how much should i take", "what dose", "what dosage",
+        "how many mg", "dose should i take", "dosage should i take",
+        "how often should i take", "how many times should i take",
+        "dozi gani", "dozi ngapi", "vidonge vingapi",
+        "nitumie kiasi gani", "nitumie mara ngapi"
+    ];
+
+    return doseSignals.some(signal => text.includes(signal));
+}
+
+function hasAgeInformation(message = "") {
+    const text = String(message || "").toLowerCase();
+
+    const agePatterns = [
+        /\b(?:i am|i'm|im|age is|aged)\s+\d{1,3}\b/,
+        /\b\d{1,3}\s*(?:years?|yrs?)\s*old\b/,
+        /\b(?:ana miaka|nina miaka|umri(?: wangu)?(?: ni)?)\s*\d{1,3}\b/
+    ];
+
+    return agePatterns.some(pattern => pattern.test(text));
+}
+
+function hasMedicationStrength(message = "") {
+    const text = String(message || "").toLowerCase();
+    return /\b\d+(?:\.\d+)?\s*(?:mg|mcg|µg|g|ml)\b/.test(text);
+}
+
+function buildMedicationDoseClarification(message = "") {
+    const text = String(message || "").toLowerCase();
+
+    const swahili = [
+        "dozi", "vidonge", "kidonge", "nitumie", "dawa", "miaka", "umri"
+    ].some(signal => text.includes(signal));
+
+    const missingAge = !hasAgeInformation(message);
+    const missingStrength = !hasMedicationStrength(message);
+
+    if (swahili) {
+        if (missingAge && missingStrength) {
+            return "Dozi inaweza kutegemea umri wako na nguvu ya dawa. Una umri gani, na kwenye pakiti imeandikwa dawa hiyo ina nguvu gani, kwa mfano mg ngapi kwa kidonge?";
+        }
+        if (missingAge) {
+            return "Kabla sijakupa maelezo ya dozi, una umri gani? Umri unaweza kubadilisha dozi salama ya dawa.";
+        }
+        return "Dawa hiyo ina nguvu gani kwenye pakiti, kwa mfano mg ngapi kwa kidonge? Nahitaji hilo kabla ya kukupa maelezo ya dozi.";
+    }
+
+    if (missingAge && missingStrength) {
+        return "The dose can depend on your age and the strength of the medicine. How old are you, and what strength does the package show, for example how many mg per tablet?";
+    }
+    if (missingAge) {
+        return "Before I give dosing information, how old are you? Age can change what dose is appropriate.";
+    }
+    return "What strength does the medicine package show, for example how many mg per tablet? I need that before giving dosing information.";
+}
+
+function shouldClarifyMedicationDose(expertId, message) {
+    return (
+        expertId === "health" &&
+        detectMedicationDoseRequest(message) &&
+        (
+            !hasAgeInformation(message) ||
+            !hasMedicationStrength(message)
+        )
+    );
+}
+
+// ======================================================
 // SECONDARY EXPERT CONSULTATION
 // ======================================================
 //
@@ -1324,6 +1400,40 @@ console.log(
         ? "ACTIVE"
         : "NONE"
 );
+
+        // ==================================================
+        // DETERMINISTIC HEALTH DOSE CLARIFICATION
+        // ==================================================
+
+        if (
+            shouldClarifyMedicationDose(
+                expert.id,
+                message
+            )
+        ) {
+            const reply =
+                buildMedicationDoseClarification(
+                    message
+                );
+
+            console.log(
+                "🛡️ HEALTH DOSE CLARIFICATION: ACTIVE"
+            );
+
+            await saveMessage(
+                userId,
+                chatId,
+                "assistant",
+                reply
+            );
+
+            return res.json({
+                success: true,
+                chatId,
+                reply
+            });
+        }
+
 
         // ==================================================
         // SECONDARY COLLABORATION
