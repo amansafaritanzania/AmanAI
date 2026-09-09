@@ -1096,9 +1096,9 @@ const olderContext =
 
         const expert =
             chooseExpert(
-                message
+                message,
+                recentContext
             );
-
 
         console.log(
             "🧠 PRIMARY EXPERT:",
