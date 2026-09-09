@@ -1,5 +1,5 @@
 // ======================================================
-// Aman AI Smart Expert Router v6
+// Aman AI Smart Expert Router v6.1
 // Primary Expert + Collaboration + Conversation Continuity
 // ======================================================
 
@@ -142,11 +142,24 @@ const experts = [
             "beach safari",
             "zanzibar",
 
+            // Tanzania travel / entry
+            "tanzania visa",
+            "visa tanzania",
+            "enter tanzania",
+            "entering tanzania",
+            "entry requirements",
+            "entry requirement",
+            "travel to tanzania",
+            "travelling to tanzania",
+            "traveling to tanzania",
+
             // Kiswahili
             "utalii",
             "hifadhi",
             "wanyamapori",
-            "watalii"
+            "watalii",
+            "kuingia tanzania",
+            "masharti ya kuingia"
         ]
     },
 
@@ -197,13 +210,16 @@ const experts = [
             "medical", "illness",
             "injury", "body",
             "symptoms",
+            "vaccine", "vaccination",
+            "vaccinated",
 
             // Kiswahili
             "afya", "daktari",
             "hospitali", "dawa",
             "ugonjwa", "homa",
             "maumivu", "dalili",
-            "matibabu", "jeraha"
+            "matibabu", "jeraha",
+            "chanjo"
         ]
     },
 
@@ -330,6 +346,24 @@ const collaborationRules = {
                 "quote", "quotation",
                 "per person", "per-person",
                 "total", "usd", "tzs", "$"
+            ]
+        },
+
+        {
+            expert: "health",
+
+            signals: [
+                "yellow fever",
+                "yellow-fever",
+                "vaccine",
+                "vaccination",
+                "vaccinated",
+                "health requirement",
+                "health requirements",
+                "medical requirement",
+                "medical requirements",
+                "chanjo",
+                "homa ya manjano"
             ]
         },
 
@@ -570,6 +604,253 @@ function findCollaboration(
 
 
 // ======================================================
+// TANZANIA TRAVEL-ENTRY DETECTOR
+// ======================================================
+//
+// These questions belong primarily to Safari because
+// they concern entering / travelling to Tanzania.
+//
+// Health can still collaborate for vaccination or
+// health-entry questions.
+//
+
+function isTanzaniaTravelEntryQuestion(text = "") {
+
+    if (!text) {
+        return false;
+    }
+
+
+    const directSignals = [
+
+        "enter tanzania",
+        "entering tanzania",
+
+        "entry to tanzania",
+        "entry into tanzania",
+
+        "tanzania entry requirement",
+        "tanzania entry requirements",
+
+        "requirements to enter tanzania",
+        "requirement to enter tanzania",
+
+        "travel to tanzania",
+        "travelling to tanzania",
+        "traveling to tanzania",
+
+        "visit tanzania",
+        "visiting tanzania",
+
+        "tanzania visa",
+        "visa for tanzania",
+        "visa to tanzania",
+        "visa tanzania",
+
+        "tanzania immigration",
+
+        "tanzania passport requirement",
+        "tanzania passport requirements",
+
+        "kuingia tanzania",
+        "masharti ya kuingia tanzania",
+        "visa ya tanzania",
+        "uhamiaji tanzania"
+
+    ];
+
+
+    if (
+        directSignals.some(
+            signal =>
+                text.includes(signal)
+        )
+    ) {
+        return true;
+    }
+
+
+    // --------------------------------------------------
+    // Tanzania + travel-rule combination
+    // --------------------------------------------------
+
+    const mentionsTanzania =
+        text.includes("tanzania");
+
+
+    const travelRuleSignals = [
+
+        "visa",
+        "immigration",
+        "passport",
+
+        "entry requirement",
+        "entry requirements",
+        "entry rule",
+        "entry rules",
+
+        "yellow fever",
+        "yellow-fever",
+
+        "vaccine",
+        "vaccination",
+        "vaccinated",
+
+        "health requirement",
+        "health requirements",
+
+        "medical requirement",
+        "medical requirements",
+
+        "travel requirement",
+        "travel requirements",
+
+        "government requirement",
+        "government requirements",
+
+        "chanjo",
+        "homa ya manjano",
+
+        "masharti ya kuingia",
+        "uhamiaji"
+
+    ];
+
+
+    return (
+        mentionsTanzania &&
+        travelRuleSignals.some(
+            signal =>
+                text.includes(signal)
+        )
+    );
+
+}
+
+
+// ======================================================
+// APPLY DOMAIN PRIMARY PRIORITY
+// ======================================================
+//
+// Normal keyword score still matters.
+//
+// This layer only protects clear specialist ownership.
+//
+// Examples:
+//
+// maize + budget
+//     -> Agriculture primary
+//
+// safari + budget
+//     -> Safari primary
+//
+// yellow fever + entering Tanzania
+//     -> Safari primary
+//
+// Health can then collaborate on the travel-health part.
+//
+
+function applyDomainPrimaryPriority(
+    scoredExperts,
+    text
+) {
+
+    if (
+        !scoredExperts ||
+        !scoredExperts.length
+    ) {
+        return null;
+    }
+
+
+    let winner =
+        scoredExperts[0];
+
+
+    // ==================================================
+    // TANZANIA TRAVEL-ENTRY PRIORITY
+    // ==================================================
+
+    if (
+        isTanzaniaTravelEntryQuestion(text)
+    ) {
+
+        const safariCandidate =
+            scoredExperts.find(
+                expert =>
+                    expert.id === "safari"
+            ) ||
+            getExpertById("safari");
+
+
+        if (safariCandidate) {
+
+            return {
+                ...safariCandidate,
+
+                // Ensure routing does not later fall back
+                // merely because normal Safari keywords
+                // scored zero.
+                score:
+                    Math.max(
+                        safariCandidate.score || 0,
+                        1
+                    )
+            };
+
+        }
+
+    }
+
+
+    // ==================================================
+    // AGRICULTURE DOMAIN PRIORITY
+    // ==================================================
+
+    const agricultureCandidate =
+        scoredExperts.find(
+            expert =>
+                expert.id === "agriculture"
+        );
+
+
+    if (
+        agricultureCandidate &&
+        agricultureCandidate.score > 0
+    ) {
+
+        return agricultureCandidate;
+
+    }
+
+
+    // ==================================================
+    // SAFARI DOMAIN PRIORITY
+    // ==================================================
+
+    const safariCandidate =
+        scoredExperts.find(
+            expert =>
+                expert.id === "safari"
+        );
+
+
+    if (
+        safariCandidate &&
+        safariCandidate.score > 0
+    ) {
+
+        return safariCandidate;
+
+    }
+
+
+    return winner;
+
+}
+
+
+// ======================================================
 // CHOOSE PRIMARY EXPERT
 // ======================================================
 //
@@ -604,6 +885,7 @@ function chooseExpert(
             .map(
                 expert => ({
                     ...expert,
+
                     score:
                         scoreExpert(
                             text,
@@ -617,66 +899,15 @@ function chooseExpert(
             );
 
 
-    let winner =
-        scored[0];
-
     // ==================================================
-// DOMAIN PRIMARY PRIORITY
-// ==================================================
-//
-// A specialist domain should remain primary when
-// business/financial language is only a constraint
-// inside that domain.
-//
-// Examples:
-//
-// maize + budget  -> Agriculture + Business
-// safari + budget -> Safari + Business
-//
-// Not:
-//
-// Business + Agriculture
-// Business + Safari
-//
+    // CURRENT-MESSAGE DOMAIN PRIORITY
+    // ==================================================
 
-const agricultureCandidate =
-    scored.find(
-        expert =>
-            expert.id === "agriculture"
-    );
-
-const safariCandidate =
-    scored.find(
-        expert =>
-            expert.id === "safari"
-    );
-
-
-// Agriculture takes primary ownership when the
-// current message clearly contains agriculture.
-if (
-    agricultureCandidate &&
-    agricultureCandidate.score > 0
-) {
-
-    winner =
-        agricultureCandidate;
-
-}
-
-
-// Safari takes primary ownership when there is no
-// agriculture signal and the message clearly
-// contains safari/travel signals.
-else if (
-    safariCandidate &&
-    safariCandidate.score > 0
-) {
-
-    winner =
-        safariCandidate;
-
-}
+    let winner =
+        applyDomainPrimaryPriority(
+            scored,
+            text
+        );
 
 
     // ==================================================
@@ -708,6 +939,7 @@ else if (
                     .map(
                         expert => ({
                             ...expert,
+
                             score:
                                 scoreExpert(
                                     contextText,
@@ -721,8 +953,18 @@ else if (
                     );
 
 
+            // Use the same domain-priority logic on
+            // conversation context.
+            //
+            // This prevents financial words in an older
+            // agriculture/safari discussion from stealing
+            // primary ownership.
+
             const contextWinner =
-                contextScored[0];
+                applyDomainPrimaryPriority(
+                    contextScored,
+                    contextText
+                );
 
 
             if (
@@ -733,8 +975,7 @@ else if (
                 winner = {
                     ...contextWinner,
 
-                    // Mark this as context-based routing.
-                    // The score remains useful for logs.
+                    // Mark context-based routing.
                     fromContext: true
                 };
 
@@ -770,11 +1011,14 @@ else if (
     // COLLABORATION
     // ==================================================
     //
-    // Collaboration should be triggered primarily by
-    // the CURRENT message, not old context.
+    // Collaboration is triggered using the CURRENT
+    // message.
     //
-    // This prevents an old budget discussion from
-    // forcing Business into every later reply.
+    // Old context does not automatically trigger a
+    // secondary expert.
+    //
+    // This prevents an old budget/health discussion
+    // from forcing collaboration forever.
     //
 
     const collaboration =
