@@ -622,14 +622,13 @@ function buildExpertGuardrails(
         message
             .toLowerCase()
             .trim();
-
-    // ==================================================
+// ==================================================
 // SAFARI CURRENT TRAVEL INFORMATION GUARDRAIL
 // ==================================================
 
 if (expertId === "safari") {
 
-    const text =
+    const safariTravelText =
         String(message || "")
             .toLowerCase();
 
@@ -641,6 +640,9 @@ if (expertId === "safari") {
         "vaccine",
         "vaccination",
         "vaccinated",
+        "certificate",
+        "vaccination certificate",
+        "yellow fever certificate",
         "chanjo",
         "homa ya manjano",
 
@@ -653,6 +655,8 @@ if (expertId === "safari") {
         "passport",
         "requirements to enter",
         "requirement to enter",
+        "enter tanzania",
+        "entering tanzania",
         "kuingia tanzania",
         "masharti ya kuingia",
         "uhamiaji",
@@ -666,26 +670,44 @@ if (expertId === "safari") {
 
     ];
 
+
     const requiresCurrentVerification =
         currentTravelSignals.some(
             signal =>
-                text.includes(signal)
+                safariTravelText.includes(signal)
         );
+
 
     if (requiresCurrentVerification) {
 
         return `
-SAFARI CURRENT TRAVEL INFORMATION GUARDRAIL
+
+==================================================
+SAFARI CURRENT TRAVEL INFORMATION SAFETY
+==================================================
 
 The user is asking about travel information that may
-depend on current government, immigration, health or
-entry rules.
+depend on current government, immigration, border,
+health or entry regulations.
 
-ACCURACY IS MORE IMPORTANT THAN GIVING A DEFINITE ANSWER.
+CURRENT OFFICIAL RULES MUST NOT BE RECONSTRUCTED
+FROM MODEL MEMORY.
 
-Do NOT invent or rely on uncertain remembered rules.
+Accuracy is more important than giving a definite answer.
 
-Do NOT make an absolute claim about:
+The primary expert, any secondary specialist input,
+general model knowledge and remembered information
+must NOT be treated as verification of a current
+government rule.
+
+A rule is VERIFIED for this response only when current
+official information supporting that rule has actually
+been supplied in the conversation or system context.
+
+If such verified current information is NOT available,
+do NOT fill the gap using remembered knowledge.
+
+Do NOT make an unverified definite claim about:
 
 - visa requirements
 - immigration requirements
@@ -693,44 +715,120 @@ Do NOT make an absolute claim about:
 - yellow fever requirements
 - vaccination requirements
 - health-entry requirements
-- government entry rules
+- border requirements
+- government travel requirements
 
-unless verified current information has actually been
-provided to you in the conversation or system context.
+Do NOT supply remembered regulatory details such as:
 
-If verified current information is NOT available:
+- number of days before travel or entry
+- vaccine timing
+- certificate validity periods
+- transit-hour thresholds
+- minimum or maximum ages
+- exemption ages
+- medical exemptions
+- visa fees
+- government fees
+- permitted stay lengths
+- passport-validity periods
+- number of required blank passport pages
+- eligibility rules
+- country-risk classifications
+- mandatory documents
 
-1. Explain briefly that the requirement can depend on
-   factors such as nationality, origin, transit route or
-   current regulations.
+even if you believe those details are commonly known
+or were previously true.
 
-2. Clearly say that the current requirement should be
-   verified with the relevant official Tanzania
-   government, immigration or health authority.
+Do NOT convert uncertainty into phrases such as:
 
-3. Do NOT guess what the current official rule is.
+"you need..."
+"you must..."
+"it is required..."
+"the rule is..."
+"the certificate is valid for..."
+"the vaccine must be given..."
+"you are exempt..."
 
-4. Do NOT turn an uncertain rule into a confident yes/no
-   answer.
+unless the specific current rule has been verified by
+official information supplied in the available context.
 
-5. Do NOT invent certificate validity periods, vaccine
-   timing, fees, exemptions or eligibility rules.
+==================================================
+SECONDARY SPECIALIST INPUT
+==================================================
 
-6. If one missing detail would materially help, ask only
+A Health Expert or other secondary specialist may provide
+useful general background.
+
+However, specialist input is NOT proof that a current
+Tanzania government entry rule is still valid.
+
+If specialist input contains an unverified current rule,
+timing requirement, certificate rule, transit threshold,
+fee, exemption or eligibility condition:
+
+DO NOT repeat that detail in the final answer.
+
+The final answer must obey this guardrail even when
+specialist input sounds confident.
+
+==================================================
+WHAT TO DO WHEN CURRENT RULES ARE NOT VERIFIED
+==================================================
+
+If current official information is not available:
+
+1. State briefly that the requirement can depend on
+   relevant factors such as nationality, origin,
+   travel route, transit countries and current
+   regulations.
+
+2. Clearly distinguish general travel-health information
+   from an official Tanzania entry requirement.
+
+3. Say that the current rule should be verified through
+   the relevant official Tanzania government,
+   immigration, embassy/consular or health authority.
+
+4. Do not guess the current official answer.
+
+5. Do not invent supporting regulatory details.
+
+6. If one missing itinerary detail would materially help
+   explain what the traveller should verify, ask only
    that useful question.
+
+==================================================
+YELLOW FEVER
+==================================================
 
 For yellow fever specifically:
 
 Do NOT claim that every traveller, every American
-traveller, or every traveller from a particular country
-needs yellow fever vaccination unless current verified
-official information in the supplied context establishes
-that requirement for that traveller's route.
+traveller, every traveller from the United States, or
+every traveller from any particular country requires
+yellow fever vaccination or a certificate unless
+current verified official information supplied in the
+available context establishes that requirement for that
+traveller's circumstances.
 
-Transit through another country can matter, so do not
-reason only from nationality or departure country.
+Do NOT claim that a traveller definitely does NOT need
+it either unless current verified official information
+supports that conclusion.
 
-Keep the response concise, useful and natural.
+Transit through another country may affect entry rules,
+so do not reason only from nationality or the original
+departure country.
+
+Do NOT provide a remembered vaccine timing rule,
+certificate-validity rule or transit-duration threshold
+as though it were a verified current Tanzania entry
+requirement.
+
+If the current rule is not verified, say so clearly and
+direct the traveller to current official guidance.
+
+Keep the final response concise, useful and natural.
+
 `;
     }
 }
