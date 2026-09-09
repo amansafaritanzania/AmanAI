@@ -1,6 +1,6 @@
 // ======================================================
-// Aman AI Smart Expert Router v5
-// Primary Expert + Cross-Domain Collaboration
+// Aman AI Smart Expert Router v6
+// Primary Expert + Collaboration + Conversation Continuity
 // ======================================================
 
 const coder = require("../prompts/coder");
@@ -45,7 +45,6 @@ const experts = [
         ]
     },
 
-
     {
         id: "teacher",
         name: "Teacher Expert",
@@ -70,10 +69,16 @@ const experts = [
             "student", "students",
             "syllabus", "topic",
             "question", "questions",
-            "education", "learning"
+            "education", "learning",
+
+            // Kiswahili
+            "somo", "masomo",
+            "mwanafunzi", "wanafunzi",
+            "mtihani", "mitihani",
+            "hesabu", "fundisha",
+            "nifundishe"
         ]
     },
-
 
     {
         id: "agriculture",
@@ -100,10 +105,17 @@ const experts = [
             "farming", "crop disease",
             "plant disease",
             "livestock disease",
-            "animal feed"
+            "animal feed",
+
+            // Kiswahili
+            "kilimo", "mashamba",
+            "zao", "mazao",
+            "mbegu", "mbolea",
+            "mavuno", "umwagiliaji",
+            "mifugo", "ng'ombe",
+            "kuku", "mbuzi"
         ]
     },
-
 
     {
         id: "safari",
@@ -128,10 +140,15 @@ const experts = [
             "game drive",
             "national park",
             "beach safari",
-            "zanzibar"
+            "zanzibar",
+
+            // Kiswahili
+            "utalii",
+            "hifadhi",
+            "wanyamapori",
+            "watalii"
         ]
     },
-
 
     {
         id: "bible",
@@ -150,10 +167,16 @@ const experts = [
             "christian", "sermon",
             "devotion", "apostle",
             "christianity", "biblical",
-            "preaching", "preach"
+            "preaching", "preach",
+
+            // Kiswahili
+            "biblia", "yesu",
+            "mungu", "roho mtakatifu",
+            "kanisa", "maombi",
+            "ombi", "mstari",
+            "injili", "imani"
         ]
     },
-
 
     {
         id: "health",
@@ -173,10 +196,16 @@ const experts = [
             "symptom", "first aid",
             "medical", "illness",
             "injury", "body",
-            "medicine", "symptoms"
+            "symptoms",
+
+            // Kiswahili
+            "afya", "daktari",
+            "hospitali", "dawa",
+            "ugonjwa", "homa",
+            "maumivu", "dalili",
+            "matibabu", "jeraha"
         ]
     },
-
 
     {
         id: "business",
@@ -204,11 +233,20 @@ const experts = [
             "afford", "quote",
             "quotation", "profitability",
             "capital", "expense",
-            "expenses", "investment",
-            "invest", "commercial"
+            "expenses", "invest",
+            "commercial",
+
+            // Kiswahili
+            "biashara", "pesa",
+            "faida", "mapato",
+            "bajeti", "gharama",
+            "bei", "soko",
+            "masoko", "mteja",
+            "wateja", "mtaji",
+            "uwekezaji", "mauzo",
+            "matumizi ya pesa"
         ]
     },
-
 
     {
         id: "general",
@@ -226,7 +264,7 @@ const experts = [
 
 function normalizeText(message = "") {
 
-    return message
+    return String(message)
         .toLowerCase()
         .replace(/[\r\n]+/g, " ")
         .replace(/[^\w\s$€£¥+#.-]/g, " ")
@@ -237,13 +275,10 @@ function normalizeText(message = "") {
 
 
 // ======================================================
-// SCORE NORMAL EXPERT
+// SCORE EXPERT
 // ======================================================
 
-function scoreExpert(
-    text,
-    expert
-) {
+function scoreExpert(text, expert) {
 
     if (
         !expert ||
@@ -255,14 +290,9 @@ function scoreExpert(
 
     let score = 0;
 
-    for (
-        const keyword
-        of expert.keywords
-    ) {
+    for (const keyword of expert.keywords) {
 
-        if (
-            text.includes(keyword)
-        ) {
+        if (text.includes(keyword)) {
 
             score +=
                 keyword.includes(" ")
@@ -279,20 +309,10 @@ function scoreExpert(
 
 
 // ======================================================
-// COLLABORATION SIGNALS
+// COLLABORATION RULES
 // ======================================================
-//
-// These determine whether a SECOND expert is genuinely
-// useful for the request.
-//
-// Primary expert remains responsible for the answer.
-//
 
 const collaborationRules = {
-
-    // --------------------------------------------------
-    // SAFARI + BUSINESS
-    // --------------------------------------------------
 
     safari: [
 
@@ -300,26 +320,16 @@ const collaborationRules = {
             expert: "business",
 
             signals: [
-                "budget",
-                "cost",
-                "costs",
-                "price",
-                "pricing",
-                "expensive",
-                "cheap",
-                "affordable",
-                "afford",
-                "money",
-                "profit",
-                "quote",
-                "quotation",
-                "pricing",
-                "per person",
-                "per-person",
-                "total",
-                "usd",
-                "tzs",
-                "$"
+                "budget", "bajeti",
+                "cost", "costs", "gharama",
+                "price", "pricing", "bei",
+                "expensive", "cheap",
+                "affordable", "afford",
+                "money", "pesa",
+                "profit", "faida",
+                "quote", "quotation",
+                "per person", "per-person",
+                "total", "usd", "tzs", "$"
             ]
         },
 
@@ -327,21 +337,15 @@ const collaborationRules = {
             expert: "coder",
 
             signals: [
-                "website",
-                "web app",
+                "website", "web app",
                 "booking system",
                 "booking website",
-                "api",
-                "software"
+                "api", "software"
             ]
         }
 
     ],
 
-
-    // --------------------------------------------------
-    // AGRICULTURE + BUSINESS
-    // --------------------------------------------------
 
     agriculture: [
 
@@ -349,31 +353,27 @@ const collaborationRules = {
             expert: "business",
 
             signals: [
-                "budget",
-                "cost",
-                "profit",
-                "profitability",
-                "market",
-                "marketing",
-                "sell",
-                "selling",
-                "price",
-                "pricing",
-                "revenue",
-                "income",
-                "business",
-                "investment",
-                "capital",
-                "customer",
-                "customers"
+                "budget", "bajeti",
+                "cost", "costs", "gharama",
+                "profit", "profitability", "faida",
+                "market", "marketing",
+                "soko", "masoko",
+                "sell", "selling", "mauzo",
+                "price", "pricing", "bei",
+                "revenue", "income", "mapato",
+                "business", "biashara",
+                "investment", "uwekezaji",
+                "capital", "mtaji",
+                "customer", "customers",
+                "mteja", "wateja",
+                "money", "pesa",
+                "expense", "expenses",
+                "matumizi ya pesa"
             ]
         }
+
     ],
 
-
-    // --------------------------------------------------
-    // TEACHER + CODER
-    // --------------------------------------------------
 
     teacher: [
 
@@ -381,28 +381,19 @@ const collaborationRules = {
             expert: "coder",
 
             signals: [
-                "website",
-                "web",
-                "app",
-                "application",
-                "software",
-                "program",
-                "programming",
-                "code",
-                "coding",
-                "system",
-                "platform",
-                "dashboard",
+                "website", "web",
+                "app", "application",
+                "software", "program",
+                "programming", "code",
+                "coding", "system",
+                "platform", "dashboard",
                 "online lesson",
                 "learning app"
             ]
         }
+
     ],
 
-
-    // --------------------------------------------------
-    // BUSINESS + CODER
-    // --------------------------------------------------
 
     business: [
 
@@ -410,20 +401,13 @@ const collaborationRules = {
             expert: "coder",
 
             signals: [
-                "website",
-                "web",
-                "app",
-                "application",
-                "software",
-                "program",
-                "programming",
-                "code",
-                "coding",
-                "system",
-                "platform",
-                "dashboard",
-                "api",
-                "database",
+                "website", "web",
+                "app", "application",
+                "software", "program",
+                "programming", "code",
+                "coding", "system",
+                "platform", "dashboard",
+                "api", "database",
                 "automation"
             ]
         },
@@ -432,22 +416,29 @@ const collaborationRules = {
             expert: "teacher",
 
             signals: [
-                "training",
-                "course",
-                "lesson",
-                "teaching",
-                "school",
-                "students",
+                "training", "course",
+                "lesson", "teaching",
+                "school", "students",
                 "education"
+            ]
+        },
+
+        {
+            expert: "agriculture",
+
+            signals: [
+                "farm", "farming",
+                "agriculture",
+                "crop", "maize",
+                "rice", "shamba",
+                "kilimo", "mkulima",
+                "mahindi", "mpunga",
+                "mazao", "mifugo"
             ]
         }
 
     ],
 
-
-    // --------------------------------------------------
-    // CODER + BUSINESS
-    // --------------------------------------------------
 
     coder: [
 
@@ -455,17 +446,14 @@ const collaborationRules = {
             expert: "business",
 
             signals: [
-                "business",
-                "startup",
-                "customers",
-                "customer",
-                "profit",
-                "sell",
-                "selling",
-                "market",
-                "marketing",
-                "revenue",
-                "pricing"
+                "business", "startup",
+                "customers", "customer",
+                "profit", "sell",
+                "selling", "market",
+                "marketing", "revenue",
+                "pricing", "biashara",
+                "faida", "mteja",
+                "soko", "mauzo"
             ]
         },
 
@@ -473,26 +461,15 @@ const collaborationRules = {
             expert: "teacher",
 
             signals: [
-                "education",
-                "school",
-                "student",
-                "students",
-                "lesson",
-                "learning",
+                "education", "school",
+                "student", "students",
+                "lesson", "learning",
                 "teacher"
             ]
         }
 
     ],
 
-
-    // --------------------------------------------------
-    // HEALTH + BUSINESS
-    // --------------------------------------------------
-    //
-    // Only activate this when the question is explicitly
-    // about a business/financial side of healthcare.
-    //
 
     health: [
 
@@ -510,18 +487,33 @@ const collaborationRules = {
                 "clinic budget"
             ]
         }
+
     ]
 
 };
 
 
 // ======================================================
-// FIND COLLABORATION PARTNER
+// FIND EXPERT BY ID
+// ======================================================
+
+function getExpertById(id) {
+
+    return experts.find(
+        expert =>
+            expert.id === id
+    ) || null;
+
+}
+
+
+// ======================================================
+// FIND COLLABORATION
 // ======================================================
 
 function findCollaboration(
     primaryExpert,
-    text,
+    currentText,
     scoredExperts
 ) {
 
@@ -530,33 +522,20 @@ function findCollaboration(
             primaryExpert.id
         ] || [];
 
-
-    if (
-        rules.length === 0
-    ) {
+    if (!rules.length) {
         return null;
     }
 
 
-    // --------------------------------------------------
-    // Check explicit collaboration rules first
-    // --------------------------------------------------
-
-    for (
-        const rule
-        of rules
-    ) {
+    for (const rule of rules) {
 
         const hasSignal =
             rule.signals.some(
                 signal =>
-                    text.includes(signal)
+                    currentText.includes(signal)
             );
 
-
-        if (
-            !hasSignal
-        ) {
+        if (!hasSignal) {
             continue;
         }
 
@@ -564,38 +543,26 @@ function findCollaboration(
         const secondary =
             scoredExperts.find(
                 expert =>
-                    expert.id ===
-                    rule.expert
-            );
+                    expert.id === rule.expert
+            ) ||
+            getExpertById(rule.expert);
 
 
-        if (
-            secondary
-        ) {
+        if (secondary) {
 
             return {
-
-                id:
-                    secondary.id,
-
-                name:
-                    secondary.name,
-
-                score:
-                    Math.max(
-                        secondary.score,
-                        1
-                    )
+                id: secondary.id,
+                name: secondary.name,
+                score: Math.max(
+                    secondary.score || 0,
+                    1
+                )
             };
 
         }
 
     }
 
-
-    // --------------------------------------------------
-    // No meaningful collaboration
-    // --------------------------------------------------
 
     return null;
 
@@ -605,45 +572,119 @@ function findCollaboration(
 // ======================================================
 // CHOOSE PRIMARY EXPERT
 // ======================================================
+//
+// message:
+//     current user message
+//
+// context:
+//     recent conversation text supplied by chatController
+//
+// The current message has priority.
+// Context is used mainly for short follow-up continuity.
+//
 
 function chooseExpert(
-    message = ""
+    message = "",
+    context = ""
 ) {
 
     const text =
-        normalizeText(
-            message
-        );
+        normalizeText(message);
+
+    const contextText =
+        normalizeText(context);
 
 
     // ==================================================
-    // SCORE ALL EXPERTS
+    // SCORE CURRENT MESSAGE
     // ==================================================
 
     const scored =
         experts
             .map(
                 expert => ({
-
                     ...expert,
-
                     score:
                         scoreExpert(
                             text,
                             expert
                         )
-
                 })
             )
             .sort(
                 (a, b) =>
-                    b.score -
-                    a.score
+                    b.score - a.score
             );
 
 
-    const winner =
+    let winner =
         scored[0];
+
+
+    // ==================================================
+    // FOLLOW-UP CONTINUITY
+    // ==================================================
+    //
+    // If the current message has no specialist signal,
+    // look at recent conversation context.
+    //
+    // This lets replies such as:
+    //
+    // "Mwanza"
+    // "yes"
+    // "continue"
+    // "nisaidie sasa"
+    //
+    // remain with the active topic.
+    //
+
+    if (
+        !winner ||
+        winner.score === 0
+    ) {
+
+        if (contextText) {
+
+            const contextScored =
+                experts
+                    .map(
+                        expert => ({
+                            ...expert,
+                            score:
+                                scoreExpert(
+                                    contextText,
+                                    expert
+                                )
+                        })
+                    )
+                    .sort(
+                        (a, b) =>
+                            b.score - a.score
+                    );
+
+
+            const contextWinner =
+                contextScored[0];
+
+
+            if (
+                contextWinner &&
+                contextWinner.score > 0
+            ) {
+
+                winner = {
+                    ...contextWinner,
+
+                    // Mark this as context-based routing.
+                    // The score remains useful for logs.
+                    fromContext: true
+                };
+
+            }
+
+        }
+
+    }
 
 
     // ==================================================
@@ -656,30 +697,27 @@ function chooseExpert(
     ) {
 
         return {
-
-            id:
-                "general",
-
-            name:
-                "General Expert",
-
-            prompt:
-                general,
-
-            score:
-                0,
-
-            secondary:
-                null
-
+            id: "general",
+            name: "General Expert",
+            prompt: general,
+            score: 0,
+            secondary: null,
+            fromContext: false
         };
 
     }
 
 
     // ==================================================
-    // FIND COLLABORATION
+    // COLLABORATION
     // ==================================================
+    //
+    // Collaboration should be triggered primarily by
+    // the CURRENT message, not old context.
+    //
+    // This prevents an old budget discussion from
+    // forcing Business into every later reply.
+    //
 
     const collaboration =
         findCollaboration(
@@ -690,26 +728,17 @@ function chooseExpert(
 
 
     // ==================================================
-    // BUILD RESULT
+    // RESULT
     // ==================================================
 
     return {
-
-        id:
-            winner.id,
-
-        name:
-            winner.name,
-
-        prompt:
-            winner.prompt,
-
-        score:
-            winner.score,
-
-        secondary:
-            collaboration
-
+        id: winner.id,
+        name: winner.name,
+        prompt: winner.prompt,
+        score: winner.score,
+        secondary: collaboration,
+        fromContext:
+            winner.fromContext === true
     };
 
 }
@@ -719,5 +748,4 @@ function chooseExpert(
 // EXPORT
 // ======================================================
 
-module.exports =
-    chooseExpert;
+module.exports = chooseExpert;
