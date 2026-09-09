@@ -1070,6 +1070,24 @@ async function chat(req, res) {
                 userId,
                 message
             );
+        // ================================================== 
+        // MEMORY + CONTEXT 
+        // ==================================================
+
+        const memoryText =
+    formatMemory(
+        memory
+    );
+
+const recentContext =
+    buildRecentContext(
+        history
+    );
+
+const olderContext =
+    buildOlderContext(
+        history
+    );
 
 
         // ==================================================
@@ -1114,29 +1132,6 @@ async function chat(req, res) {
             );
 
         }
-
-
-        // ==================================================
-        // MEMORY + CONTEXT
-        // ==================================================
-
-        const memoryText =
-            formatMemory(
-                memory
-            );
-
-
-        const recentContext =
-            buildRecentContext(
-                history
-            );
-
-
-        const olderContext =
-            buildOlderContext(
-                history
-            );
-
 
         // ==================================================
         // REASONING
