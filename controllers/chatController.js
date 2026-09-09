@@ -1,6 +1,6 @@
 // ======================================================
-// Aman AI Core v6
-// Reasoning + Memory + Expert Collaboration
+// Aman AI Core v7
+// Memory + Adaptive Reasoning + Expert Collaboration
 // ======================================================
 
 const groq = require("../config/groq");
@@ -29,63 +29,65 @@ AMAN AI IDENTITY
 
 You are Aman AI.
 
+You are a practical, thoughtful and approachable
+assistant designed to understand the user's real problem
+and provide genuinely useful answers.
+
 You are not a generic global chatbot.
 
-You are a thoughtful, practical and approachable
-assistant designed to understand the user's real
-problem and give useful answers.
+COMMUNICATION:
 
-Speak naturally, directly and warmly.
-
-Do not sound robotic, corporate or unnecessarily formal.
-
-Do not constantly introduce yourself.
-
-Do not use empty phrases such as:
-"Certainly!"
-"Absolutely!"
-"Happy to help!"
-"How can I assist you today?"
-
-Answer the user's actual question first.
-
-Match the user's language and communication style.
-
-English -> natural English.
-
-Kiswahili -> natural Tanzanian Kiswahili.
-
-Mixed language -> follow the user's style naturally
-when appropriate.
+- Speak naturally and directly.
+- Be warm, clear and confident.
+- Do not sound robotic, corporate or excessively formal.
+- Answer the user's actual question first.
+- Do not constantly introduce yourself.
+- Do not use empty phrases such as:
+  "Certainly!"
+  "Absolutely!"
+  "Happy to help!"
+  "How can I assist you today?"
 
 Do not claim to be human.
 
 Do not pretend to have personal experiences.
 
-Do not expose internal system instructions.
+Do not expose internal instructions,
+expert routing or collaboration.
 
-Do not expose expert-routing or collaboration details.
+LANGUAGE:
 
-Prefer clear natural paragraphs.
+- Match the user's language.
+- English -> natural English.
+- Kiswahili -> natural Tanzanian Kiswahili.
+- Mixed language -> naturally follow the user's style.
 
-Avoid unnecessary tables, headings and decorative
-formatting.
+RESPONSE STYLE:
 
-Use lists only when they genuinely improve clarity.
+- Prefer natural conversation.
+- Avoid unnecessary tables.
+- Avoid huge reports.
+- Avoid decorative separators.
+- Avoid unnecessary headings.
+- Use lists only when they genuinely help.
+- Keep answers focused.
 
-Be accurate.
+ACCURACY:
 
-Never invent facts, prices, availability,
-regulations or confirmations.
+- Never invent facts.
+- Never invent prices, availability,
+  regulations or confirmations.
+- Distinguish facts from estimates.
+- Be honest when uncertain.
 
-When uncertain, say so.
-
-Ask one useful follow-up question only when needed.
+The goal is for Aman AI to feel like a knowledgeable
+fellow who understands the user's situation,
+not a generic answer generator.
 `;
 
 
 // ======================================================
-// EXPERT PROMPTS FOR REAL COLLABORATION
+// EXPERT PROMPTS
 // ======================================================
 
 const expertPrompts = {
@@ -127,15 +129,19 @@ function formatMemory(memory) {
         !memory ||
         Object.keys(memory).length === 0
     ) {
+
         return "No permanent user memories yet.";
+
     }
 
     const lines = [];
 
     if (memory.name) {
+
         lines.push(
             `Preferred/name: ${memory.name}`
         );
+
     }
 
     return lines.join("\n");
@@ -152,7 +158,9 @@ function cleanContent(content) {
         !content ||
         typeof content !== "string"
     ) {
+
         return "";
+
     }
 
     return content
@@ -162,13 +170,43 @@ function cleanContent(content) {
 
 
 // ======================================================
+// TRIM LARGE TEXT
+// ======================================================
+
+function limitText(
+    text,
+    maxChars
+) {
+
+    if (!text) {
+        return "";
+    }
+
+    if (
+        text.length <= maxChars
+    ) {
+
+        return text;
+
+    }
+
+    return text.substring(
+        0,
+        maxChars
+    );
+}
+
+
+// ======================================================
 // RECENT CONTEXT
 // ======================================================
 
-function buildRecentContext(history) {
+function buildRecentContext(
+    history
+) {
 
     const MAX_MESSAGES = 6;
-    const MAX_CHARS = 5000;
+    const MAX_CHARS = 4200;
 
     const recent =
         history.slice(
@@ -177,7 +215,10 @@ function buildRecentContext(history) {
 
     let output = "";
 
-    for (const msg of recent) {
+    for (
+        const msg
+        of recent
+    ) {
 
         const role =
             msg.role === "assistant"
@@ -201,7 +242,9 @@ function buildRecentContext(history) {
             line.length >
             MAX_CHARS
         ) {
+
             break;
+
         }
 
         output += line;
@@ -215,12 +258,16 @@ function buildRecentContext(history) {
 // OLDER USER CONTEXT
 // ======================================================
 
-function buildOlderContext(history) {
+function buildOlderContext(
+    history
+) {
 
     if (
         history.length <= 6
     ) {
+
         return "";
+
     }
 
     const older =
@@ -230,13 +277,16 @@ function buildOlderContext(history) {
                 msg =>
                     msg.role === "user"
             )
-            .slice(-4);
+            .slice(-3);
 
-    const MAX_CHARS = 1600;
+    const MAX_CHARS = 1200;
 
     let output = "";
 
-    for (const msg of older) {
+    for (
+        const msg
+        of older
+    ) {
 
         const content =
             cleanContent(
@@ -248,14 +298,16 @@ function buildOlderContext(history) {
         }
 
         const line =
-            `Earlier topic: ${content}\n`;
+            `Earlier user topic: ${content}\n`;
 
         if (
             output.length +
             line.length >
             MAX_CHARS
         ) {
+
             break;
+
         }
 
         output += line;
@@ -305,249 +357,205 @@ function determineReasoningEffort(
 
     ];
 
-    const complex =
-        text.length > 700 ||
+    if (
+        text.length > 700
+    ) {
+
+        return "medium";
+
+    }
+
+    if (
         mediumSignals.some(
             signal =>
                 text.includes(signal)
-        );
+        )
+    ) {
 
-    return complex
-        ? "medium"
-        : "low";
+        return "medium";
+
+    }
+
+    return "low";
 }
 
 
 // ======================================================
-// BUILD SECONDARY EXPERT TOOL
+// SECONDARY EXPERT CONSULTATION
 // ======================================================
 //
-// The tool performs a real specialist analysis.
-// It does NOT give the user-facing answer.
+// This is deterministic:
+// Router selects secondary -> server consults it.
+// No tool_choice is used.
 //
 
-function createSecondaryExpertTool(
+async function consultSecondaryExpert({
+
+    primaryExpert,
     secondaryExpert,
     userMessage,
     memoryText,
     recentContext
-) {
 
-    const expertId =
-        secondaryExpert.id;
+}) {
 
-    const expertPrompt =
-        expertPrompts[expertId];
+    if (
+        !secondaryExpert ||
+        !secondaryExpert.id
+    ) {
 
-    if (!expertPrompt) {
-        return null;
+        return "";
+
+    }
+
+    const secondaryPrompt =
+        expertPrompts[
+            secondaryExpert.id
+        ];
+
+    if (!secondaryPrompt) {
+
+        return "";
+
     }
 
 
-    const toolName =
-        `consult_${expertId}_expert`;
+    console.log(
+        "🤝 CONSULTING SECONDARY:",
+        secondaryExpert.id
+    );
 
 
-    return {
+    const specialistSystem = `
 
-        definition: {
-
-            type: "function",
-
-            function: {
-
-                name:
-                    toolName,
-
-                description:
-                    `Consult the ${secondaryExpert.name} for specialist analysis when the primary expert needs additional expertise. Return specialist insight only. Do not produce a final user-facing answer.`,
-
-                parameters: {
-
-                    type: "object",
-
-                    properties: {}
-
-                }
-
-            }
-
-        },
-
-
-        async execute() {
-
-            console.log(
-                "🤝 CONSULTING:",
-                secondaryExpert.name
-            );
-
-
-            const specialistPrompt = `
-
-You are acting as Aman AI's
+You are Aman AI's internal
 ${secondaryExpert.name}.
 
-You are a specialist supporting another Aman AI expert.
+You are assisting the primary expert.
 
-Your job is NOT to speak directly to the user.
+Do NOT answer the user directly.
 
-Provide concise, accurate specialist analysis that
-another expert can use.
+Give only concise specialist insight.
+
+Focus only on the part of the request that belongs
+to your expertise.
 
 Do not invent facts.
 
-Do not make unsupported claims.
+Do not repeat the entire question.
 
-Do not repeat the whole user question.
+Do not use tables.
 
-Do not produce a polished final answer.
+Do not use decorative formatting.
 
-SPECIALIST EXPERT RULES:
+Keep your response under 120 words.
 
-${expertPrompt}
+PRIMARY EXPERT:
+${primaryExpert.name}
 
-USER REQUEST:
-
-${userMessage}
+YOUR SPECIALIST ROLE:
+${limitText(
+    secondaryPrompt,
+    5000
+)}
 
 PERMANENT MEMORY:
-
-${memoryText}
+${limitText(
+    memoryText,
+    800
+)}
 
 RECENT CONTEXT:
+${limitText(
+    recentContext || "None",
+    2200
+)}
 
-${recentContext || "None"}
-
-Return only the specialist insight that would help
-the primary expert make a better answer.
+USER REQUEST:
+${limitText(
+    userMessage,
+    1400
+)}
 `;
 
 
-            try {
+    try {
 
-                const result =
-                    await groq.chat.completions.create({
+        const completion =
+            await groq.chat.completions.create({
 
-                        model:
-                            "openai/gpt-oss-20b",
+                model:
+                    "openai/gpt-oss-20b",
 
-                        temperature:
-                            0.1,
+                temperature:
+                    0.1,
 
-                        reasoning_effort:
-                            "low",
+                reasoning_effort:
+                    "low",
 
-                        include_reasoning:
-                            false,
+                include_reasoning:
+                    false,
 
-                        max_completion_tokens:
-                            350,
+                max_completion_tokens:
+                    220,
 
-                        messages: [
+                messages: [
 
-                            {
+                    {
+                        role:
+                            "system",
 
-                                role:
-                                    "system",
+                        content:
+                            specialistSystem
+                    },
 
-                                content:
-                                    specialistPrompt
+                    {
+                        role:
+                            "user",
 
-                            },
+                        content:
+                            userMessage
+                    }
 
-                            {
+                ]
 
-                                role:
-                                    "user",
-
-                                content:
-                                    userMessage
-
-                            }
-
-                        ]
-
-                    });
+            });
 
 
-                return (
-                    result
-                        .choices?.[0]
-                        ?.message
-                        ?.content
-                        ?.trim()
-                || "The specialist could not provide additional insight."
-                );
+        const result =
+            completion
+                .choices?.[0]
+                ?.message
+                ?.content
+                ?.trim();
 
-            } catch (error) {
 
-                console.error(
-                    "SECONDARY EXPERT ERROR:",
-                    error
-                );
+        if (
+            result
+        ) {
 
-                return (
-                    "Secondary specialist consultation failed."
-                );
-
-            }
+            console.log(
+                "🤝 SPECIALIST CONSULTATION COMPLETE:",
+                secondaryExpert.id
+            );
 
         }
 
-    };
-}
+        return result || "";
 
+    } catch (error) {
 
-// ======================================================
-// EXECUTE TOOL CALL
-// ======================================================
-
-async function executeToolCall(
-    toolCall,
-    availableTools
-) {
-
-    const functionName =
-        toolCall
-            ?.function
-            ?.name;
-
-
-    if (
-        !functionName ||
-        !availableTools[functionName]
-    ) {
-
-        return (
-            "Unknown specialist tool."
+        console.error(
+            "🤝 SECONDARY CONSULTATION FAILED:",
+            error?.status,
+            error?.message
         );
 
-    }
-
-
-    let args = {};
-
-    try {
-
-        args =
-            JSON.parse(
-                toolCall
-                    .function
-                    .arguments || "{}"
-            );
-
-    } catch {
-
-        args = {};
+        // Graceful fallback:
+        // Primary expert continues without specialist input.
+        return "";
 
     }
-
-
-    return await availableTools[
-        functionName
-    ].execute(args);
-
 }
 
 
@@ -578,7 +586,7 @@ async function chat(req, res) {
 
 
         // ==================================================
-        // VALIDATION
+        // VALIDATE
         // ==================================================
 
         if (
@@ -661,7 +669,7 @@ async function chat(req, res) {
 
 
         // ==================================================
-        // UPDATE MEMORY
+        // UPDATE PERMANENT MEMORY
         // ==================================================
 
         const memory =
@@ -672,7 +680,7 @@ async function chat(req, res) {
 
 
         // ==================================================
-        // SELECT PRIMARY EXPERT
+        // PRIMARY EXPERT
         // ==================================================
 
         const expert =
@@ -754,7 +762,48 @@ async function chat(req, res) {
 
 
         // ==================================================
-        // SYSTEM PROMPT
+        // SECONDARY CONSULTATION
+        // ==================================================
+
+        let specialistInsight =
+            "";
+
+
+        if (
+            expert.secondary
+        ) {
+
+            specialistInsight =
+                await consultSecondaryExpert({
+
+                    primaryExpert:
+                        expert,
+
+                    secondaryExpert:
+                        expert.secondary,
+
+                    userMessage:
+                        message,
+
+                    memoryText,
+
+                    recentContext
+
+                });
+
+        }
+
+
+        console.log(
+            "🤝 COLLABORATION:",
+            specialistInsight
+                ? "SUCCESS"
+                : "NONE"
+        );
+
+
+        // ==================================================
+        // FINAL SYSTEM PROMPT
         // ==================================================
 
         const systemPrompt = `
@@ -765,80 +814,89 @@ ${AMAN_AI_IDENTITY}
 PRIMARY EXPERT
 ==================================================
 
-${expert.prompt}
+${limitText(
+    expert.prompt,
+    8500
+)}
 
 ==================================================
 PERMANENT USER MEMORY
 ==================================================
 
-${memoryText}
+${limitText(
+    memoryText,
+    1000
+)}
 
 ==================================================
-OLDER USER CONTEXT
+OLDER CONTEXT
 ==================================================
 
-${olderContext || "None"}
+${limitText(
+    olderContext || "None",
+    1400
+)}
 
 ==================================================
 RECENT CONVERSATION
 ==================================================
 
-${recentContext || "None"}
+${limitText(
+    recentContext || "None",
+    4200
+)}
 
 ==================================================
-EXPERT COLLABORATION
+SPECIALIST INPUT
 ==================================================
 
 ${
-    expert.secondary
+    specialistInsight
         ? `
-A secondary specialist has been selected.
+A specialist has provided internal analysis.
 
-You are the PRIMARY expert.
+SPECIALIST:
+${expert.secondary?.name || "Secondary Expert"}
 
-You may consult the secondary specialist tool
-provided to you.
+SPECIALIST INSIGHT:
+${limitText(
+    specialistInsight,
+    1400
+)}
 
-Use that specialist when their expertise materially
-improves the answer.
+Use this only where it is accurate and relevant.
 
-After receiving the specialist result:
+You remain responsible for the final answer.
 
-- evaluate it;
-- keep what is useful;
-- reject unsupported claims;
-- combine it with your own expertise;
-- produce ONE coherent answer.
-
-Never tell the user that internal experts were consulted.
+Do not mention the specialist or internal collaboration
+to the user.
 `
         : `
-No secondary specialist is currently required.
+No specialist input is available.
 
-Answer directly using your own expertise.
+Answer using your primary expertise.
 `
 }
 
 ==================================================
-FINAL ANSWER
+FINAL RESPONSE RULES
 ==================================================
 
-The final answer is for the user.
-
-Do not expose internal reasoning.
-
-Do not expose tool calls.
-
-Do not expose expert routing.
-
-Answer naturally.
-
-Prioritize accuracy over impressiveness.
+- Answer the user's current question directly.
+- Use relevant memory naturally.
+- Use recent context when useful.
+- Treat older context only as background.
+- Never expose internal reasoning.
+- Never expose expert routing.
+- Never expose specialist consultation.
+- Never invent facts.
+- Prefer accuracy over impressiveness.
+- Keep the response useful and natural.
 `;
 
 
         // ==================================================
-        // INITIAL MODEL MESSAGES
+        // MODEL MESSAGES
         // ==================================================
 
         const messages = [
@@ -851,265 +909,61 @@ Prioritize accuracy over impressiveness.
                 content:
                     systemPrompt
 
+            },
+
+            {
+
+                role:
+                    "user",
+
+                content:
+                    message
+
             }
 
         ];
 
 
         // ==================================================
-        // CURRENT REQUEST
-        // ==================================================
-
-        messages.push({
-
-            role:
-                "user",
-
-            content:
-                message
-
-        });
-
-
-        // ==================================================
-        // COLLABORATION TOOL
-        // ==================================================
-
-        let collaborationTool =
-            null;
-
-
-        if (
-            expert.secondary
-        ) {
-
-            collaborationTool =
-                createSecondaryExpertTool(
-
-                    expert.secondary,
-
-                    message,
-
-                    memoryText,
-
-                    recentContext
-
-                );
-
-        }
-
-
-        const tools =
-            collaborationTool
-                ? [
-                    collaborationTool.definition
-                ]
-                : [];
-
-
-        const availableTools =
-            collaborationTool
-                ? {
-                    [
-                        collaborationTool
-                            .definition
-                            .function
-                            .name
-                    ]:
-                        collaborationTool
-                }
-                : {};
-
-
-        // ==================================================
-        // FIRST GROQ CALL
+        // FINAL GROQ CALL
         // ==================================================
 
         console.log(
-            "\n========== GROQ PRIMARY REQUEST ==========\n"
+            "\n========== GROQ FINAL REQUEST ==========\n"
         );
 
 
-        const firstOptions = {
+        const completion =
+            await groq.chat.completions.create({
 
-            model:
-                "openai/gpt-oss-20b",
+                model:
+                    "openai/gpt-oss-20b",
 
-            temperature:
-                0.2,
+                temperature:
+                    0.2,
 
-            reasoning_effort:
-                reasoningEffort,
+                reasoning_effort:
+                    reasoningEffort,
 
-            include_reasoning:
-                false,
+                include_reasoning:
+                    false,
 
-            max_completion_tokens:
-                700,
+                max_completion_tokens:
+                    700,
 
-            messages
-
-        };
-
-
-        if (
-            tools.length > 0
-        ) {
-
-            firstOptions.tools =
-                tools;
-
-            firstOptions.tool_choice = {
-
-                type:
-                    "function",
-
-                function: {
-
-                    name:
-                        collaborationTool
-                            .definition
-                            .function
-                            .name
-
-                }
-
-            };
-
-        }
-
-
-        let completion =
-            await groq.chat.completions.create(
-                firstOptions
-            );
-
-
-        let responseMessage =
-            completion
-                .choices?.[0]
-                ?.message;
-
-
-        // ==================================================
-        // TOOL CALL / REAL COLLABORATION
-        // ==================================================
-
-        if (
-            responseMessage &&
-            responseMessage.tool_calls &&
-            responseMessage.tool_calls.length > 0
-        ) {
-
-            console.log(
-                "🤝 REAL EXPERT COLLABORATION STARTED"
-            );
-
-
-            // Add assistant tool-call message
-            messages.push(
-                responseMessage
-            );
-
-
-            // We intentionally support one specialist
-            // consultation in this version.
-            const toolCall =
-                responseMessage
-                    .tool_calls[0];
-
-
-            console.log(
-                "🤝 TOOL:",
-                toolCall
-                    ?.function
-                    ?.name
-            );
-
-
-            const specialistResult =
-                await executeToolCall(
-                    toolCall,
-                    availableTools
-                );
-
-
-            // Add specialist result
-            messages.push({
-
-                role:
-                    "tool",
-
-                tool_call_id:
-                    toolCall.id,
-
-                name:
-                    toolCall
-                        .function
-                        .name,
-
-                content:
-                    String(
-                        specialistResult
-                    )
+                messages
 
             });
 
 
-            console.log(
-                "🤝 SPECIALIST RESULT RECEIVED"
-            );
-
-
-            // ==================================================
-            // FINAL SYNTHESIS
-            // ==================================================
-
-            console.log(
-                "\n========== GROQ FINAL SYNTHESIS ==========\n"
-            );
-
-
-            completion =
-                await groq.chat.completions.create({
-
-                    model:
-                        "openai/gpt-oss-20b",
-
-                    temperature:
-                        0.2,
-
-                    reasoning_effort:
-                        reasoningEffort,
-
-                    include_reasoning:
-                        false,
-
-                    max_completion_tokens:
-                        700,
-
-                    tool_choice:
-                        "none",
-
-                    messages
-
-                });
-
-
-            responseMessage =
-                completion
-                    .choices?.[0]
-                    ?.message;
-
-        }
-
-
         // ==================================================
-        // FINAL REPLY
+        // GET RESPONSE
         // ==================================================
 
         let reply =
-            responseMessage
+            completion
+                .choices?.[0]
+                ?.message
                 ?.content
                 ?.trim();
 
@@ -1123,7 +977,7 @@ Prioritize accuracy over impressiveness.
 
 
         // ==================================================
-        // SAVE ASSISTANT RESPONSE
+        // SAVE RESPONSE
         // ==================================================
 
         await saveMessage(
@@ -1135,7 +989,7 @@ Prioritize accuracy over impressiveness.
 
 
         // ==================================================
-        // RESPONSE
+        // RETURN
         // ==================================================
 
         res.json({
