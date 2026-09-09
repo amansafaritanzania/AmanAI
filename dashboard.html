@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Workspace | Aman AI</title>
+<style>
+:root{--bg:#07110e;--panel:#0e1d18;--line:rgba(255,255,255,.09);--text:#f5f7f5;--muted:#a7b4ad;--accent:#d4ad62;--accent2:#f1d79b;--danger:#ff7d7d;--ok:#75df9a}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(circle at 20% 0%,rgba(35,91,70,.25),transparent 38%),linear-gradient(145deg,#07110e,#0a1712 58%,#07110e);color:var(--text)}body{min-height:100dvh}a{color:inherit}.shell{max-width:1080px;margin:auto;padding:24px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:28px}.topbrand{display:flex;align-items:center;gap:12px}.logo{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(145deg,var(--accent2),var(--accent));color:#152017;font-weight:900}.topbrand strong{display:block}.topbrand span{display:block;color:var(--muted);font-size:12px;margin-top:2px}.topactions{display:flex;gap:9px}.btn,button{min-height:40px;padding:0 14px;border-radius:11px;border:1px solid var(--line);font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;text-decoration:none;cursor:pointer;background:#152821;color:#fff}.primary{background:linear-gradient(135deg,var(--accent2),var(--accent));color:#152017;border:0}.danger{background:rgba(255,125,125,.09);color:#ffc0c0;border-color:rgba(255,125,125,.2)}.grid{display:grid;grid-template-columns:1.15fr .85fr;gap:18px}.panel{background:rgba(14,29,24,.9);border:1px solid var(--line);border-radius:22px;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,.2)}.hero{padding:28px}.hero h1{font-size:37px;margin:0 0 8px}.hero p{color:var(--muted);margin:0 0 22px;line-height:1.65}.profile{display:grid;gap:10px}.row{display:flex;justify-content:space-between;gap:18px;padding:12px 0;border-bottom:1px solid var(--line);font-size:13px}.row span{color:var(--muted)}.row strong{text-align:right;overflow-wrap:anywhere}.sessions{display:grid;gap:10px;margin-top:14px}.session{border:1px solid var(--line);border-radius:14px;padding:12px;background:#0a1712}.session-head{display:flex;align-items:center;justify-content:space-between;gap:10px}.badge{font-size:9px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;padding:5px 7px;border-radius:999px;background:rgba(117,223,154,.1);color:#a9efc0}.session small{display:block;color:var(--muted);line-height:1.5;margin-top:6px}.session button{margin-top:9px}.message{display:none;padding:11px 12px;border-radius:12px;margin:0 0 15px;font-size:12px}.message.show{display:block}.message.error{background:rgba(255,125,125,.1);border:1px solid rgba(255,125,125,.3);color:#ffc2c2}@media(max-width:760px){.grid{grid-template-columns:1fr}.shell{padding:14px}.topbar{align-items:flex-start}.topactions{flex-direction:column}.hero h1{font-size:31px}}
+</style>
+</head>
+<body>
+<main class="shell">
+  <header class="topbar">
+    <div class="topbrand"><div class="logo">A</div><div><strong>Aman AI</strong><span id="statusText">Loading workspace…</span></div></div>
+    <div class="topactions"><a class="btn" href="/">Open AI</a><button id="logoutBtn" type="button">Logout</button></div>
+  </header>
+
+  <div id="message" class="message"></div>
+
+  <div class="grid">
+    <section class="panel hero">
+      <h1 id="greeting">Your workspace</h1>
+      <p>Your signed-in account is connected to Aman AI. Opening the existing chat uses this account's user ID, so new chats and permanent memory can belong to the account.</p>
+      <a class="btn primary" style="max-width:230px" href="/">Continue to Aman AI</a>
+    </section>
+
+    <section class="panel">
+      <h2 style="margin-top:0">Profile</h2>
+      <div class="profile">
+        <div class="row"><span>Name</span><strong id="displayName">—</strong></div>
+        <div class="row"><span>Email</span><strong id="email">—</strong></div>
+        <div class="row"><span>Language</span><strong id="language">—</strong></div>
+        <div class="row"><span>User ID</span><strong id="userId">—</strong></div>
+      </div>
+    </section>
+
+    <section class="panel" style="grid-column:1/-1">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div><h2 style="margin:0 0 4px">Active sessions</h2><div style="font-size:12px;color:var(--muted)">Manage devices currently signed in to Aman AI.</div></div>
+        <button id="logoutAllBtn" class="danger" type="button">Logout all</button>
+      </div>
+      <div id="sessions" class="sessions"></div>
+    </section>
+  </div>
+</main>
+<script>
+(() => {
+  const message=document.getElementById("message");
+  const show=text=>{message.textContent=text;message.className="message show error";};
+
+  async function api(url,options={}){
+    const response=await fetch(url,{credentials:"same-origin",...options});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok||!data.success){const error=new Error(data.message||"Request failed.");error.status=response.status;throw error;}
+    return data;
+  }
+
+  async function loadUser(){
+    try{
+      const data=await api("/api/auth/me");
+      const user=data.user;
+      const previous=localStorage.getItem("amanUserId");
+      if(previous&&previous!==user.userId&&!localStorage.getItem("amanLegacyUserId"))localStorage.setItem("amanLegacyUserId",previous);
+      localStorage.setItem("amanUserId",user.userId);
+      document.getElementById("displayName").textContent=user.displayName||"—";
+      document.getElementById("email").textContent=user.email||"—";
+      document.getElementById("language").textContent=user.preferredLanguage==="sw"?"Kiswahili":"English";
+      document.getElementById("userId").textContent=user.userId;
+      document.getElementById("greeting").textContent="Welcome, "+(user.displayName||"there");
+      document.getElementById("statusText").textContent="Account connected";
+      await loadSessions();
+    }catch(error){if(error.status===401){location.replace("/login");return;}show(error.message);}
+  }
+
+  function shortAgent(agent){
+    const a=String(agent||"");
+    if(!a)return "Unknown browser";
+    if(a.includes("Edg"))return "Microsoft Edge";
+    if(a.includes("Chrome"))return "Chrome browser";
+    if(a.includes("Firefox"))return "Firefox browser";
+    if(a.includes("Safari"))return "Safari browser";
+    return a.slice(0,90);
+  }
+
+  async function loadSessions(){
+    const data=await api("/api/auth/sessions");
+    const box=document.getElementById("sessions");
+    box.innerHTML="";
+    data.sessions.forEach(session=>{
+      const item=document.createElement("div");item.className="session";
+      const head=document.createElement("div");head.className="session-head";
+      const title=document.createElement("strong");title.textContent=shortAgent(session.userAgent);head.appendChild(title);
+      if(session.current){const badge=document.createElement("span");badge.className="badge";badge.textContent="Current";head.appendChild(badge);}
+      item.appendChild(head);
+      const info=document.createElement("small");info.textContent="Last active: "+new Date(session.lastSeenAt).toLocaleString();item.appendChild(info);
+      const revoke=document.createElement("button");revoke.type="button";revoke.textContent=session.current?"Logout this session":"Revoke session";
+      revoke.addEventListener("click",async()=>{revoke.disabled=true;try{const result=await api("/api/auth/sessions/"+encodeURIComponent(session.sessionId),{method:"DELETE"});if(result.currentSessionRevoked){localStorage.removeItem("amanUserId");location.replace("/login");return;}await loadSessions();}catch(error){show(error.message);revoke.disabled=false;}});
+      item.appendChild(revoke);box.appendChild(item);
+    });
+    if(!data.sessions.length)box.textContent="No active sessions.";
+  }
+
+  document.getElementById("logoutBtn").addEventListener("click",async()=>{try{await api("/api/auth/logout",{method:"POST"});}catch{}localStorage.removeItem("amanUserId");location.replace("/login");});
+  document.getElementById("logoutAllBtn").addEventListener("click",async()=>{try{await api("/api/auth/logout-all",{method:"POST"});localStorage.removeItem("amanUserId");location.replace("/login");}catch(error){show(error.message);}});
+  loadUser();
+})();
+</script>
+</body>
+</html>
