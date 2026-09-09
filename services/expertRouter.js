@@ -620,6 +620,64 @@ function chooseExpert(
     let winner =
         scored[0];
 
+    // ==================================================
+// DOMAIN PRIMARY PRIORITY
+// ==================================================
+//
+// A specialist domain should remain primary when
+// business/financial language is only a constraint
+// inside that domain.
+//
+// Examples:
+//
+// maize + budget  -> Agriculture + Business
+// safari + budget -> Safari + Business
+//
+// Not:
+//
+// Business + Agriculture
+// Business + Safari
+//
+
+const agricultureCandidate =
+    scored.find(
+        expert =>
+            expert.id === "agriculture"
+    );
+
+const safariCandidate =
+    scored.find(
+        expert =>
+            expert.id === "safari"
+    );
+
+
+// Agriculture takes primary ownership when the
+// current message clearly contains agriculture.
+if (
+    agricultureCandidate &&
+    agricultureCandidate.score > 0
+) {
+
+    winner =
+        agricultureCandidate;
+
+}
+
+
+// Safari takes primary ownership when there is no
+// agriculture signal and the message clearly
+// contains safari/travel signals.
+else if (
+    safariCandidate &&
+    safariCandidate.score > 0
+) {
+
+    winner =
+        safariCandidate;
+
+}
+
 
     // ==================================================
     // FOLLOW-UP CONTINUITY
