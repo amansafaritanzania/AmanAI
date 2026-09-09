@@ -187,7 +187,20 @@ const experts = [
             "mungu", "roho mtakatifu",
             "kanisa", "maombi",
             "ombi", "mstari",
-            "injili", "imani"
+            "injili", "imani",
+
+            // Bible interpretation / theology / figurative language
+            "christ", "parable", "parables",
+            "revelation", "prophecy", "prophetic",
+            "theology", "theological",
+            "666", "good samaritan",
+            "ellen g white", "ellen white",
+
+            // Kiswahili Bible interpretation
+            "kristo", "maandiko", "andiko",
+            "mitume", "ufunuo", "unabii",
+            "fumbo", "mafumbo", "mfano", "mifano",
+            "kiroho", "msamaria"
         ]
     },
 
@@ -729,6 +742,36 @@ function isTanzaniaTravelEntryQuestion(text = "") {
 
 
 // ======================================================
+// BIBLE DOMAIN DETECTOR
+// ======================================================
+
+function isBibleDomainQuestion(text = "") {
+
+    if (!text) return false;
+
+    const strongSignals = [
+        "bible", "biblical", "scripture", "scriptures",
+        "jesus", "christ", "holy spirit",
+        "gospel", "apostle", "apostles",
+        "genesis", "psalm", "proverbs", "romans",
+        "revelation", "parable", "parables",
+        "prophecy", "prophetic", "sermon", "devotion",
+        "christian", "christianity",
+        "theology", "theological",
+        "666", "good samaritan",
+        "ellen g white", "ellen white",
+        "biblia", "yesu", "kristo", "roho mtakatifu",
+        "injili", "mstari", "maandiko", "andiko",
+        "mitume", "ufunuo", "unabii",
+        "fumbo", "mafumbo", "mfano", "mifano",
+        "kiroho", "msamaria"
+    ];
+
+    return strongSignals.some(signal => text.includes(signal));
+}
+
+
+// ======================================================
 // APPLY DOMAIN PRIMARY PRIORITY
 // ======================================================
 //
@@ -796,6 +839,33 @@ function applyDomainPrimaryPriority(
                         safariCandidate.score || 0,
                         1
                     )
+            };
+
+        }
+
+    }
+
+
+    // ==================================================
+    // BIBLE DOMAIN PRIORITY
+    // ==================================================
+
+    if (isBibleDomainQuestion(text)) {
+
+        const bibleCandidate =
+            scoredExperts.find(
+                expert => expert.id === "bible"
+            ) ||
+            getExpertById("bible");
+
+        if (bibleCandidate) {
+
+            return {
+                ...bibleCandidate,
+                score: Math.max(
+                    bibleCandidate.score || 0,
+                    1
+                )
             };
 
         }
