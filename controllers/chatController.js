@@ -168,7 +168,7 @@ async function chat(req, res) {
 
         const systemPrompt = `
 
-${expert}
+${expert.prompt}
 
 
 ========================================
