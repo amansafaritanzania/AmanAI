@@ -38,6 +38,30 @@ async function initDatabase() {
         ALTER TABLE users
         ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
 
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS lock_on_hidden BOOLEAN
+            NOT NULL DEFAULT TRUE;
+
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS auto_logout_minutes INTEGER
+            NOT NULL DEFAULT 15;
+
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1
+                FROM pg_constraint
+                WHERE conname = 'users_auto_logout_minutes_check'
+            ) THEN
+                ALTER TABLE users
+                ADD CONSTRAINT users_auto_logout_minutes_check
+                CHECK (
+                    auto_logout_minutes IN (0, 5, 15, 30, 60, 240)
+                ) NOT VALID;
+            END IF;
+        END
+        $$;
+
         CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_unique
         ON users (LOWER(email))
         WHERE email IS NOT NULL;
