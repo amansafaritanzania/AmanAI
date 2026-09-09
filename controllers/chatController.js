@@ -609,7 +609,163 @@ not writing a document.
 `;
 
 }
+// ======================================================
+// EXPERT-SPECIFIC GUARDRAILS
+// ======================================================
 
+function buildExpertGuardrails(
+    expertId,
+    message
+) {
+
+    const text =
+        message
+            .toLowerCase()
+            .trim();
+
+
+    // ==================================================
+    // AGRICULTURE DIAGNOSIS
+    // ==================================================
+
+    if (expertId === "agriculture") {
+
+        const diagnosisSignals = [
+
+            // English
+            "yellow",
+            "yellowing",
+            "disease",
+            "symptom",
+            "symptoms",
+            "dying",
+            "wilting",
+            "wilt",
+            "spots",
+            "leaves",
+            "leaf",
+            "pest",
+            "infected",
+            "infection",
+            "sick",
+            "problem with my",
+            "what is wrong",
+            "what's wrong",
+
+            // Kiswahili
+            "njano",
+            "ugonjwa",
+            "dalili",
+            "majani",
+            "jani",
+            "wadudu",
+            "mdudu",
+            "inakauka",
+            "yanakauka",
+            "kunyauka",
+            "yananyauka",
+            "madoa",
+            "imeathirika",
+            "yameathirika",
+            "tatizo",
+            "nifanye nini"
+
+        ];
+
+
+        const isDiagnosisRequest =
+            diagnosisSignals.some(
+                signal =>
+                    text.includes(signal)
+            );
+
+
+        if (isDiagnosisRequest) {
+
+            return `
+
+==================================================
+AGRICULTURE DIAGNOSIS SAFETY
+==================================================
+
+The user appears to be describing a possible crop,
+livestock, pest, disease, soil or plant-health problem.
+
+DIAGNOSE BEFORE TREATING.
+
+Do NOT jump from a vague symptom directly to a specific
+treatment.
+
+If several causes are still plausible, do NOT recommend
+a specific:
+
+- pesticide
+- insecticide
+- fungicide
+- herbicide
+- veterinary medicine
+- fertilizer formulation
+- chemical treatment
+
+until the available evidence reasonably supports that
+recommendation.
+
+Do not invent a disease name from vague symptoms.
+
+Do not treat a possible cause as a confirmed diagnosis.
+
+First identify the minimum missing information needed to
+narrow the problem.
+
+For crop symptoms, useful diagnostic details may include:
+
+- Which crop is affected?
+- Which leaves are affected: older/lower or younger/upper?
+- What exact pattern is visible?
+- How old is the crop?
+- Is the whole field affected or only patches?
+- Has there been heavy rain, drought or waterlogging?
+- What fertilizer or chemicals have already been used?
+- What region or district is the farm in?
+
+Do NOT ask all of these automatically.
+
+Ask only the most useful 2–4 questions for the current
+case.
+
+If the user has already supplied enough evidence, use it
+instead of asking them to repeat information.
+
+If evidence remains insufficient:
+
+1. Briefly explain the main plausible categories of
+   causes.
+2. State that the cause cannot yet be confirmed.
+3. Ask the minimum useful diagnostic questions.
+4. Give only safe observation/checking steps.
+
+Do NOT prescribe chemicals merely because pests or
+diseases are theoretically possible.
+
+Do NOT recommend fertilizer merely because nutrient
+deficiency is theoretically possible.
+
+Specific treatment comes AFTER reasonable diagnosis.
+
+Use natural language appropriate to the user's language.
+
+For Kiswahili, use clear natural Tanzanian Kiswahili.
+Avoid unnatural literal translations or invented
+agricultural terminology.
+`;
+
+        }
+
+    }
+
+
+    return "";
+}
 
 // ======================================================
 // SECONDARY EXPERT CONSULTATION
@@ -1018,7 +1174,23 @@ async function chat(req, res) {
             buildResponseStyleInstructions(
                 responseStyle
             );
+// ==================================================
+// EXPERT GUARDRAILS
+// ==================================================
 
+const expertGuardrails =
+    buildExpertGuardrails(
+        expert.id,
+        message
+    );
+
+
+console.log(
+    "🛡️ EXPERT GUARDRAIL:",
+    expertGuardrails
+        ? "ACTIVE"
+        : "NONE"
+);
 
         // ==================================================
         // SECONDARY COLLABORATION
@@ -1136,6 +1308,8 @@ No specialist input is available.
 }
 
 ${responseStyleInstructions}
+
+${expertGuardrails}
 
 ==================================================
 FINAL BEHAVIOR
