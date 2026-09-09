@@ -1,3 +1,4 @@
+
 const {
     SESSION_DAYS,
     createAccount,
@@ -6,7 +7,9 @@ const {
     deleteSessionByToken,
     listUserSessions,
     revokeSession,
-    revokeAllSessions
+    revokeAllSessions,
+    getPrivacyPreferences,
+    updatePrivacyPreferences
 } = require("./authService");
 
 const {
@@ -226,6 +229,150 @@ async function logoutAll(req, res) {
         });
     }
 }
+async function privacyPreferences(
+    req,
+    res
+) {
+
+    try {
+
+        const preferences =
+            await getPrivacyPreferences(
+                req.auth.userId
+            );
+
+        res.json({
+            success: true,
+            preferences
+        });
+
+    } catch (error) {
+
+        console.error(
+            "PRIVACY PREFS ERROR:",
+            error
+        );
+
+        res.status(500).json({
+            success: false,
+            message:
+                "Could not load privacy settings."
+        });
+    }
+}
+
+
+async function savePrivacyPreferences(
+    req,
+    res
+) {
+
+    try {
+
+        const preferences =
+            await updatePrivacyPreferences(
+                req.auth.userId,
+                {
+                    lockOnHidden:
+                        req.body?.lockOnHidden,
+                    autoLogoutMinutes:
+                        req.body?.autoLogoutMinutes
+                }
+            );
+
+        res.json({
+            success: true,
+            preferences
+        });
+
+    } catch (error) {
+
+        if (
+            error.code ===
+            "VALIDATION_ERROR"
+        ) {
+            return res
+                .status(400)
+                .json({
+                    success: false,
+                    message:
+                        error.message
+                });
+        }
+
+        console.error(
+            "SAVE PRIVACY PREFS ERROR:",
+            error
+        );
+
+        res.status(500).json({
+            success: false,
+            message:
+                "Could not save privacy settings."
+        });
+    }
+}
+
+
+async function unlock(
+    req,
+    res
+) {
+
+    try {
+
+        const password =
+            req.body?.password;
+
+        if (
+            typeof password !==
+            "string" ||
+            !password
+        ) {
+            return res
+                .status(400)
+                .json({
+                    success: false,
+                    message:
+                        "Enter your password."
+                });
+        }
+
+        const user =
+            await authenticateUser(
+                req.auth.email,
+                password
+            );
+
+        if (!user) {
+            return res
+                .status(401)
+                .json({
+                    success: false,
+                    message:
+                        "Incorrect password."
+                });
+        }
+
+        res.json({
+            success: true
+        });
+
+    } catch (error) {
+
+        console.error(
+            "UNLOCK ERROR:",
+            error
+        );
+
+        res.status(500).json({
+            success: false,
+            message:
+                "Could not unlock Aman AI."
+        });
+    }
+}
+
 
 module.exports = {
     signup,
@@ -234,5 +381,9 @@ module.exports = {
     me,
     sessions,
     removeSession,
-    logoutAll
+    logoutAll,
+    privacyPreferences,
+    savePrivacyPreferences,
+    unlock
 };
+
