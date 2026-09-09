@@ -35,6 +35,49 @@
       </div>
     </section>
 
+
+    <section class="panel" style="grid-column:1/-1">
+      <h2 style="margin:0 0 5px">Privacy & auto-logout</h2>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px">
+        Aman AI can lock when the page becomes hidden and automatically sign you out after inactivity.
+      </div>
+
+      <div class="profile">
+        <label class="row" style="align-items:center">
+          <span>Lock when screen/app becomes hidden</span>
+          <input
+            id="lockOnHidden"
+            type="checkbox"
+            style="width:22px;min-height:22px"
+          >
+        </label>
+
+        <div class="row" style="align-items:center">
+          <span>Auto-logout after inactivity</span>
+          <select
+            id="autoLogoutMinutes"
+            style="width:auto;min-width:170px"
+          >
+            <option value="5">5 minutes</option>
+            <option value="15">15 minutes</option>
+            <option value="30">30 minutes</option>
+            <option value="60">1 hour</option>
+            <option value="240">4 hours</option>
+            <option value="0">Never</option>
+          </select>
+        </div>
+      </div>
+
+      <button
+        id="savePrivacyBtn"
+        class="btn primary"
+        style="width:auto;padding:0 16px;margin-top:15px"
+        type="button"
+      >
+        Save privacy settings
+      </button>
+    </section>
+
     <section class="panel" style="grid-column:1/-1">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
         <div><h2 style="margin:0 0 4px">Active sessions</h2><div style="font-size:12px;color:var(--muted)">Manage devices currently signed in to Aman AI.</div></div>
@@ -103,6 +146,29 @@
 
   document.getElementById("logoutBtn").addEventListener("click",async()=>{try{await api("/api/auth/logout",{method:"POST"});}catch{}localStorage.removeItem("amanUserId");location.replace("/login");});
   document.getElementById("logoutAllBtn").addEventListener("click",async()=>{try{await api("/api/auth/logout-all",{method:"POST"});localStorage.removeItem("amanUserId");location.replace("/login");}catch(error){show(error.message);}});
+
+  document.getElementById("savePrivacyBtn").addEventListener("click", async () => {
+    const button = document.getElementById("savePrivacyBtn");
+    button.disabled = true;
+
+    try {
+      const data = await api("/api/auth/privacy", {
+        method:"PUT",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          lockOnHidden:document.getElementById("lockOnHidden").checked,
+          autoLogoutMinutes:Number(document.getElementById("autoLogoutMinutes").value)
+        })
+      });
+
+      show("Privacy settings saved.","ok");
+    } catch(error) {
+      show(error.message || "Could not save privacy settings.");
+    } finally {
+      button.disabled = false;
+    }
+  });
+
   loadUser();
 })();
 </script>
