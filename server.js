@@ -31,72 +31,146 @@ app.use(
     })
 );
 
-const authRoutes = require("./auth/authRoutes");
-app.use("/api/auth", authRoutes);
+const authRoutes =
+    require("./auth/authRoutes");
 
-app.get("/login", (req, res) => {
-    res.sendFile(__dirname + "/login.html");
-});
+app.use(
+    "/api/auth",
+    authRoutes
+);
 
-app.get("/signup", (req, res) => {
-    res.sendFile(__dirname + "/signup.html");
-});
+app.get(
+    "/login",
+    (req, res) => {
+        res.sendFile(
+            __dirname + "/login.html"
+        );
+    }
+);
 
-app.get(["/dashboard", "/dashboard.html"], requireAuth, (req, res) => {
-    res.sendFile(__dirname + "/dashboard.html");
-});
+app.get(
+    "/signup",
+    (req, res) => {
+        res.sendFile(
+            __dirname + "/signup.html"
+        );
+    }
+);
 
-app.use(express.static(__dirname));
+app.get(
+    ["/dashboard", "/dashboard.html"],
+    requireAuth,
+    (req, res) => {
+        res.sendFile(
+            __dirname + "/dashboard.html"
+        );
+    }
+);
 
-const chatRoutes = require("./routes/chatRoutes");
-app.use("/chat", chatRoutes);
+app.get(
+    "/",
+    requireAuth,
+    (req, res) => {
+        res.sendFile(
+            __dirname + "/index.html"
+        );
+    }
+);
 
-app.get("/", (req, res) => {
-    res.sendFile(__dirname + "/index.html");
-});
+app.use(
+    express.static(
+        __dirname,
+        {
+            index: false
+        }
+    )
+);
 
-app.get("/api/status", async (req, res) => {
-    res.json({
-        success: true,
-        app: "Aman AI",
-        version: "4.0.0",
-        status: "Online",
-        experts: 8,
-        memory: "Permanent",
-        database: "PostgreSQL",
-        accounts: "Enabled",
-        sessions: "Enabled",
-        serverTime: new Date()
-    });
-});
+const chatRoutes =
+    require("./routes/chatRoutes");
 
-app.use((req, res) => {
-    res.status(404).json({
-        success: false,
-        message: "Endpoint not found."
-    });
-});
+app.use(
+    "/chat",
+    chatRoutes
+);
+
+app.get(
+    "/api/status",
+    async (req, res) => {
+        res.json({
+            success: true,
+            app: "Aman AI",
+            version: "4.0.0",
+            status: "Online",
+            experts: 8,
+            memory: "Permanent",
+            database: "PostgreSQL",
+            accounts: "Enabled",
+            sessions: "Enabled",
+            serverTime: new Date()
+        });
+    }
+);
+
+app.use(
+    (req, res) => {
+        res.status(404).json({
+            success: false,
+            message: "Endpoint not found."
+        });
+    }
+);
 
 async function startServer() {
     try {
         await initDatabase();
 
-        app.listen(PORT, () => {
-            console.log("");
-            console.log("======================================");
-            console.log("🚀 Aman AI Server v4.0");
-            console.log("🌍 Port:", PORT);
-            console.log("🧠 Experts: 8");
-            console.log("🧠 Permanent Memory: ON");
-            console.log("🗄️ PostgreSQL: ON");
-            console.log("🔐 Accounts: ON");
-            console.log("🍪 Secure Sessions: ON");
-            console.log("⚡ Groq: ON");
-            console.log("✅ Server Online");
-            console.log("======================================");
-        });
+        app.listen(
+            PORT,
+            () => {
+                console.log("");
+                console.log(
+                    "======================================"
+                );
+                console.log(
+                    "🚀 Aman AI Server v4.0"
+                );
+                console.log(
+                    "🌍 Port:",
+                    PORT
+                );
+                console.log(
+                    "🧠 Experts: 8"
+                );
+                console.log(
+                    "🧠 Permanent Memory: ON"
+                );
+                console.log(
+                    "🗄️ PostgreSQL: ON"
+                );
+                console.log(
+                    "🔐 Accounts: ON"
+                );
+                console.log(
+                    "🍪 Secure Sessions: ON"
+                );
+                console.log(
+                    "⚡ Groq: ON"
+                );
+                console.log(
+                    "✅ Server Online"
+                );
+                console.log(
+                    "======================================"
+                );
+            }
+        );
     } catch (error) {
-        console.error("❌ DATABASE STARTUP ERROR:", error);
+        console.error(
+            "❌ DATABASE STARTUP ERROR:",
+            error
+        );
+
         process.exit(1);
     }
 }
