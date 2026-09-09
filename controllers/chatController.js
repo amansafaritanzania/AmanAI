@@ -141,6 +141,13 @@ async function chat(req, res) {
 
         const expert =
             chooseExpert(message);
+        console.log(
+    "🦁 SELECTED EXPERT:",
+    expert.id,
+    expert.name,
+    "SCORE:",
+    expert.score
+);
 
 
         /*
