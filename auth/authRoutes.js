@@ -7,7 +7,10 @@ const {
     me,
     sessions,
     removeSession,
-    logoutAll
+    logoutAll,
+    privacyPreferences,
+    savePrivacyPreferences,
+    unlock
 } = require("./authController");
 
 const {
@@ -63,6 +66,30 @@ router.post(
     requireSameOrigin,
     requireAuth,
     logoutAll
+);
+
+
+router.get(
+    "/privacy",
+    requireAuth,
+    privacyPreferences
+);
+
+
+router.put(
+    "/privacy",
+    requireSameOrigin,
+    requireAuth,
+    savePrivacyPreferences
+);
+
+
+router.post(
+    "/unlock",
+    requireSameOrigin,
+    requireAuth,
+    authRateLimit,
+    unlock
 );
 
 module.exports = router;
