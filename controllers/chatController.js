@@ -623,6 +623,118 @@ function buildExpertGuardrails(
             .toLowerCase()
             .trim();
 
+    // ==================================================
+// SAFARI CURRENT TRAVEL INFORMATION GUARDRAIL
+// ==================================================
+
+if (expertId === "safari") {
+
+    const text =
+        String(message || "")
+            .toLowerCase();
+
+    const currentTravelSignals = [
+
+        // Health / vaccination
+        "yellow fever",
+        "yellow-fever",
+        "vaccine",
+        "vaccination",
+        "vaccinated",
+        "chanjo",
+        "homa ya manjano",
+
+        // Visa / immigration
+        "visa",
+        "immigration",
+        "entry requirement",
+        "entry requirements",
+        "entry rules",
+        "passport",
+        "requirements to enter",
+        "requirement to enter",
+        "kuingia tanzania",
+        "masharti ya kuingia",
+        "uhamiaji",
+
+        // Government / travel rules
+        "travel requirement",
+        "travel requirements",
+        "travel advisory",
+        "government requirement",
+        "government requirements"
+
+    ];
+
+    const requiresCurrentVerification =
+        currentTravelSignals.some(
+            signal =>
+                text.includes(signal)
+        );
+
+    if (requiresCurrentVerification) {
+
+        return `
+SAFARI CURRENT TRAVEL INFORMATION GUARDRAIL
+
+The user is asking about travel information that may
+depend on current government, immigration, health or
+entry rules.
+
+ACCURACY IS MORE IMPORTANT THAN GIVING A DEFINITE ANSWER.
+
+Do NOT invent or rely on uncertain remembered rules.
+
+Do NOT make an absolute claim about:
+
+- visa requirements
+- immigration requirements
+- passport requirements
+- yellow fever requirements
+- vaccination requirements
+- health-entry requirements
+- government entry rules
+
+unless verified current information has actually been
+provided to you in the conversation or system context.
+
+If verified current information is NOT available:
+
+1. Explain briefly that the requirement can depend on
+   factors such as nationality, origin, transit route or
+   current regulations.
+
+2. Clearly say that the current requirement should be
+   verified with the relevant official Tanzania
+   government, immigration or health authority.
+
+3. Do NOT guess what the current official rule is.
+
+4. Do NOT turn an uncertain rule into a confident yes/no
+   answer.
+
+5. Do NOT invent certificate validity periods, vaccine
+   timing, fees, exemptions or eligibility rules.
+
+6. If one missing detail would materially help, ask only
+   that useful question.
+
+For yellow fever specifically:
+
+Do NOT claim that every traveller, every American
+traveller, or every traveller from a particular country
+needs yellow fever vaccination unless current verified
+official information in the supplied context establishes
+that requirement for that traveller's route.
+
+Transit through another country can matter, so do not
+reason only from nationality or departure country.
+
+Keep the response concise, useful and natural.
+`;
+    }
+}
+
 
     // ==================================================
     // AGRICULTURE DIAGNOSIS
