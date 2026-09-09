@@ -1,3 +1,4 @@
+
 const crypto = require("crypto");
 const { promisify } = require("util");
 const { pool } = require("../memory/database");
@@ -116,7 +117,9 @@ async function createAccount({ name, email, password, preferredLanguage = "en" }
                 display_name,
                 password_hash,
                 preferred_language,
-                account_status
+                account_status,
+                lock_on_hidden,
+                auto_logout_minutes
             )
             VALUES($1, $2, $3, $4, $5, 'active')
             `,
@@ -323,6 +326,122 @@ async function revokeSession(userId, sessionId) {
 async function revokeAllSessions(userId) {
     await pool.query(`DELETE FROM sessions WHERE user_id = $1`, [userId]);
 }
+async function getPrivacyPreferences(
+    userId
+) {
+
+    const result =
+        await pool.query(
+            `
+            SELECT
+                lock_on_hidden,
+                auto_logout_minutes
+            FROM users
+            WHERE user_id = $1
+            LIMIT 1
+            `,
+            [userId]
+        );
+
+    const row =
+        result.rows[0] || {};
+
+    return {
+        lockOnHidden:
+            row.lock_on_hidden !== false,
+        autoLogoutMinutes:
+            Number(
+                row.auto_logout_minutes ?? 15
+            )
+    };
+}
+
+
+async function updatePrivacyPreferences(
+    userId,
+    {
+        lockOnHidden,
+        autoLogoutMinutes
+    }
+) {
+
+    const allowedMinutes =
+        new Set([
+            0,
+            5,
+            15,
+            30,
+            60,
+            240
+        ]);
+
+    const minutes =
+        Number(
+            autoLogoutMinutes
+        );
+
+    if (
+        typeof lockOnHidden !==
+        "boolean"
+    ) {
+        const error =
+            new Error(
+                "Invalid lock preference."
+            );
+
+        error.code =
+            "VALIDATION_ERROR";
+
+        throw error;
+    }
+
+    if (
+        !Number.isInteger(minutes) ||
+        !allowedMinutes.has(minutes)
+    ) {
+        const error =
+            new Error(
+                "Invalid auto-logout time."
+            );
+
+        error.code =
+            "VALIDATION_ERROR";
+
+        throw error;
+    }
+
+    const result =
+        await pool.query(
+            `
+            UPDATE users
+            SET
+                lock_on_hidden = $2,
+                auto_logout_minutes = $3
+            WHERE user_id = $1
+            RETURNING
+                lock_on_hidden,
+                auto_logout_minutes
+            `,
+            [
+                userId,
+                lockOnHidden,
+                minutes
+            ]
+        );
+
+    const row =
+        result.rows[0];
+
+    return {
+        lockOnHidden:
+            row.lock_on_hidden !== false,
+        autoLogoutMinutes:
+            Number(
+                row.auto_logout_minutes
+            )
+    };
+}
+
 
 module.exports = {
     SESSION_DAYS,
@@ -333,5 +452,7 @@ module.exports = {
     deleteSessionByToken,
     listUserSessions,
     revokeSession,
-    revokeAllSessions
+    revokeAllSessions,
+    getPrivacyPreferences,
+    updatePrivacyPreferences
 };
