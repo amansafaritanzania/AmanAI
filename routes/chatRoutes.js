@@ -42,6 +42,12 @@ const {
     requireAuth
 } = require("../auth/authMiddleware");
 
+const {
+    createImageJob,
+    createVideoJob,
+    getCreatorJobStatus
+} = require("../services/mediaCreatorService");
+
 
 // ======================================================
 // FILE UPLOAD
@@ -96,6 +102,199 @@ function singleFile(req, res, next) {
         });
     });
 }
+
+
+
+// ======================================================
+// CREATOR MODE
+// Image generation + async video generation
+// ======================================================
+
+router.post(
+    "/creator/image",
+    requireAuth,
+    async (req, res) => {
+
+        try {
+
+            const job =
+                await createImageJob({
+
+                    userId:
+                        req.auth.userId,
+
+                    prompt:
+                        req.body?.prompt,
+
+                    imageSize:
+                        req.body?.imageSize
+                });
+
+
+            return res.json({
+                success: true,
+                ...job
+            });
+
+        } catch (error) {
+
+            console.error(
+                "CREATOR IMAGE ERROR:",
+                error
+            );
+
+            const status =
+                error?.code ===
+                "CREATOR_NOT_CONFIGURED"
+                    ? 503
+                    : (
+                        error?.code ===
+                        "INVALID_PROMPT"
+                            ? 400
+                            : (
+                                error?.code ===
+                                "UNSAFE_CREATOR_PROMPT"
+                                    ? 400
+                                    : 500
+                            )
+                    );
+
+            return res
+                .status(status)
+                .json({
+                    success: false,
+                    message:
+                        error?.message ||
+                        "Image generation could not start."
+                });
+        }
+    }
+);
+
+
+router.post(
+    "/creator/video",
+    requireAuth,
+    async (req, res) => {
+
+        try {
+
+            const job =
+                await createVideoJob({
+
+                    userId:
+                        req.auth.userId,
+
+                    prompt:
+                        req.body?.prompt,
+
+                    duration:
+                        req.body?.duration,
+
+                    aspectRatio:
+                        req.body?.aspectRatio,
+
+                    generateAudio:
+                        req.body?.generateAudio
+                });
+
+
+            return res.json({
+                success: true,
+                ...job
+            });
+
+        } catch (error) {
+
+            console.error(
+                "CREATOR VIDEO ERROR:",
+                error
+            );
+
+            const status =
+                error?.code ===
+                "CREATOR_NOT_CONFIGURED"
+                    ? 503
+                    : (
+                        error?.code ===
+                        "INVALID_PROMPT"
+                            ? 400
+                            : (
+                                error?.code ===
+                                "UNSAFE_CREATOR_PROMPT"
+                                    ? 400
+                                    : 500
+                            )
+                    );
+
+            return res
+                .status(status)
+                .json({
+                    success: false,
+                    message:
+                        error?.message ||
+                        "Video generation could not start."
+                });
+        }
+    }
+);
+
+
+router.get(
+    "/creator/:requestId/status",
+    requireAuth,
+    async (req, res) => {
+
+        try {
+
+            const result =
+                await getCreatorJobStatus({
+
+                    userId:
+                        req.auth.userId,
+
+                    requestId:
+                        String(
+                            req.params.requestId ||
+                            ""
+                        ).trim()
+                });
+
+
+            return res.json({
+                success: true,
+                ...result
+            });
+
+        } catch (error) {
+
+            console.error(
+                "CREATOR STATUS ERROR:",
+                error
+            );
+
+            const status =
+                error?.code ===
+                "CREATOR_JOB_NOT_FOUND"
+                    ? 404
+                    : (
+                        error?.code ===
+                        "CREATOR_NOT_CONFIGURED"
+                            ? 503
+                            : 500
+                    );
+
+            return res
+                .status(status)
+                .json({
+                    success: false,
+                    message:
+                        error?.message ||
+                        "Could not check Creator Mode status."
+                });
+        }
+    }
+);
 
 
 /*
