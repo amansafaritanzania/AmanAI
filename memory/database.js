@@ -138,6 +138,19 @@ async function initDatabase() {
         ALTER TABLE messages
         ADD COLUMN IF NOT EXISTS vision_context TEXT;
 
+        ALTER TABLE messages
+        ADD COLUMN IF NOT EXISTS has_file BOOLEAN
+            NOT NULL DEFAULT FALSE;
+
+        ALTER TABLE messages
+        ADD COLUMN IF NOT EXISTS file_name TEXT;
+
+        ALTER TABLE messages
+        ADD COLUMN IF NOT EXISTS file_kind TEXT;
+
+        ALTER TABLE messages
+        ADD COLUMN IF NOT EXISTS file_context TEXT;
+
 
         CREATE TABLE IF NOT EXISTS sessions (
             session_id TEXT PRIMARY KEY,
@@ -411,6 +424,10 @@ async function getChat(
                 m.content,
                 m.has_image,
                 m.vision_context,
+                m.has_file,
+                m.file_name,
+                m.file_kind,
+                m.file_context,
                 m.created_at AS time
             FROM messages m
             INNER JOIN chats c
@@ -831,6 +848,43 @@ async function saveMessageVisionContext(
 }
 
 
+
+async function saveMessageFileContext(
+    userId,
+    chatId,
+    messageId,
+    fileData
+) {
+    const result = await pool.query(
+        `
+        UPDATE messages AS m
+        SET
+            has_file = TRUE,
+            file_name = $4,
+            file_kind = $5,
+            file_context = $6
+        FROM chats AS c
+        WHERE m.id = $1
+        AND m.chat_id = $2
+        AND c.chat_id = m.chat_id
+        AND c.user_id = $3
+        AND m.role = 'user'
+        RETURNING m.id
+        `,
+        [
+            messageId,
+            chatId,
+            userId,
+            String(fileData?.fileName || "").slice(0,255),
+            String(fileData?.fileKind || "").slice(0,40),
+            String(fileData?.fileContext || "").slice(0,50000)
+        ]
+    );
+
+    return Boolean(result.rows[0]);
+}
+
+
 async function getChatRecord(
     userId,
     chatId
@@ -1169,6 +1223,7 @@ module.exports = {
     updateChatMetadata,
     searchUserChats,
     saveMessageVisionContext,
+    saveMessageFileContext,
     getChatRecord,
     deleteLastAssistantMessage,
     branchChat,
