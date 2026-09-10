@@ -1,7 +1,13 @@
 // ======================================================
-// Aman AI v4.0
-// Permanent Memory System
+// Aman AI v4.1
+// Shared Permanent Memory System
 // PostgreSQL
+//
+// IMPORTANT:
+// Permanent memory is ACCOUNT-WIDE.
+// It is NOT tied to a chat or workspace.
+// General, Coding, Agriculture, Teacher, Safari,
+// Business, Health and Bible all use the same user memory.
 // ======================================================
 
 
@@ -38,7 +44,129 @@ function normalizeMemoryText(message) {
 
 
 // ======================================================
+// CLEAN SHORT VALUE
+// ======================================================
+
+function cleanValue(
+    value,
+    maxLength = 120
+) {
+
+    return String(value || "")
+        .trim()
+        .replace(/\s+/g, " ")
+        .replace(/[.!?,;:]+$/g, "")
+        .slice(0, maxLength);
+}
+
+
+// ======================================================
+// VALIDATE NAME
+// ======================================================
+//
+// Avoid false memories such as:
+//
+// "I am coding"
+// "I am tired"
+// "I am learning"
+// "I am a student"
+//
+// The old broad "I am X" pattern could accidentally
+// remember ordinary sentences as names.
+// ======================================================
+
+function isReasonableName(value) {
+
+    const name =
+        cleanValue(
+            value,
+            50
+        );
+
+    if (
+        !name ||
+        name.length < 2
+    ) {
+        return false;
+    }
+
+    const blocked = new Set([
+        "a",
+        "an",
+        "the",
+        "coding",
+        "learning",
+        "studying",
+        "working",
+        "tired",
+        "fine",
+        "good",
+        "okay",
+        "ok",
+        "happy",
+        "sad",
+        "hungry",
+        "ready",
+        "here",
+        "back",
+        "student",
+        "developer",
+        "programmer",
+        "farmer",
+        "teacher"
+    ]);
+
+    return !blocked.has(
+        name.toLowerCase()
+    );
+}
+
+
+// ======================================================
+// ADD UNIQUE FACT
+// ======================================================
+
+function addUniqueFact(
+    facts,
+    fact
+) {
+
+    const clean =
+        cleanValue(
+            fact,
+            180
+        );
+
+    if (!clean) {
+        return facts;
+    }
+
+    const exists =
+        facts.some(
+            item =>
+                String(item)
+                    .toLowerCase() ===
+                clean.toLowerCase()
+        );
+
+    if (!exists) {
+        facts.push(clean);
+    }
+
+    /*
+    Keep permanent memory intentionally compact.
+    This also protects the Groq token budget.
+    */
+    return facts.slice(-20);
+}
+
+
+// ======================================================
 // EXTRACT PERMANENT MEMORY
+// ======================================================
+//
+// Only save clear, user-declared durable information.
+// Do NOT treat every sentence as memory.
 // ======================================================
 
 function extractMemory(message) {
@@ -46,7 +174,9 @@ function extractMemory(message) {
     const memories = {};
 
     const text =
-        normalizeMemoryText(message);
+        normalizeMemoryText(
+            message
+        );
 
     if (!text) {
         return memories;
@@ -54,64 +184,194 @@ function extractMemory(message) {
 
 
     // ==================================================
-    // NAME PATTERNS
+    // NAME
     // ==================================================
 
     const namePatterns = [
 
-        // My name is Aman
         /\bmy\s+name\s+is\s+([A-Za-z][A-Za-z'-]{1,30})\b/i,
 
-        // Call me Aman
         /\bcall\s+me\s+([A-Za-z][A-Za-z'-]{1,30})\b/i,
 
-        // I am Aman
-        /\bi\s+am\s+([A-Za-z][A-Za-z'-]{1,30})\b/i,
-
-        // I'm Aman
-        /\bi'm\s+([A-Za-z][A-Za-z'-]{1,30})\b/i,
-
-        // Jina langu ni Aman
         /\bjina\s+langu\s+ni\s+([A-Za-z][A-Za-z'-]{1,30})\b/i,
 
-        // Naitwa Aman
-        /\bnaitwa\s+([A-Za-z][A-Za-z'-]{1,30})\b/i
+        /\bnaitwa\s+([A-Za-z][A-Za-z'-]{1,30})\b/i,
+
+        /*
+        "I'm Aman" / "I am Aman" are accepted only after
+        extra validation below.
+        */
+        /\bi['’]?m\s+([A-Za-z][A-Za-z'-]{1,30})\b/i,
+
+        /\bi\s+am\s+([A-Za-z][A-Za-z'-]{1,30})\b/i
     ];
 
 
-    // ==================================================
-    // FIND NAME
-    // ==================================================
-
     for (
-        const pattern of namePatterns
+        const pattern
+        of namePatterns
     ) {
 
         const match =
-            text.match(pattern);
+            text.match(
+                pattern
+            );
+
+        if (
+            match &&
+            match[1] &&
+            isReasonableName(
+                match[1]
+            )
+        ) {
+
+            memories.name =
+                cleanValue(
+                    match[1],
+                    50
+                );
+
+            break;
+        }
+    }
+
+
+    // ==================================================
+    // PREFERRED LANGUAGE
+    // ==================================================
+
+    const languagePatterns = [
+
+        /\bi\s+prefer\s+(english|swahili|kiswahili)\b/i,
+
+        /\bmy\s+preferred\s+language\s+is\s+(english|swahili|kiswahili)\b/i,
+
+        /\bnapendelea\s+(kiingereza|kiswahili)\b/i
+    ];
+
+
+    for (
+        const pattern
+        of languagePatterns
+    ) {
+
+        const match =
+            text.match(
+                pattern
+            );
 
         if (
             match &&
             match[1]
         ) {
 
-            const name =
+            const raw =
                 match[1]
-                    .trim()
-                    .replace(
-                        /[.!?,;:]+$/,
-                        ""
-                    );
+                    .toLowerCase();
+
+            memories.preferredLanguage =
+                raw === "swahili" ||
+                raw === "kiswahili"
+                    ? "Kiswahili"
+                    : raw === "kiingereza"
+                        ? "English"
+                        : "English";
+
+            break;
+        }
+    }
+
+
+    // ==================================================
+    // CLEAR USER PREFERENCES
+    // ==================================================
+
+    const preferencePatterns = [
+
+        /\bi\s+prefer\s+(.{3,100})$/i,
+
+        /\bi\s+like\s+(.{3,100})$/i,
+
+        /\bi\s+usually\s+prefer\s+(.{3,100})$/i,
+
+        /\bnapendelea\s+(.{3,100})$/i
+    ];
+
+
+    for (
+        const pattern
+        of preferencePatterns
+    ) {
+
+        const match =
+            text.match(
+                pattern
+            );
+
+        if (
+            match &&
+            match[1]
+        ) {
+
+            const value =
+                cleanValue(
+                    match[1],
+                    120
+                );
 
             if (
-                name.length >= 2
+                value &&
+                !/^(english|swahili|kiswahili|kiingereza)$/i
+                    .test(value)
             ) {
 
-                memories.name =
-                    name;
-
-                break;
+                memories.preference =
+                    value;
             }
+
+            break;
+        }
+    }
+
+
+    // ==================================================
+    // CLEAR LONG-TERM GOALS
+    // ==================================================
+
+    const goalPatterns = [
+
+        /\bmy\s+goal\s+is\s+(.{3,140})$/i,
+
+        /\bi\s+want\s+to\s+become\s+(.{3,100})$/i,
+
+        /\bi\s+plan\s+to\s+become\s+(.{3,100})$/i,
+
+        /\blengo\s+langu\s+ni\s+(.{3,140})$/i
+    ];
+
+
+    for (
+        const pattern
+        of goalPatterns
+    ) {
+
+        const match =
+            text.match(
+                pattern
+            );
+
+        if (
+            match &&
+            match[1]
+        ) {
+
+            memories.goal =
+                cleanValue(
+                    match[1],
+                    150
+                );
+
+            break;
         }
     }
 
@@ -121,7 +381,111 @@ function extractMemory(message) {
 
 
 // ======================================================
-// UPDATE PERMANENT MEMORY
+// MERGE PERMANENT MEMORY
+// ======================================================
+
+function mergeMemory(
+    oldMemory,
+    newMemory
+) {
+
+    const previous =
+        (
+            oldMemory &&
+            typeof oldMemory === "object"
+        )
+            ? oldMemory
+            : {};
+
+    const incoming =
+        (
+            newMemory &&
+            typeof newMemory === "object"
+        )
+            ? newMemory
+            : {};
+
+
+    const merged = {
+        ...previous,
+        ...incoming
+    };
+
+
+    // ==================================================
+    // BUILD SMALL SHARED FACT LIST
+    // ==================================================
+
+    let facts =
+        Array.isArray(
+            previous.facts
+        )
+            ? [...previous.facts]
+            : [];
+
+
+    if (incoming.name) {
+
+        facts =
+            addUniqueFact(
+                facts,
+                `User's name is ${incoming.name}`
+            );
+    }
+
+
+    if (
+        incoming.preferredLanguage
+    ) {
+
+        facts =
+            addUniqueFact(
+                facts,
+                `User prefers ${incoming.preferredLanguage}`
+            );
+    }
+
+
+    if (
+        incoming.preference
+    ) {
+
+        facts =
+            addUniqueFact(
+                facts,
+                `User prefers ${incoming.preference}`
+            );
+    }
+
+
+    if (
+        incoming.goal
+    ) {
+
+        facts =
+            addUniqueFact(
+                facts,
+                `User's goal is ${incoming.goal}`
+            );
+    }
+
+
+    if (facts.length) {
+        merged.facts = facts;
+    }
+
+
+    merged.updatedAt =
+        new Date()
+            .toISOString();
+
+
+    return merged;
+}
+
+
+// ======================================================
+// UPDATE ACCOUNT-WIDE PERMANENT MEMORY
 // ======================================================
 
 async function updateMemory(
@@ -129,34 +493,59 @@ async function updateMemory(
     message
 ) {
 
+    /*
+    userId MUST be the authenticated account ID supplied
+    by the protected backend route/controller.
+
+    There is deliberately NO:
+    - chatId
+    - workspace
+    - expertId
+
+    in this function's memory key.
+
+    That is what makes memory shared by every workspace.
+    */
+
+    if (
+        !userId ||
+        typeof userId !== "string"
+    ) {
+
+        console.error(
+            "🧠 MEMORY: invalid user ID"
+        );
+
+        return {};
+    }
+
+
     console.log(
-        "🧠 MEMORY CHECK FOR USER:",
+        "🧠 SHARED MEMORY CHECK:",
         userId
     );
 
-    console.log(
-        "🧠 MEMORY MESSAGE:",
-        message
-    );
-
 
     // ==================================================
-    // LOAD EXISTING MEMORY
+    // LOAD ACCOUNT MEMORY
     // ==================================================
 
     const oldMemory =
-        await getUserMemory(
-            userId
-        );
+        (
+            await getUserMemory(
+                userId
+            )
+        ) || {};
+
 
     console.log(
-        "🧠 EXISTING MEMORY:",
+        "🧠 ACCOUNT MEMORY LOADED:",
         oldMemory
     );
 
 
     // ==================================================
-    // EXTRACT NEW MEMORY
+    // EXTRACT NEW DURABLE MEMORY
     // ==================================================
 
     const newMemory =
@@ -164,45 +553,37 @@ async function updateMemory(
             message
         );
 
+
     console.log(
-        "🧠 NEW MEMORY FOUND:",
+        "🧠 DURABLE MEMORY FOUND:",
         newMemory
     );
 
 
     // ==================================================
-    // NOTHING NEW
+    // NOTHING NEW — RETURN SAME ACCOUNT MEMORY
     // ==================================================
 
     if (
-        Object.keys(newMemory)
-            .length === 0
+        Object.keys(
+            newMemory
+        ).length === 0
     ) {
-
-        console.log(
-            "🧠 NO NEW MEMORY"
-        );
 
         return oldMemory;
     }
 
 
     // ==================================================
-    // MERGE MEMORY
+    // MERGE + SAVE ONCE FOR THIS ACCOUNT
     // ==================================================
 
-    const updatedMemory = {
+    const updatedMemory =
+        mergeMemory(
+            oldMemory,
+            newMemory
+        );
 
-        ...oldMemory,
-
-        ...newMemory
-
-    };
-
-
-    // ==================================================
-    // SAVE TO POSTGRESQL
-    // ==================================================
 
     await saveUserMemory(
         userId,
@@ -211,12 +592,35 @@ async function updateMemory(
 
 
     console.log(
-        "🧠 PERMANENT MEMORY SAVED:",
+        "🧠 SHARED PERMANENT MEMORY SAVED:",
         updatedMemory
     );
 
 
     return updatedMemory;
+}
+
+
+// ======================================================
+// LOAD SHARED MEMORY
+// ======================================================
+
+async function getSharedMemory(
+    userId
+) {
+
+    if (
+        !userId ||
+        typeof userId !== "string"
+    ) {
+        return {};
+    }
+
+    return (
+        await getUserMemory(
+            userId
+        )
+    ) || {};
 }
 
 
@@ -228,9 +632,13 @@ module.exports = {
 
     getUserMemory,
 
+    getSharedMemory,
+
     saveUserMemory,
 
     updateMemory,
+
+    extractMemory,
 
     createChat,
 
