@@ -74,6 +74,35 @@ async function initDatabase() {
         WHERE email IS NOT NULL;
 
 
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS google_sub TEXT;
+
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMPTZ;
+
+        CREATE UNIQUE INDEX IF NOT EXISTS
+            idx_users_google_sub_unique
+        ON users(google_sub)
+        WHERE google_sub IS NOT NULL;
+
+        CREATE TABLE IF NOT EXISTS password_recovery_codes (
+            recovery_id TEXT PRIMARY KEY,
+            user_id TEXT NOT NULL
+                REFERENCES users(user_id)
+                ON DELETE CASCADE,
+            code_hash TEXT NOT NULL,
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            expires_at TIMESTAMPTZ NOT NULL,
+            attempts INTEGER NOT NULL DEFAULT 0,
+            used_at TIMESTAMPTZ
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_recovery_user
+        ON password_recovery_codes(user_id);
+
+        CREATE INDEX IF NOT EXISTS idx_recovery_expiry
+        ON password_recovery_codes(expires_at);
+
         CREATE TABLE IF NOT EXISTS user_memory (
             user_id TEXT PRIMARY KEY
                 REFERENCES users(user_id)
