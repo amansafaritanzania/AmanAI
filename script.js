@@ -74,6 +74,9 @@ document.getElementById("actionModalTitle");
 const actionModalClose =
 document.getElementById("actionModalClose");
 
+let selectedImageFile =
+null;
+
 
 // ======================================================
 // AUTHENTICATED ACCOUNT IDENTITY
@@ -503,8 +506,129 @@ if (input) {
 
 
 // ======================================================
-// FILE ATTACH BUTTON
+// IMAGE ATTACHMENT
 // ======================================================
+
+const MAX_IMAGE_BYTES =
+20 * 1024 * 1024;
+
+const ALLOWED_IMAGE_TYPES =
+new Set([
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/gif"
+]);
+
+
+function resetImageAttachment() {
+
+    selectedImageFile =
+        null;
+
+    if (fileInput) {
+        fileInput.value =
+            "";
+    }
+
+    if (attachBtn) {
+
+        attachBtn.classList.remove(
+            "has-attachment"
+        );
+
+        attachBtn.textContent =
+            "＋";
+    }
+}
+
+
+function addUserImageMessage(
+    message,
+    file
+) {
+
+    const wrapper =
+        document.createElement(
+            "div"
+        );
+
+    wrapper.className =
+        "message user image-message";
+
+    const bubble =
+        document.createElement(
+            "div"
+        );
+
+    bubble.className =
+        "bubble";
+
+    const image =
+        document.createElement(
+            "img"
+        );
+
+    image.className =
+        "uploaded-image-preview";
+
+    image.alt =
+        file.name ||
+        "Uploaded image";
+
+    const objectUrl =
+        URL.createObjectURL(
+            file
+        );
+
+    image.src =
+        objectUrl;
+
+    image.addEventListener(
+        "load",
+        () =>
+            URL.revokeObjectURL(
+                objectUrl
+            ),
+        {
+            once:
+                true
+        }
+    );
+
+    bubble.appendChild(
+        image
+    );
+
+    if (message) {
+
+        const caption =
+            document.createElement(
+                "div"
+            );
+
+        caption.className =
+            "image-message-caption";
+
+        caption.textContent =
+            message;
+
+        bubble.appendChild(
+            caption
+        );
+    }
+
+    wrapper.appendChild(
+        bubble
+    );
+
+    chat.appendChild(
+        wrapper
+    );
+
+    scrollChat();
+}
+
 
 if (attachBtn) {
 
@@ -516,7 +640,6 @@ if (attachBtn) {
 
         }
     );
-
 }
 
 
@@ -533,17 +656,48 @@ if (fileInput) {
                 return;
             }
 
-            addMessage(
-                "📎 " + file.name,
-                "user"
+            if (
+                !ALLOWED_IMAGE_TYPES.has(
+                    file.type
+                )
+            ) {
+
+                resetImageAttachment();
+
+                alert(
+                    "Please choose a JPEG, PNG, WebP or GIF image."
+                );
+
+                return;
+            }
+
+            if (
+                file.size >
+                MAX_IMAGE_BYTES
+            ) {
+
+                resetImageAttachment();
+
+                alert(
+                    "Please choose an image under 20 MB."
+                );
+
+                return;
+            }
+
+            selectedImageFile =
+                file;
+
+            attachBtn.classList.add(
+                "has-attachment"
             );
 
-            fileInput.value =
-                "";
+            attachBtn.textContent =
+                "✓";
 
+            input.focus();
         }
     );
-
 }
 
 
@@ -1147,28 +1301,48 @@ async function typeAI(
 
 async function sendMessage() {
 
-    const message =
-    input.value.trim();
+    let message =
+        input.value.trim();
 
-    if (!message) {
+    if (
+        !message &&
+        !selectedImageFile
+    ) {
         return;
     }
 
-    input.value = "";
+    const imageFile =
+        selectedImageFile;
+
+    if (
+        imageFile &&
+        !message
+    ) {
+
+        message =
+            "Analyze this image.";
+    }
+
+    input.value =
+        "";
 
     input.style.height =
-    "auto";
+        "auto";
+
+    resetImageAttachment();
 
     await sendMessageWithText(
-        message
+        message,
+        true,
+        imageFile
     );
-
 }
 
 
 async function sendMessageWithText(
     message,
-    showUserMessage = true
+    showUserMessage = true,
+    imageFile = null
 ) {
 
     if (!message) {
@@ -1189,11 +1363,20 @@ async function sendMessageWithText(
 
     if (showUserMessage) {
 
-        addMessage(
-            message,
-            "user"
-        );
+        if (imageFile) {
 
+            addUserImageMessage(
+                message,
+                imageFile
+            );
+
+        } else {
+
+            addMessage(
+                message,
+                "user"
+            );
+        }
     }
 
 
@@ -1231,41 +1414,94 @@ async function sendMessageWithText(
         ) {
 
             requestBody.chatId =
-            currentChatId;
+                currentChatId;
+        }
 
+
+        let fetchOptions;
+
+
+        if (imageFile) {
+
+            const formData =
+                new FormData();
+
+            formData.append(
+                "message",
+                message
+            );
+
+            formData.append(
+                "workspace",
+                currentWorkspace
+            );
+
+            if (
+                requestBody.chatId
+            ) {
+
+                formData.append(
+                    "chatId",
+                    requestBody.chatId
+                );
+            }
+
+            formData.append(
+                "image",
+                imageFile,
+                imageFile.name
+            );
+
+            fetchOptions = {
+                method:
+                    "POST",
+
+                credentials:
+                    "same-origin",
+
+                body:
+                    formData
+            };
+
+        } else {
+
+            fetchOptions = {
+                method:
+                    "POST",
+
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
+
+                credentials:
+                    "same-origin",
+
+                body:
+                    JSON.stringify(
+                        requestBody
+                    )
+            };
         }
 
 
         console.log(
             "SENDING:",
-            requestBody
+            {
+                ...requestBody,
+                hasImage:
+                    Boolean(
+                        imageFile
+                    )
+            }
         );
 
 
         const res =
-        await fetch(
-            API,
-            {
-
-                method: "POST",
-
-                headers: {
-
-                    "Content-Type":
-                    "application/json"
-
-                },
-
-                credentials:
-                "same-origin",
-
-                body:
-                JSON.stringify(
-                    requestBody
-                )
-
-            }
-        );
+            await fetch(
+                API,
+                fetchOptions
+            );
 
 
         const data =
@@ -1322,7 +1558,8 @@ async function sendMessageWithText(
 
             return sendMessageWithText(
                 message,
-                false
+                false,
+                imageFile
             );
         }
 
@@ -2572,9 +2809,19 @@ async function loadCurrentChat() {
         .forEach(
             (msg) => {
 
+                const content =
+                    (
+                        msg.role ===
+                            "user" &&
+                        msg.has_image
+                    )
+                        ? `📷 ${msg.content}`
+                        : msg.content;
+
+
                 addMessage(
 
-                    msg.content,
+                    content,
 
                     msg.role === "user"
                     ? "user"
