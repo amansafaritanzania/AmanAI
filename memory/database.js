@@ -147,6 +147,27 @@ async function initDatabase() {
         );
 
 
+        CREATE TABLE IF NOT EXISTS message_feedback (
+            id BIGSERIAL PRIMARY KEY,
+            user_id TEXT NOT NULL
+                REFERENCES users(user_id)
+                ON DELETE CASCADE,
+            chat_id TEXT NOT NULL
+                REFERENCES chats(chat_id)
+                ON DELETE CASCADE,
+            message_id BIGINT NOT NULL
+                REFERENCES messages(id)
+                ON DELETE CASCADE,
+            rating SMALLINT NOT NULL
+                CHECK (rating IN (-1, 1)),
+            created_at TIMESTAMPTZ
+                DEFAULT NOW(),
+            updated_at TIMESTAMPTZ
+                DEFAULT NOW(),
+            UNIQUE(user_id, message_id)
+        );
+
+
         CREATE INDEX IF NOT EXISTS idx_chats_user
         ON chats(user_id);
 
@@ -167,6 +188,12 @@ async function initDatabase() {
 
         CREATE INDEX IF NOT EXISTS idx_sessions_expiry
         ON sessions(expires_at);
+
+        CREATE INDEX IF NOT EXISTS idx_feedback_user
+        ON message_feedback(user_id);
+
+        CREATE INDEX IF NOT EXISTS idx_feedback_chat
+        ON message_feedback(chat_id);
     `);
 
     console.log(
@@ -371,6 +398,7 @@ async function getChat(
         await pool.query(
             `
             SELECT
+                m.id,
                 m.role,
                 m.content,
                 m.created_at AS time
@@ -449,25 +477,27 @@ async function saveMessage(
         );
     }
 
-    await pool.query(
-        `
-        INSERT INTO messages(
-            chat_id,
-            role,
-            content
-        )
-        VALUES(
-            $1,
-            $2,
-            $3
-        )
-        `,
-        [
-            chatId,
-            role,
-            content
-        ]
-    );
+    const inserted =
+        await pool.query(
+            `
+            INSERT INTO messages(
+                chat_id,
+                role,
+                content
+            )
+            VALUES(
+                $1,
+                $2,
+                $3
+            )
+            RETURNING id
+            `,
+            [
+                chatId,
+                role,
+                content
+            ]
+        );
 
     /*
     Keep last-used chats at the top.
@@ -515,6 +545,8 @@ async function saveMessage(
             ]
         );
     }
+
+    return inserted.rows[0]?.id || null;
 }
 
 
@@ -746,6 +778,288 @@ async function searchUserChats(
 }
 
 
+
+async function getChatRecord(
+    userId,
+    chatId
+) {
+
+    const result =
+        await pool.query(
+            `
+            SELECT
+                chat_id,
+                title,
+                workspace,
+                is_pinned,
+                is_archived,
+                created_at,
+                updated_at
+            FROM chats
+            WHERE user_id = $1
+            AND chat_id = $2
+            LIMIT 1
+            `,
+            [
+                userId,
+                chatId
+            ]
+        );
+
+    return (
+        result.rows[0] ||
+        null
+    );
+}
+
+
+async function deleteLastAssistantMessage(
+    userId,
+    chatId
+) {
+
+    const result =
+        await pool.query(
+            `
+            DELETE FROM messages
+            WHERE id = (
+                SELECT m.id
+                FROM messages m
+                INNER JOIN chats c
+                    ON c.chat_id = m.chat_id
+                WHERE c.user_id = $1
+                AND c.chat_id = $2
+                AND m.role = 'assistant'
+                ORDER BY m.id DESC
+                LIMIT 1
+            )
+            RETURNING id
+            `,
+            [
+                userId,
+                chatId
+            ]
+        );
+
+    return (
+        result.rows[0]?.id ||
+        null
+    );
+}
+
+
+async function branchChat(
+    userId,
+    sourceChatId,
+    throughMessageId
+) {
+
+    const source =
+        await getChatRecord(
+            userId,
+            sourceChatId
+        );
+
+    if (!source) {
+        return null;
+    }
+
+    const messages =
+        await pool.query(
+            `
+            SELECT
+                id,
+                role,
+                content
+            FROM messages
+            WHERE chat_id = $1
+            ORDER BY id ASC
+            `,
+            [sourceChatId]
+        );
+
+    const cutoffIndex =
+        messages.rows.findIndex(
+            item =>
+                Number(item.id) ===
+                Number(throughMessageId)
+        );
+
+    if (cutoffIndex < 0) {
+        return null;
+    }
+
+    const branchId =
+        "chat_" +
+        Date.now() +
+        "_" +
+        Math.random()
+            .toString(36)
+            .substring(2, 8);
+
+    const client =
+        await pool.connect();
+
+    try {
+
+        await client.query(
+            "BEGIN"
+        );
+
+        await client.query(
+            `
+            INSERT INTO chats(
+                chat_id,
+                user_id,
+                title,
+                workspace,
+                is_pinned,
+                is_archived
+            )
+            VALUES(
+                $1,
+                $2,
+                $3,
+                $4,
+                FALSE,
+                FALSE
+            )
+            `,
+            [
+                branchId,
+                userId,
+                (
+                    source.title ===
+                    "New Chat"
+                        ? "Branched Chat"
+                        : `${source.title} — Branch`
+                ).slice(0, 100),
+                source.workspace ||
+                "general"
+            ]
+        );
+
+        const selected =
+            messages.rows.slice(
+                0,
+                cutoffIndex + 1
+            );
+
+        for (
+            const message
+            of selected
+        ) {
+
+            await client.query(
+                `
+                INSERT INTO messages(
+                    chat_id,
+                    role,
+                    content
+                )
+                VALUES(
+                    $1,
+                    $2,
+                    $3
+                )
+                `,
+                [
+                    branchId,
+                    message.role,
+                    message.content
+                ]
+            );
+        }
+
+        await client.query(
+            "COMMIT"
+        );
+
+        return branchId;
+
+    } catch (error) {
+
+        await client.query(
+            "ROLLBACK"
+        );
+
+        throw error;
+
+    } finally {
+
+        client.release();
+    }
+}
+
+
+async function saveMessageFeedback(
+    userId,
+    chatId,
+    messageId,
+    rating
+) {
+
+    const ownership =
+        await pool.query(
+            `
+            SELECT m.id
+            FROM messages m
+            INNER JOIN chats c
+                ON c.chat_id = m.chat_id
+            WHERE m.id = $1
+            AND c.chat_id = $2
+            AND c.user_id = $3
+            AND m.role = 'assistant'
+            LIMIT 1
+            `,
+            [
+                messageId,
+                chatId,
+                userId
+            ]
+        );
+
+    if (
+        ownership.rows.length ===
+        0
+    ) {
+        return false;
+    }
+
+    await pool.query(
+        `
+        INSERT INTO message_feedback(
+            user_id,
+            chat_id,
+            message_id,
+            rating
+        )
+        VALUES(
+            $1,
+            $2,
+            $3,
+            $4
+        )
+        ON CONFLICT(
+            user_id,
+            message_id
+        )
+        DO UPDATE SET
+            rating = EXCLUDED.rating,
+            updated_at = NOW()
+        `,
+        [
+            userId,
+            chatId,
+            messageId,
+            rating
+        ]
+    );
+
+    return true;
+}
+
+
 async function deleteChat(
     userId,
     chatId
@@ -791,6 +1105,10 @@ module.exports = {
     saveMessage,
     updateChatMetadata,
     searchUserChats,
+    getChatRecord,
+    deleteLastAssistantMessage,
+    branchChat,
+    saveMessageFeedback,
     deleteChat,
     deleteAllChats
 };
