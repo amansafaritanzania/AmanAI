@@ -117,13 +117,24 @@ async function createAccount({ name, email, password, preferredLanguage = "en" }
                 display_name,
                 password_hash,
                 preferred_language,
-                account_status,
-                lock_on_hidden,
-                auto_logout_minutes
+                account_status
             )
-            VALUES($1, $2, $3, $4, $5, 'active')
+            VALUES(
+                $1,
+                $2,
+                $3,
+                $4,
+                $5,
+                'active'
+            )
             `,
-            [userId, checked.email, checked.name, passwordHash, checked.preferredLanguage]
+            [
+                userId,
+                checked.email,
+                checked.name,
+                passwordHash,
+                checked.preferredLanguage
+            ]
         );
 
         await client.query(
@@ -173,7 +184,9 @@ async function authenticateUser(email, password) {
             display_name,
             password_hash,
             preferred_language,
-            account_status
+            account_status,
+            lock_on_hidden,
+            auto_logout_minutes
         FROM users
         WHERE LOWER(email) = $1
         LIMIT 1
@@ -202,7 +215,9 @@ async function authenticateUser(email, password) {
         userId: user.user_id,
         email: user.email,
         displayName: user.display_name,
-        preferredLanguage: user.preferred_language
+        preferredLanguage: user.preferred_language,
+        lockOnHidden: user.lock_on_hidden !== false,
+        autoLogoutMinutes: Number(user.auto_logout_minutes ?? 15)
     };
 }
 
@@ -247,7 +262,9 @@ async function getSessionByToken(token) {
             u.email,
             u.display_name,
             u.preferred_language,
-            u.account_status
+            u.account_status,
+            u.lock_on_hidden,
+            u.auto_logout_minutes
         FROM sessions s
         INNER JOIN users u ON u.user_id = s.user_id
         WHERE s.token_hash = $1
@@ -274,6 +291,8 @@ async function getSessionByToken(token) {
         email: row.email,
         displayName: row.display_name,
         preferredLanguage: row.preferred_language,
+        lockOnHidden: row.lock_on_hidden !== false,
+        autoLogoutMinutes: Number(row.auto_logout_minutes ?? 15),
         createdAt: row.created_at,
         lastSeenAt: row.last_seen_at,
         expiresAt: row.expires_at,
