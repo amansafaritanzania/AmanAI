@@ -16,14 +16,61 @@ const {
     saveUserMemory
 } = require("../memory/chatMemory");
 
+const {
+    requireAuth
+} = require("../auth/authMiddleware");
+
+
+/*
+======================================================
+SECURITY RULE
+======================================================
+
+Every chat route requires a valid Aman AI session.
+
+The browser is NEVER trusted to choose userId.
+The authenticated session decides the real userId.
+
+This binds:
+- chats
+- memory
+- new chats
+- delete actions
+- AI messages
+
+to the signed-in Aman AI account.
+======================================================
+*/
+
 
 // ======================================================
-// CHAT
+// AUTHENTICATED CHAT
 // ======================================================
 
 router.post(
     "/",
-    chat
+    requireAuth,
+    async (req, res, next) => {
+
+        /*
+        chatController currently expects req.body.userId.
+
+        We overwrite it here with the authenticated
+        account ID before chatController receives it.
+        */
+
+        req.body =
+            req.body || {};
+
+        req.body.userId =
+            req.auth.userId;
+
+        return chat(
+            req,
+            res,
+            next
+        );
+    }
 );
 
 
@@ -33,16 +80,18 @@ router.post(
 
 router.post(
     "/new-chat",
+    requireAuth,
     async (req, res) => {
 
         try {
 
-            const {
-                userId = "guest"
-            } = req.body;
+            const userId =
+                req.auth.userId;
 
             const chatId =
-                await createChat(userId);
+                await createChat(
+                    userId
+                );
 
             res.json({
                 success: true,
@@ -67,25 +116,27 @@ router.post(
 
 
 // ======================================================
-// ALL CHATS
+// ALL CHATS FOR SIGNED-IN USER
 // ======================================================
 
 router.get(
-    "/chats/:userId",
+    "/chats",
+    requireAuth,
     async (req, res) => {
 
         try {
 
-            const {
-                userId
-            } = req.params;
+            const userId =
+                req.auth.userId;
 
             const chats =
                 await getUserChats(
                     userId
                 );
 
-            res.json(chats);
+            res.json(
+                chats
+            );
 
         } catch (error) {
 
@@ -94,27 +145,27 @@ router.get(
                 error
             );
 
-            res.status(500).json([]);
+            res
+                .status(500)
+                .json([]);
         }
     }
 );
 
 
 // ======================================================
-// PERMANENT MEMORY
-// IMPORTANT:
-// This MUST be before /:userId/:chatId
+// PERMANENT MEMORY FOR SIGNED-IN USER
 // ======================================================
 
 router.get(
-    "/memory/:userId",
+    "/memory",
+    requireAuth,
     async (req, res) => {
 
         try {
 
-            const {
-                userId
-            } = req.params;
+            const userId =
+                req.auth.userId;
 
             const memory =
                 await getUserMemory(
@@ -147,14 +198,14 @@ router.get(
 // ======================================================
 
 router.put(
-    "/memory/:userId",
+    "/memory",
+    requireAuth,
     async (req, res) => {
 
         try {
 
-            const {
-                userId
-            } = req.params;
+            const userId =
+                req.auth.userId;
 
             const memory =
                 req.body.memory || {};
@@ -186,18 +237,19 @@ router.put(
 
 // ======================================================
 // ONE CHAT
-// IMPORTANT:
-// Keep this AFTER the specific routes above.
 // ======================================================
 
 router.get(
-    "/:userId/:chatId",
+    "/:chatId",
+    requireAuth,
     async (req, res) => {
 
         try {
 
+            const userId =
+                req.auth.userId;
+
             const {
-                userId,
                 chatId
             } = req.params;
 
@@ -233,13 +285,16 @@ router.get(
 // ======================================================
 
 router.delete(
-    "/:userId/:chatId",
+    "/:chatId",
+    requireAuth,
     async (req, res) => {
 
         try {
 
+            const userId =
+                req.auth.userId;
+
             const {
-                userId,
                 chatId
             } = req.params;
 
@@ -272,14 +327,14 @@ router.delete(
 // ======================================================
 
 router.delete(
-    "/chats/:userId",
+    "/chats",
+    requireAuth,
     async (req, res) => {
 
         try {
 
-            const {
-                userId
-            } = req.params;
+            const userId =
+                req.auth.userId;
 
             await deleteAllChats(
                 userId
