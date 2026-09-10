@@ -17,30 +17,59 @@ const {
 } = require("../memory/chatMemory");
 
 const {
+    pool,
+    updateChatMetadata,
+    searchUserChats
+} = require("../memory/database");
+
+const {
     requireAuth
 } = require("../auth/authMiddleware");
 
 
 /*
 ======================================================
-SECURITY RULE
+AMAN AI CHAT ROUTES v5
 ======================================================
 
-Every chat route requires a valid Aman AI session.
-
-The browser is NEVER trusted to choose userId.
-The authenticated session decides the real userId.
-
-This binds:
-- chats
-- memory
-- new chats
-- delete actions
-- AI messages
-
-to the signed-in Aman AI account.
+Security rule:
+- Every route requires authentication.
+- The server decides user identity from req.auth.userId.
+- Browser supplied userId is ignored.
+- Chat ownership is checked in PostgreSQL.
 ======================================================
 */
+
+
+function cleanWorkspace(
+    value
+) {
+
+    const allowed =
+        new Set([
+            "general",
+            "school",
+            "coding",
+            "business",
+            "safari",
+            "agriculture",
+            "health",
+            "bible"
+        ]);
+
+    const workspace =
+        String(
+            value || "general"
+        )
+            .trim()
+            .toLowerCase();
+
+    return allowed.has(
+        workspace
+    )
+        ? workspace
+        : "general";
+}
 
 
 // ======================================================
@@ -52,18 +81,16 @@ router.post(
     requireAuth,
     async (req, res, next) => {
 
-        /*
-        chatController currently expects req.body.userId.
-
-        We overwrite it here with the authenticated
-        account ID before chatController receives it.
-        */
-
         req.body =
             req.body || {};
 
         req.body.userId =
             req.auth.userId;
+
+        req.body.workspace =
+            cleanWorkspace(
+                req.body.workspace
+            );
 
         return chat(
             req,
@@ -88,14 +115,34 @@ router.post(
             const userId =
                 req.auth.userId;
 
+            const workspace =
+                cleanWorkspace(
+                    req.body?.workspace
+                );
+
             const chatId =
                 await createChat(
                     userId
                 );
 
+            /*
+            Persist workspace immediately.
+            This works with the existing chatMemory layer
+            without changing its public API.
+            */
+
+            await updateChatMetadata(
+                userId,
+                chatId,
+                {
+                    workspace
+                }
+            );
+
             res.json({
                 success: true,
-                chatId
+                chatId,
+                workspace
             });
 
         } catch (error) {
@@ -116,7 +163,8 @@ router.post(
 
 
 // ======================================================
-// ALL CHATS FOR SIGNED-IN USER
+// ALL CHATS
+// Optional: /chat/chats?workspace=coding
 // ======================================================
 
 router.get(
@@ -129,13 +177,110 @@ router.get(
             const userId =
                 req.auth.userId;
 
+            const workspace =
+                req.query.workspace
+                    ? cleanWorkspace(
+                        req.query.workspace
+                    )
+                    : null;
+
             const chats =
                 await getUserChats(
                     userId
                 );
 
+            const metadataResult =
+                await pool.query(
+                    `
+                    SELECT
+                        chat_id,
+                        workspace,
+                        is_pinned,
+                        is_archived,
+                        updated_at
+                    FROM chats
+                    WHERE user_id = $1
+                    `,
+                    [userId]
+                );
+
+            const metadataMap =
+                new Map(
+                    metadataResult.rows.map(
+                        row => [
+                            row.chat_id,
+                            row
+                        ]
+                    )
+                );
+
+            let output =
+                chats.map(
+                    item => {
+
+                        const meta =
+                            metadataMap.get(
+                                item.chat_id
+                            ) || {};
+
+                        return {
+                            ...item,
+                            workspace:
+                                meta.workspace ||
+                                "general",
+                            is_pinned:
+                                Boolean(
+                                    meta.is_pinned
+                                ),
+                            is_archived:
+                                Boolean(
+                                    meta.is_archived
+                                ),
+                            updated_at:
+                                meta.updated_at ||
+                                item.created_at
+                        };
+                    }
+                );
+
+            if (workspace) {
+
+                output =
+                    output.filter(
+                        item =>
+                            item.workspace ===
+                            workspace
+                    );
+            }
+
+            output.sort(
+                (a, b) => {
+
+                    if (
+                        a.is_pinned !==
+                        b.is_pinned
+                    ) {
+
+                        return a.is_pinned
+                            ? -1
+                            : 1;
+                    }
+
+                    return (
+                        new Date(
+                            b.updated_at ||
+                            b.created_at
+                        ) -
+                        new Date(
+                            a.updated_at ||
+                            a.created_at
+                        )
+                    );
+                }
+            );
+
             res.json(
-                chats
+                output
             );
 
         } catch (error) {
@@ -154,7 +299,67 @@ router.get(
 
 
 // ======================================================
-// PERMANENT MEMORY FOR SIGNED-IN USER
+// SEARCH CHATS
+// /chat/search?q=physics&workspace=school
+// ======================================================
+
+router.get(
+    "/search",
+    requireAuth,
+    async (req, res) => {
+
+        try {
+
+            const query =
+                String(
+                    req.query.q || ""
+                )
+                    .trim()
+                    .slice(
+                        0,
+                        120
+                    );
+
+            const workspace =
+                req.query.workspace
+                    ? cleanWorkspace(
+                        req.query.workspace
+                    )
+                    : null;
+
+            if (!query) {
+
+                return res.json([]);
+            }
+
+            const results =
+                await searchUserChats(
+                    req.auth.userId,
+                    query,
+                    workspace
+                );
+
+            res.json(
+                results
+            );
+
+        } catch (error) {
+
+            console.error(
+                "SEARCH CHATS ERROR:",
+                error
+            );
+
+            res
+                .status(500)
+                .json([]);
+        }
+    }
+);
+
+
+// ======================================================
+// PERMANENT MEMORY
 // ======================================================
 
 router.get(
@@ -164,12 +369,9 @@ router.get(
 
         try {
 
-            const userId =
-                req.auth.userId;
-
             const memory =
                 await getUserMemory(
-                    userId
+                    req.auth.userId
                 );
 
             res.json({
@@ -204,14 +406,11 @@ router.put(
 
         try {
 
-            const userId =
-                req.auth.userId;
-
             const memory =
                 req.body.memory || {};
 
             await saveUserMemory(
-                userId,
+                req.auth.userId,
                 memory
             );
 
@@ -236,6 +435,102 @@ router.put(
 
 
 // ======================================================
+// UPDATE CHAT METADATA
+// Rename / pin / archive / move workspace
+// ======================================================
+
+router.patch(
+    "/:chatId",
+    requireAuth,
+    async (req, res) => {
+
+        try {
+
+            const {
+                chatId
+            } = req.params;
+
+            const changes = {};
+
+            if (
+                typeof req.body?.title ===
+                "string"
+            ) {
+
+                changes.title =
+                    req.body.title;
+            }
+
+            if (
+                typeof req.body?.workspace ===
+                "string"
+            ) {
+
+                changes.workspace =
+                    cleanWorkspace(
+                        req.body.workspace
+                    );
+            }
+
+            if (
+                typeof req.body?.isPinned ===
+                "boolean"
+            ) {
+
+                changes.isPinned =
+                    req.body.isPinned;
+            }
+
+            if (
+                typeof req.body?.isArchived ===
+                "boolean"
+            ) {
+
+                changes.isArchived =
+                    req.body.isArchived;
+            }
+
+            const updated =
+                await updateChatMetadata(
+                    req.auth.userId,
+                    chatId,
+                    changes
+                );
+
+            if (!updated) {
+
+                return res
+                    .status(404)
+                    .json({
+                        success: false,
+                        message:
+                            "Chat not found."
+                    });
+            }
+
+            res.json({
+                success: true,
+                chat: updated
+            });
+
+        } catch (error) {
+
+            console.error(
+                "UPDATE CHAT ERROR:",
+                error
+            );
+
+            res.status(500).json({
+                success: false,
+                message:
+                    "Unable to update chat."
+            });
+        }
+    }
+);
+
+
+// ======================================================
 // ONE CHAT
 // ======================================================
 
@@ -246,17 +541,10 @@ router.get(
 
         try {
 
-            const userId =
-                req.auth.userId;
-
-            const {
-                chatId
-            } = req.params;
-
             const history =
                 await getChat(
-                    userId,
-                    chatId
+                    req.auth.userId,
+                    req.params.chatId
                 );
 
             res.json({
@@ -291,16 +579,9 @@ router.delete(
 
         try {
 
-            const userId =
-                req.auth.userId;
-
-            const {
-                chatId
-            } = req.params;
-
             await deleteChat(
-                userId,
-                chatId
+                req.auth.userId,
+                req.params.chatId
             );
 
             res.json({
@@ -333,11 +614,8 @@ router.delete(
 
         try {
 
-            const userId =
-                req.auth.userId;
-
             await deleteAllChats(
-                userId
+                req.auth.userId
             );
 
             res.json({
