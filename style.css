@@ -2247,3 +2247,181 @@ never hides underneath it.
     border:1px solid var(--border);
     font-size:13px;
 }
+
+
+/* ======================================================
+   AMAN AI v8 - CREATOR MODE
+   ====================================================== */
+
+.creator-launch-btn {
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.creator-panel {
+    display: grid;
+    gap: 14px;
+}
+
+.creator-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.creator-tab {
+    min-height: 42px;
+    border: 1px solid var(--border, #d7d7d7);
+    background: var(--panel, #fff);
+    color: inherit;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.creator-tab.active {
+    border-color: currentColor;
+    box-shadow: 0 0 0 1px currentColor inset;
+}
+
+.creator-label {
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.creator-prompt {
+    width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
+    min-height: 120px;
+    border-radius: 14px;
+    border: 1px solid var(--border, #d7d7d7);
+    background: var(--panel, #fff);
+    color: inherit;
+    padding: 12px;
+    font: inherit;
+}
+
+.creator-options {
+    display: grid;
+    gap: 10px;
+}
+
+.creator-options[hidden] {
+    display: none !important;
+}
+
+.creator-options label {
+    display: grid;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.creator-options select {
+    width: 100%;
+    min-height: 42px;
+    border-radius: 11px;
+    border: 1px solid var(--border, #d7d7d7);
+    background: var(--panel, #fff);
+    color: inherit;
+    padding: 8px 10px;
+}
+
+.creator-check {
+    grid-template-columns: auto 1fr !important;
+    align-items: center;
+    justify-content: start;
+}
+
+.creator-generate-btn {
+    width: 100%;
+    min-height: 46px;
+    border-radius: 13px;
+}
+
+.creator-result {
+    max-width: min(720px, 100%);
+    overflow: hidden;
+}
+
+.creator-result-head {
+    font-weight: 800;
+    margin-bottom: 10px;
+}
+
+.creator-media {
+    width: 100%;
+    max-height: 620px;
+    object-fit: contain;
+    border-radius: 14px;
+    display: block;
+    background: rgba(0,0,0,.06);
+}
+
+.creator-video {
+    aspect-ratio: 16 / 9;
+}
+
+.creator-caption {
+    margin-top: 10px;
+    font-size: 13px;
+    opacity: .78;
+    overflow-wrap: anywhere;
+}
+
+.creator-open-link {
+    display: inline-flex;
+    margin-top: 10px;
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.creator-progress {
+    min-width: 210px;
+}
+
+.creator-progress-line {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 750;
+}
+
+.creator-progress-sub {
+    margin-top: 6px;
+    font-size: 12px;
+    opacity: .7;
+}
+
+.creator-spinner {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    animation: creator-spin .8s linear infinite;
+    flex: 0 0 auto;
+}
+
+@keyframes creator-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.chat-list-empty {
+    padding: 12px;
+    opacity: .65;
+    font-size: 13px;
+}
+
+@media (max-width: 640px) {
+    .creator-media {
+        max-height: 70vh;
+    }
+
+    .creator-tabs {
+        grid-template-columns: 1fr 1fr;
+    }
+}
