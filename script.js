@@ -62,6 +62,18 @@ document.getElementById("workspaceSelect");
 const workspaceBadge =
 document.getElementById("workspaceBadge");
 
+const actionModal =
+document.getElementById("actionModal");
+
+const actionModalBody =
+document.getElementById("actionModalBody");
+
+const actionModalTitle =
+document.getElementById("actionModalTitle");
+
+const actionModalClose =
+document.getElementById("actionModalClose");
+
 
 // ======================================================
 // AUTHENTICATED ACCOUNT IDENTITY
@@ -536,6 +548,88 @@ if (fileInput) {
 
 
 // ======================================================
+// ACTION MODAL
+// ======================================================
+
+function closeActionModal() {
+
+    if (!actionModal) {
+        return;
+    }
+
+    actionModal.classList.remove(
+        "show"
+    );
+
+    actionModal.setAttribute(
+        "aria-hidden",
+        "true"
+    );
+
+    if (actionModalBody) {
+        actionModalBody.innerHTML = "";
+    }
+}
+
+
+function openActionModal(
+    title,
+    html
+) {
+
+    if (
+        !actionModal ||
+        !actionModalBody ||
+        !actionModalTitle
+    ) {
+        return;
+    }
+
+    actionModalTitle.textContent =
+        title;
+
+    actionModalBody.innerHTML =
+        html;
+
+    actionModal.classList.add(
+        "show"
+    );
+
+    actionModal.setAttribute(
+        "aria-hidden",
+        "false"
+    );
+}
+
+
+if (actionModalClose) {
+
+    actionModalClose.addEventListener(
+        "click",
+        closeActionModal
+    );
+}
+
+
+if (actionModal) {
+
+    actionModal.addEventListener(
+        "click",
+        event => {
+
+            if (
+                event.target ===
+                actionModal
+            ) {
+
+                closeActionModal();
+            }
+        }
+    );
+}
+
+
+// ======================================================
 // WORKSPACES
 // ======================================================
 
@@ -881,7 +975,8 @@ function scrollChat() {
 
 function addMessage(
     content,
-    role
+    role,
+    messageId = null
 ) {
 
     const wrapper =
@@ -892,6 +987,12 @@ function addMessage(
 
     wrapper.className =
     "message " + role;
+
+    if (messageId) {
+
+        wrapper.dataset.messageId =
+            String(messageId);
+    }
 
 
     const bubble =
@@ -930,7 +1031,8 @@ function addMessage(
 
         addMessageActions(
             wrapper,
-            content
+            content,
+            messageId
         );
 
     }
@@ -1286,7 +1388,8 @@ async function sendMessageWithText(
         const bubble =
         addMessage(
             "",
-            "ai"
+            "ai",
+            data.assistantMessageId
         );
 
 
@@ -1354,93 +1457,933 @@ if (input) {
 
 
 // ======================================================
-// MESSAGE ACTIONS
+// ADVANCED RESPONSE ACTIONS
 // ======================================================
 
-function addMessageActions(
-    messageBox,
+function readAloud(
     text
 ) {
 
-    const actions =
-    document.createElement(
-        "div"
+    if (
+        !("speechSynthesis" in window)
+    ) {
+
+        alert(
+            "Read aloud is not supported by this browser."
+        );
+
+        return;
+    }
+
+    window.speechSynthesis.cancel();
+
+    const utterance =
+        new SpeechSynthesisUtterance(
+            text
+        );
+
+    utterance.rate =
+        1;
+
+    window.speechSynthesis.speak(
+        utterance
     );
+}
 
 
-    actions.className =
-    "message-actions";
+async function rateResponse(
+    messageId,
+    rating,
+    button
+) {
 
+    if (
+        !messageId ||
+        !currentChatId
+    ) {
+        return;
+    }
 
-    actions.innerHTML = `
+    try {
 
-        <button>📋</button>
-        <button>👍</button>
-        <button>👎</button>
-        <button>🔗</button>
+        const res =
+            await fetch(
+                `${API}/${currentChatId}/feedback`,
+                {
+                    method:
+                        "POST",
 
-    `;
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
 
+                    credentials:
+                        "same-origin",
 
-    const btn =
-    actions.querySelectorAll(
-        "button"
-    );
-
-
-    btn[0].onclick =
-    () => {
-
-        navigator.clipboard
-        .writeText(text);
-
-    };
-
-
-    btn[1].onclick =
-    () => {
-
-        btn[1].innerHTML =
-        "👍✅";
-
-    };
-
-
-    btn[2].onclick =
-    () => {
-
-        btn[2].innerHTML =
-        "👎✅";
-
-    };
-
-
-    btn[3].onclick =
-    async () => {
+                    body:
+                        JSON.stringify({
+                            messageId,
+                            rating
+                        })
+                }
+            );
 
         if (
-            navigator.share
+            res.status === 401
         ) {
 
-            navigator.share({
+            location.replace(
+                "/login"
+            );
+
+            return;
+        }
+
+        if (!res.ok) {
+
+            throw new Error(
+                "Could not save feedback."
+            );
+        }
+
+        button.classList.add(
+            "selected"
+        );
+
+    } catch (error) {
+
+        console.error(
+            "FEEDBACK ERROR:",
+            error
+        );
+    }
+}
+
+
+async function branchFromMessage(
+    messageId
+) {
+
+    if (
+        !messageId ||
+        !currentChatId
+    ) {
+        return;
+    }
+
+    try {
+
+        const res =
+            await fetch(
+                `${API}/${currentChatId}/branch`,
+                {
+                    method:
+                        "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    credentials:
+                        "same-origin",
+
+                    body:
+                        JSON.stringify({
+                            messageId
+                        })
+                }
+            );
+
+        const data =
+            await res
+                .json()
+                .catch(
+                    () => ({})
+                );
+
+        if (!res.ok) {
+
+            throw new Error(
+                data.message ||
+                "Could not create branch."
+            );
+        }
+
+        currentChatId =
+            data.chatId;
+
+        localStorage.setItem(
+            "AmanChat",
+            currentChatId
+        );
+
+        await loadCurrentChat();
+
+        await loadChats();
+
+        closeSidebar();
+
+    } catch (error) {
+
+        console.error(
+            "BRANCH ERROR:",
+            error
+        );
+    }
+}
+
+
+async function regenerateLastResponse() {
+
+    if (!currentChatId) {
+        return;
+    }
+
+    const loading =
+        createLoading();
+
+    try {
+
+        const res =
+            await fetch(
+                `${API}/${currentChatId}/regenerate`,
+                {
+                    method:
+                        "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    credentials:
+                        "same-origin",
+
+                    body:
+                        JSON.stringify({
+                            workspace:
+                                currentWorkspace
+                        })
+                }
+            );
+
+        const data =
+            await res
+                .json()
+                .catch(
+                    () => ({})
+                );
+
+        loading.remove();
+
+        if (
+            res.status === 401
+        ) {
+
+            location.replace(
+                "/login"
+            );
+
+            return;
+        }
+
+        if (!res.ok) {
+
+            throw new Error(
+                data.message ||
+                data.reply ||
+                "Could not regenerate."
+            );
+        }
+
+        await loadCurrentChat();
+
+        await loadChats();
+
+    } catch (error) {
+
+        loading.remove();
+
+        console.error(
+            "REGENERATE ERROR:",
+            error
+        );
+    }
+}
+
+
+function addMessageActions(
+    messageBox,
+    text,
+    messageId
+) {
+
+    const actions =
+        document.createElement(
+            "div"
+        );
+
+    actions.className =
+        "message-actions";
+
+    actions.innerHTML = `
+        <button
+            type="button"
+            title="Copy"
+            aria-label="Copy response"
+        >
+            📋
+        </button>
+
+        <button
+            type="button"
+            title="Helpful"
+            aria-label="Helpful"
+        >
+            👍
+        </button>
+
+        <button
+            type="button"
+            title="Not helpful"
+            aria-label="Not helpful"
+        >
+            👎
+        </button>
+
+        <button
+            type="button"
+            title="Read aloud"
+            aria-label="Read aloud"
+        >
+            🔊
+        </button>
+
+        <button
+            type="button"
+            title="Regenerate"
+            aria-label="Regenerate response"
+        >
+            ↻
+        </button>
+
+        <button
+            type="button"
+            title="Branch"
+            aria-label="Branch from here"
+        >
+            🌿
+        </button>
+
+        <button
+            type="button"
+            title="Share"
+            aria-label="Share response"
+        >
+            ↗
+        </button>
+    `;
+
+    const buttons =
+        actions.querySelectorAll(
+            "button"
+        );
+
+    buttons[0].onclick =
+        async () => {
+
+            await navigator.clipboard
+                .writeText(
+                    text
+                );
+
+            buttons[0].textContent =
+                "✅";
+
+            setTimeout(
+                () => {
+                    buttons[0].textContent =
+                        "📋";
+                },
+                1200
+            );
+        };
+
+
+    buttons[1].onclick =
+        () =>
+            rateResponse(
+                messageId,
+                1,
+                buttons[1]
+            );
+
+
+    buttons[2].onclick =
+        () =>
+            rateResponse(
+                messageId,
+                -1,
+                buttons[2]
+            );
+
+
+    buttons[3].onclick =
+        () =>
+            readAloud(
                 text
-            });
+            );
 
-        }
-        else {
 
-            navigator.clipboard
-            .writeText(text);
+    buttons[4].onclick =
+        regenerateLastResponse;
 
-        }
 
-    };
+    buttons[5].onclick =
+        () =>
+            branchFromMessage(
+                messageId
+            );
+
+
+    buttons[6].onclick =
+        async () => {
+
+            if (
+                navigator.share
+            ) {
+
+                await navigator.share({
+                    text
+                });
+
+            } else {
+
+                await navigator.clipboard
+                    .writeText(
+                        text
+                    );
+            }
+        };
 
 
     messageBox.appendChild(
         actions
     );
+}
 
+
+// ======================================================
+// CHAT MANAGEMENT
+// ======================================================
+
+async function updateChat(
+    chatId,
+    changes
+) {
+
+    const res =
+        await fetch(
+            `${API}/${chatId}`,
+            {
+                method:
+                    "PATCH",
+
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
+
+                credentials:
+                    "same-origin",
+
+                body:
+                    JSON.stringify(
+                        changes
+                    )
+            }
+        );
+
+    const data =
+        await res
+            .json()
+            .catch(
+                () => ({})
+            );
+
+    if (!res.ok) {
+
+        throw new Error(
+            data.message ||
+            "Could not update chat."
+        );
+    }
+
+    return data.chat;
+}
+
+
+function openChatMenu(
+    item
+) {
+
+    const pinned =
+        Boolean(
+            item.is_pinned
+        );
+
+    const archived =
+        Boolean(
+            item.is_archived
+        );
+
+    openActionModal(
+        "Chat options",
+        `
+        <div class="chat-action-stack">
+
+            <button
+                id="renameChatAction"
+                type="button"
+            >
+                ✏ Rename
+            </button>
+
+            <button
+                id="pinChatAction"
+                type="button"
+            >
+                ${pinned
+                    ? "📌 Unpin"
+                    : "📌 Pin"}
+            </button>
+
+            <button
+                id="moveChatAction"
+                type="button"
+            >
+                🗂 Move workspace
+            </button>
+
+            <button
+                id="archiveChatAction"
+                type="button"
+            >
+                ${archived
+                    ? "📥 Unarchive"
+                    : "📦 Archive"}
+            </button>
+
+            <button
+                id="shareChatAction"
+                type="button"
+            >
+                ↗ Share chat
+            </button>
+
+            <button
+                id="deleteChatAction"
+                class="danger-action"
+                type="button"
+            >
+                🗑 Delete
+            </button>
+
+        </div>
+        `
+    );
+
+
+    document
+        .getElementById(
+            "renameChatAction"
+        )
+        ?.addEventListener(
+            "click",
+            () => {
+
+                openActionModal(
+                    "Rename chat",
+                    `
+                    <form
+                        id="renameChatForm"
+                        class="modal-form"
+                    >
+                        <input
+                            id="renameChatInput"
+                            maxlength="100"
+                            value="${String(
+                                item.title ||
+                                ""
+                            )
+                            .replace(/&/g,"&amp;")
+                            .replace(/"/g,"&quot;")
+                            .replace(/</g,"&lt;")
+                            .replace(/>/g,"&gt;")}"
+                            required
+                        >
+
+                        <button
+                            type="submit"
+                        >
+                            Save name
+                        </button>
+                    </form>
+                    `
+                );
+
+                document
+                    .getElementById(
+                        "renameChatForm"
+                    )
+                    ?.addEventListener(
+                        "submit",
+                        async event => {
+
+                            event.preventDefault();
+
+                            const title =
+                                document
+                                    .getElementById(
+                                        "renameChatInput"
+                                    )
+                                    .value
+                                    .trim();
+
+                            if (!title) {
+                                return;
+                            }
+
+                            await updateChat(
+                                item.chat_id,
+                                {
+                                    title
+                                }
+                            );
+
+                            closeActionModal();
+
+                            await loadChats();
+                        }
+                    );
+            }
+        );
+
+
+    document
+        .getElementById(
+            "pinChatAction"
+        )
+        ?.addEventListener(
+            "click",
+            async () => {
+
+                await updateChat(
+                    item.chat_id,
+                    {
+                        isPinned:
+                            !pinned
+                    }
+                );
+
+                closeActionModal();
+
+                await loadChats();
+            }
+        );
+
+
+    document
+        .getElementById(
+            "moveChatAction"
+        )
+        ?.addEventListener(
+            "click",
+            () => {
+
+                openActionModal(
+                    "Move workspace",
+                    `
+                    <div class="modal-form">
+
+                        <select
+                            id="moveWorkspaceSelect"
+                        >
+                            ${
+                                Object.entries(
+                                    WORKSPACES
+                                )
+                                .map(
+                                    ([id,name]) =>
+                                        `<option value="${id}" ${
+                                            item.workspace === id
+                                                ? "selected"
+                                                : ""
+                                        }>${name}</option>`
+                                )
+                                .join("")
+                            }
+                        </select>
+
+                        <button
+                            id="moveWorkspaceSave"
+                            type="button"
+                        >
+                            Move chat
+                        </button>
+
+                    </div>
+                    `
+                );
+
+                document
+                    .getElementById(
+                        "moveWorkspaceSave"
+                    )
+                    ?.addEventListener(
+                        "click",
+                        async () => {
+
+                            const workspace =
+                                document
+                                    .getElementById(
+                                        "moveWorkspaceSelect"
+                                    )
+                                    .value;
+
+                            await updateChat(
+                                item.chat_id,
+                                {
+                                    workspace
+                                }
+                            );
+
+                            closeActionModal();
+
+                            await loadChats();
+                        }
+                    );
+            }
+        );
+
+
+    document
+        .getElementById(
+            "archiveChatAction"
+        )
+        ?.addEventListener(
+            "click",
+            async () => {
+
+                await updateChat(
+                    item.chat_id,
+                    {
+                        isArchived:
+                            !archived
+                    }
+                );
+
+                closeActionModal();
+
+                await loadChats();
+            }
+        );
+
+
+    document
+        .getElementById(
+            "shareChatAction"
+        )
+        ?.addEventListener(
+            "click",
+            async () => {
+
+                const shareText =
+                    `${item.title || "Aman AI chat"} — Aman AI`;
+
+                if (
+                    navigator.share
+                ) {
+
+                    await navigator.share({
+                        title:
+                            item.title ||
+                            "Aman AI chat",
+                        text:
+                            shareText
+                    });
+
+                } else {
+
+                    await navigator.clipboard
+                        .writeText(
+                            shareText
+                        );
+                }
+
+                closeActionModal();
+            }
+        );
+
+
+    document
+        .getElementById(
+            "deleteChatAction"
+        )
+        ?.addEventListener(
+            "click",
+            async () => {
+
+                await fetch(
+                    `${API}/${item.chat_id}`,
+                    {
+                        method:
+                            "DELETE",
+
+                        credentials:
+                            "same-origin"
+                    }
+                );
+
+                if (
+                    currentChatId ===
+                    item.chat_id
+                ) {
+
+                    currentChatId =
+                        null;
+
+                    localStorage.removeItem(
+                        "AmanChat"
+                    );
+
+                    showWelcome();
+                }
+
+                closeActionModal();
+
+                await loadChats();
+            }
+        );
+}
+
+
+function createChatListItem(
+    item
+) {
+
+    const id =
+        item.chat_id;
+
+    if (
+        !isValidChatId(
+            id
+        )
+    ) {
+
+        return null;
+    }
+
+    const row =
+        document.createElement(
+            "div"
+        );
+
+    row.className =
+        "chat-item";
+
+    if (
+        item.is_archived
+    ) {
+
+        row.classList.add(
+            "archived"
+        );
+    }
+
+    const main =
+        document.createElement(
+            "button"
+        );
+
+    main.type =
+        "button";
+
+    main.className =
+        "chat-item-main";
+
+    main.innerHTML =
+        `
+        <span class="chat-item-title">
+            ${
+                item.is_pinned
+                    ? "📌 "
+                    : "💬 "
+            }${item.title || "New Chat"}
+        </span>
+
+        <span class="chat-item-workspace">
+            ${WORKSPACES[item.workspace] || "General"}
+        </span>
+        `;
+
+    main.addEventListener(
+        "click",
+        () => {
+
+            currentChatId =
+                id;
+
+            localStorage.setItem(
+                "AmanChat",
+                id
+            );
+
+            loadCurrentChat();
+
+            closeSidebar();
+        }
+    );
+
+    const menu =
+        document.createElement(
+            "button"
+        );
+
+    menu.type =
+        "button";
+
+    menu.className =
+        "chat-item-menu";
+
+    menu.textContent =
+        "⋯";
+
+    menu.setAttribute(
+        "aria-label",
+        "Chat options"
+    );
+
+    menu.addEventListener(
+        "click",
+        event => {
+
+            event.stopPropagation();
+
+            openChatMenu(
+                item
+            );
+        }
+    );
+
+    row.append(
+        main,
+        menu
+    );
+
+    return row;
 }
 
 
@@ -1452,15 +2395,34 @@ async function loadChats() {
 
     try {
 
-        const res =
-        await fetch(
-            `${API}/chats`,
-            {
-                credentials:
-                "same-origin"
-            }
-        );
+        const params =
+            new URLSearchParams();
 
+        if (
+            currentWorkspace &&
+            currentWorkspace !==
+            "general"
+        ) {
+
+            params.set(
+                "workspace",
+                currentWorkspace
+            );
+        }
+
+        const url =
+            params.toString()
+                ? `${API}/chats?${params}`
+                : `${API}/chats`;
+
+        const res =
+            await fetch(
+                url,
+                {
+                    credentials:
+                        "same-origin"
+                }
+            );
 
         if (
             res.status === 401
@@ -1478,191 +2440,47 @@ async function loadChats() {
             throw new Error(
                 "Failed to load chats"
             );
-
         }
-
 
         const chats =
-        await res.json();
-
+            await res.json();
 
         chatList.innerHTML =
-        "";
-
-
-        /*
-        ==================================================
-        NEW POSTGRESQL FORMAT
-
-        Backend returns:
-
-        [
-            {
-                chat_id: "...",
-                title: "..."
-            }
-        ]
-
-        ==================================================
-        */
+            "";
 
         if (
-            Array.isArray(chats)
+            !Array.isArray(
+                chats
+            )
         ) {
 
-            chats.forEach(
-                (item) => {
-
-                    const id =
-                    item.chat_id;
-
-
-                    if (
-                        !isValidChatId(
-                            id
-                        )
-                    ) {
-
-                        return;
-
-                    }
-
-
-                    const div =
-                    document.createElement(
-                        "div"
-                    );
-
-
-                    div.className =
-                    "chat-item";
-
-
-                    div.innerHTML =
-                    "💬 " +
-                    (
-                        item.title ||
-                        "New Chat"
-                    );
-
-
-                    div.onclick =
-                    () => {
-
-                        currentChatId =
-                        id;
-
-
-                        localStorage.setItem(
-                            "AmanChat",
-                            id
-                        );
-
-
-                        loadCurrentChat();
-
-                        closeSidebar();
-
-                    };
-
-
-                    chatList.appendChild(
-                        div
-                    );
-
-                }
-            );
-
+            return;
         }
 
+        chats.forEach(
+            item => {
 
-        /*
-        ==================================================
-        OLD FORMAT SUPPORT
-
-        This keeps compatibility if an older
-        server response is ever encountered.
-        ==================================================
-        */
-
-        else if (
-            chats &&
-            typeof chats === "object"
-        ) {
-
-            Object.keys(chats)
-            .forEach(
-                (id) => {
-
-                    if (
-                        !isValidChatId(
-                            id
-                        )
-                    ) {
-
-                        return;
-
-                    }
-
-
-                    const div =
-                    document.createElement(
-                        "div"
+                const row =
+                    createChatListItem(
+                        item
                     );
 
-
-                    div.className =
-                    "chat-item";
-
-
-                    div.innerHTML =
-                    "💬 " +
-                    (
-                        chats[id]
-                        ?.title ||
-                        "New Chat"
-                    );
-
-
-                    div.onclick =
-                    () => {
-
-                        currentChatId =
-                        id;
-
-
-                        localStorage.setItem(
-                            "AmanChat",
-                            id
-                        );
-
-
-                        loadCurrentChat();
-
-                        closeSidebar();
-
-                    };
-
+                if (row) {
 
                     chatList.appendChild(
-                        div
+                        row
                     );
-
                 }
-            );
+            }
+        );
 
-        }
-
-    }
-    catch (err) {
+    } catch (error) {
 
         console.error(
             "LOAD CHATS ERROR:",
-            err
+            error
         );
-
     }
-
 }
 
 
@@ -1760,7 +2578,9 @@ async function loadCurrentChat() {
 
                     msg.role === "user"
                     ? "user"
-                    : "ai"
+                    : "ai",
+
+                    msg.id
 
                 );
 
