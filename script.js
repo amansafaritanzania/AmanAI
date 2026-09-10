@@ -99,8 +99,64 @@ async function loadAuthenticatedAccount() {
         data.userId ||
         null;
 
+        if (!accountUserId) {
+
+            console.error(
+                "ACCOUNT ID MISSING"
+            );
+
+            location.replace(
+                "/login"
+            );
+
+            return false;
+        }
+
         /*
-        Remove the old browser-generated identity.
+        ==================================================
+        ACCOUNT ↔ LOCAL CHAT MIGRATION
+
+        AmanChat is only a pointer to the last-opened
+        chat on THIS browser.
+
+        If a different Aman AI account signs in on the
+        same browser, never reuse the previous account's
+        stored AmanChat value.
+
+        This does NOT delete any chat from PostgreSQL.
+        It only clears the local pointer.
+        ==================================================
+        */
+
+        const previousAccountUserId =
+        localStorage.getItem(
+            "AmanAccountUser"
+        );
+
+        if (
+            previousAccountUserId &&
+            previousAccountUserId !==
+            accountUserId
+        ) {
+
+            localStorage.removeItem(
+                "AmanChat"
+            );
+
+            currentChatId = null;
+
+            console.log(
+                "ACCOUNT CHANGED: cleared old local chat pointer"
+            );
+        }
+
+        localStorage.setItem(
+            "AmanAccountUser",
+            accountUserId
+        );
+
+        /*
+        Remove the old pre-account browser identity.
         It must never control chat ownership again.
         */
 
@@ -650,6 +706,26 @@ async function sendMessage() {
     const message =
     input.value.trim();
 
+    if (!message) {
+        return;
+    }
+
+    input.value = "";
+
+    input.style.height =
+    "auto";
+
+    await sendMessageWithText(
+        message
+    );
+
+}
+
+
+async function sendMessageWithText(
+    message,
+    showUserMessage = true
+) {
 
     if (!message) {
         return;
@@ -667,16 +743,14 @@ async function sendMessage() {
     }
 
 
-    addMessage(
-        message,
-        "user"
-    );
+    if (showUserMessage) {
 
+        addMessage(
+            message,
+            "user"
+        );
 
-    input.value = "";
-
-    input.style.height =
-    "auto";
+    }
 
 
     const loading =
@@ -752,6 +826,43 @@ async function sendMessage() {
 
 
         loading.remove();
+
+
+        /*
+        ==================================================
+        STALE CHAT RECOVERY
+
+        If a browser still has a chat pointer that the
+        signed-in account cannot use, clear ONLY that
+        local pointer and retry this message once.
+
+        The old database chat remains untouched.
+        ==================================================
+        */
+
+        if (
+            !res.ok &&
+            isValidChatId(
+                currentChatId
+            )
+        ) {
+
+            console.warn(
+                "Chat unavailable for current account. Retrying in a fresh chat."
+            );
+
+            currentChatId =
+            null;
+
+            localStorage.removeItem(
+                "AmanChat"
+            );
+
+            return sendMessageWithText(
+                message,
+                false
+            );
+        }
 
 
         /*
@@ -1228,21 +1339,30 @@ async function loadCurrentChat() {
 
             /*
             ==============================================
-            If the browser has a chat ID that no longer
-            exists in PostgreSQL, remove it safely.
+            STALE / FOREIGN LOCAL CHAT POINTER
+
+            The database chat is NOT deleted.
+
+            We only remove this browser's AmanChat value
+            so the signed-in account cannot accidentally
+            reuse a chat owned by another account.
             ==============================================
             */
 
+            console.warn(
+                "Stored chat is unavailable for this account. Clearing local pointer."
+            );
+
             currentChatId =
             null;
-
 
             localStorage.removeItem(
                 "AmanChat"
             );
 
-
             showWelcome();
+
+            await loadChats();
 
             return;
 
