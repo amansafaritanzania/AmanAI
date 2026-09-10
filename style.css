@@ -2045,3 +2045,151 @@ body.sidebar-open{
         height:31px;
     }
 }
+
+
+/* =====================================================
+   Aman AI v5.3 — Floating Composer
+===================================================== */
+
+/*
+The composer now floats above the bottom edge instead of
+being attached to the page frame.
+*/
+
+.composer-wrap{
+    position:fixed;
+    left:50%;
+    bottom:
+        max(
+            10px,
+            env(safe-area-inset-bottom)
+        );
+    transform:translateX(-50%);
+    z-index:60;
+
+    width:min(940px,calc(100% - 24px));
+
+    padding:0;
+
+    background:transparent;
+    border-top:none;
+
+    pointer-events:none;
+}
+
+.composer{
+    pointer-events:auto;
+
+    width:100%;
+    margin:0;
+
+    border:
+        1px solid
+        rgba(255,255,255,.12);
+
+    background:
+        rgba(15,23,42,.88);
+
+    backdrop-filter:blur(24px);
+    -webkit-backdrop-filter:blur(24px);
+
+    box-shadow:
+        0 18px 55px
+        rgba(0,0,0,.5);
+}
+
+.composer-note{
+    pointer-events:none;
+
+    width:100%;
+
+    margin-top:6px;
+
+    padding:0 10px;
+
+    text-shadow:
+        0 1px 8px
+        rgba(0,0,0,.85);
+}
+
+/*
+Because the composer is fixed, reserve enough space at
+the bottom of the scrolling chat so the final message
+never hides underneath it.
+*/
+
+.chat{
+    padding-bottom:
+        145px;
+}
+
+
+/* Tablet */
+@media(max-width:900px){
+
+    .composer-wrap{
+        width:
+            min(
+                760px,
+                calc(100% - 20px)
+            );
+
+        bottom:
+            max(
+                8px,
+                env(safe-area-inset-bottom)
+            );
+    }
+
+    .chat{
+        padding-bottom:
+            138px;
+    }
+}
+
+
+/* Phones */
+@media(max-width:700px){
+
+    .composer-wrap{
+        width:
+            calc(100% - 12px);
+
+        bottom:
+            max(
+                6px,
+                env(safe-area-inset-bottom)
+            );
+    }
+
+    .composer{
+        border-radius:18px;
+
+        background:
+            rgba(15,23,42,.94);
+
+        box-shadow:
+            0 14px 42px
+            rgba(0,0,0,.48);
+    }
+
+    .chat{
+        padding-bottom:
+            102px;
+    }
+}
+
+
+/* Very small phones */
+@media(max-width:420px){
+
+    .composer-wrap{
+        width:
+            calc(100% - 8px);
+    }
+
+    .chat{
+        padding-bottom:
+            98px;
+    }
+}
