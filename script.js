@@ -801,9 +801,21 @@ function setWorkspace(
         currentWorkspace
     );
 
+    /*
+    Switching workspace changes the active working mode,
+    but must never hide or delete account chat history.
+    */
+    currentChatId = null;
+
+    localStorage.removeItem(
+        "AmanChat"
+    );
+
     updateWorkspaceUI();
 
     showWelcome();
+
+    loadChats();
 
     closeSidebar();
 
@@ -2503,6 +2515,27 @@ function createChatListItem(
                 id
             );
 
+            /*
+            Opening an older chat restores that chat's
+            own workspace in the UI.
+            */
+            const chatWorkspace =
+                WORKSPACES[
+                    item.workspace
+                ]
+                    ? item.workspace
+                    : "general";
+
+            currentWorkspace =
+                chatWorkspace;
+
+            localStorage.setItem(
+                "AmanWorkspace",
+                currentWorkspace
+            );
+
+            updateWorkspaceUI();
+
             loadCurrentChat();
 
             closeSidebar();
@@ -2557,29 +2590,16 @@ async function loadChats() {
 
     try {
 
-        const params =
-            new URLSearchParams();
+        /*
+        Sidebar chat history is ACCOUNT-WIDE.
 
-        if (
-            currentWorkspace &&
-            currentWorkspace !==
-            "general"
-        ) {
-
-            params.set(
-                "workspace",
-                currentWorkspace
-            );
-        }
-
-        const url =
-            params.toString()
-                ? `${API}/chats?${params}`
-                : `${API}/chats`;
-
+        Do not filter it by workspace.
+        Each chat already displays its own workspace label,
+        so the user can always find old conversations.
+        */
         const res =
             await fetch(
-                url,
+                `${API}/chats`,
                 {
                     credentials:
                         "same-origin"
@@ -2619,6 +2639,28 @@ async function loadChats() {
             return;
         }
 
+        if (
+            chats.length === 0
+        ) {
+
+            const empty =
+                document.createElement(
+                    "div"
+                );
+
+            empty.className =
+                "chat-list-empty";
+
+            empty.textContent =
+                "No chats yet.";
+
+            chatList.appendChild(
+                empty
+            );
+
+            return;
+        }
+
         chats.forEach(
             item => {
 
@@ -2642,6 +2684,27 @@ async function loadChats() {
             "LOAD CHATS ERROR:",
             error
         );
+
+        if (chatList) {
+
+            chatList.innerHTML =
+                "";
+
+            const failed =
+                document.createElement(
+                    "div"
+                );
+
+            failed.className =
+                "chat-list-empty";
+
+            failed.textContent =
+                "Could not load chats.";
+
+            chatList.appendChild(
+                failed
+            );
+        }
     }
 }
 
