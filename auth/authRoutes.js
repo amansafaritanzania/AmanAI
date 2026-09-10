@@ -1,95 +1,20 @@
-const express = require("express");
-
-const {
-    signup,
-    login,
-    logout,
-    me,
-    sessions,
-    removeSession,
-    logoutAll,
-    privacyPreferences,
-    savePrivacyPreferences,
-    unlock
-} = require("./authController");
-
-const {
-    requireAuth,
-    requireSameOrigin,
-    authRateLimit
-} = require("./authMiddleware");
-
-const router = express.Router();
-
-router.post(
-    "/signup",
-    requireSameOrigin,
-    authRateLimit,
-    signup
-);
-
-router.post(
-    "/login",
-    requireSameOrigin,
-    authRateLimit,
-    login
-);
-
-router.post(
-    "/logout",
-    requireSameOrigin,
-    requireAuth,
-    logout
-);
-
-router.get(
-    "/me",
-    requireAuth,
-    me
-);
-
-router.get(
-    "/sessions",
-    requireAuth,
-    sessions
-);
-
-router.delete(
-    "/sessions/:sessionId",
-    requireSameOrigin,
-    requireAuth,
-    removeSession
-);
-
-router.post(
-    "/logout-all",
-    requireSameOrigin,
-    requireAuth,
-    logoutAll
-);
-
-
-router.get(
-    "/privacy",
-    requireAuth,
-    privacyPreferences
-);
-
-
-router.put(
-    "/privacy",
-    requireSameOrigin,
-    requireAuth,
-    savePrivacyPreferences
-);
-
-
-router.post(
-    "/unlock",
-    requireSameOrigin,
-    requireAuth,
-    authRateLimit,
-    unlock
-);
-
-module.exports = router;
+const express=require("express");
+const {signup,login,googleLogin,googleConfig,forgotPassword,verifyResetCode,resetPassword,logout,me,sessions,removeSession,logoutAll,privacyPreferences,savePrivacyPreferences,unlock}=require("./authController");
+const {requireAuth,requireSameOrigin,authRateLimit}=require("./authMiddleware");
+const router=express.Router();
+router.get("/google-config",googleConfig);
+router.post("/signup",requireSameOrigin,authRateLimit,signup);
+router.post("/login",requireSameOrigin,authRateLimit,login);
+router.post("/google",requireSameOrigin,authRateLimit,googleLogin);
+router.post("/password/forgot",requireSameOrigin,authRateLimit,forgotPassword);
+router.post("/password/verify",requireSameOrigin,authRateLimit,verifyResetCode);
+router.post("/password/reset",requireSameOrigin,authRateLimit,resetPassword);
+router.post("/logout",requireSameOrigin,requireAuth,logout);
+router.get("/me",requireAuth,me);
+router.get("/sessions",requireAuth,sessions);
+router.delete("/sessions/:sessionId",requireSameOrigin,requireAuth,removeSession);
+router.post("/logout-all",requireSameOrigin,requireAuth,logoutAll);
+router.get("/privacy",requireAuth,privacyPreferences);
+router.put("/privacy",requireSameOrigin,requireAuth,savePrivacyPreferences);
+router.post("/unlock",requireSameOrigin,requireAuth,authRateLimit,unlock);
+module.exports=router;
