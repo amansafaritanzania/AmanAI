@@ -74,7 +74,7 @@ document.getElementById("actionModalTitle");
 const actionModalClose =
 document.getElementById("actionModalClose");
 
-let selectedImageFile =
+let selectedFile =
 null;
 
 
@@ -506,195 +506,119 @@ if (input) {
 
 
 // ======================================================
-// IMAGE ATTACHMENT
+// FILE ATTACHMENT
 // ======================================================
 
-const MAX_IMAGE_BYTES =
-20 * 1024 * 1024;
+const MAX_FILE_BYTES = 20 * 1024 * 1024;
 
-const ALLOWED_IMAGE_TYPES =
-new Set([
+const IMAGE_TYPES = new Set([
     "image/jpeg",
     "image/png",
     "image/webp",
     "image/gif"
 ]);
 
+const FILE_EXTENSIONS = new Set([
+    ".pdf",".docx",".txt",".md",".csv",".json",
+    ".js",".mjs",".cjs",".ts",".tsx",".jsx",
+    ".html",".htm",".css",".scss",".py",".java",
+    ".php",".rb",".go",".rs",".c",".h",".cpp",
+    ".hpp",".cs",".sql",".xml",".yaml",".yml",
+    ".sh",".bat",".ps1",".ini",".toml"
+]);
 
-function resetImageAttachment() {
+function fileExt(name = "") {
+    const i = name.lastIndexOf(".");
+    return i >= 0 ? name.slice(i).toLowerCase() : "";
+}
 
-    selectedImageFile =
-        null;
+function resetAttachment() {
+    selectedFile = null;
 
     if (fileInput) {
-        fileInput.value =
-            "";
+        fileInput.value = "";
     }
 
     if (attachBtn) {
-
-        attachBtn.classList.remove(
-            "has-attachment"
-        );
-
-        attachBtn.textContent =
-            "＋";
+        attachBtn.classList.remove("has-attachment");
+        attachBtn.textContent = "＋";
     }
 }
 
+function addUserFileMessage(message, file) {
+    if (IMAGE_TYPES.has(file.type)) {
+        const wrapper = document.createElement("div");
+        wrapper.className = "message user image-message";
 
-function addUserImageMessage(
-    message,
-    file
-) {
+        const bubble = document.createElement("div");
+        bubble.className = "bubble";
 
-    const wrapper =
-        document.createElement(
-            "div"
+        const image = document.createElement("img");
+        image.className = "uploaded-image-preview";
+        image.alt = file.name || "Uploaded image";
+
+        const url = URL.createObjectURL(file);
+        image.src = url;
+        image.addEventListener(
+            "load",
+            () => URL.revokeObjectURL(url),
+            { once: true }
         );
 
-    wrapper.className =
-        "message user image-message";
+        bubble.appendChild(image);
 
-    const bubble =
-        document.createElement(
-            "div"
-        );
-
-    bubble.className =
-        "bubble";
-
-    const image =
-        document.createElement(
-            "img"
-        );
-
-    image.className =
-        "uploaded-image-preview";
-
-    image.alt =
-        file.name ||
-        "Uploaded image";
-
-    const objectUrl =
-        URL.createObjectURL(
-            file
-        );
-
-    image.src =
-        objectUrl;
-
-    image.addEventListener(
-        "load",
-        () =>
-            URL.revokeObjectURL(
-                objectUrl
-            ),
-        {
-            once:
-                true
+        if (message) {
+            const caption = document.createElement("div");
+            caption.className = "image-message-caption";
+            caption.textContent = message;
+            bubble.appendChild(caption);
         }
-    );
 
-    bubble.appendChild(
-        image
-    );
-
-    if (message) {
-
-        const caption =
-            document.createElement(
-                "div"
-            );
-
-        caption.className =
-            "image-message-caption";
-
-        caption.textContent =
-            message;
-
-        bubble.appendChild(
-            caption
-        );
+        wrapper.appendChild(bubble);
+        chat.appendChild(wrapper);
+        scrollChat();
+        return;
     }
 
-    wrapper.appendChild(
-        bubble
+    addMessage(
+        `📎 ${file.name}\n\n${message}`,
+        "user"
     );
-
-    chat.appendChild(
-        wrapper
-    );
-
-    scrollChat();
 }
-
 
 if (attachBtn) {
-
     attachBtn.addEventListener(
         "click",
-        () => {
-
-            fileInput?.click();
-
-        }
+        () => fileInput?.click()
     );
 }
 
-
 if (fileInput) {
-
     fileInput.addEventListener(
         "change",
         () => {
+            const file = fileInput.files?.[0];
+            if (!file) return;
 
-            const file =
-                fileInput.files?.[0];
+            const allowed =
+                IMAGE_TYPES.has(file.type) ||
+                FILE_EXTENSIONS.has(fileExt(file.name));
 
-            if (!file) {
+            if (!allowed) {
+                resetAttachment();
+                alert("This file type is not supported yet.");
                 return;
             }
 
-            if (
-                !ALLOWED_IMAGE_TYPES.has(
-                    file.type
-                )
-            ) {
-
-                resetImageAttachment();
-
-                alert(
-                    "Please choose a JPEG, PNG, WebP or GIF image."
-                );
-
+            if (file.size > MAX_FILE_BYTES) {
+                resetAttachment();
+                alert("Please choose a file under 20 MB.");
                 return;
             }
 
-            if (
-                file.size >
-                MAX_IMAGE_BYTES
-            ) {
-
-                resetImageAttachment();
-
-                alert(
-                    "Please choose an image under 20 MB."
-                );
-
-                return;
-            }
-
-            selectedImageFile =
-                file;
-
-            attachBtn.classList.add(
-                "has-attachment"
-            );
-
-            attachBtn.textContent =
-                "✓";
-
+            selectedFile = file;
+            attachBtn.classList.add("has-attachment");
+            attachBtn.textContent = "✓";
             input.focus();
         }
     );
@@ -1306,21 +1230,22 @@ async function sendMessage() {
 
     if (
         !message &&
-        !selectedImageFile
+        !selectedFile
     ) {
         return;
     }
 
-    const imageFile =
-        selectedImageFile;
+    const uploadFile =
+        selectedFile;
 
     if (
-        imageFile &&
+        uploadFile &&
         !message
     ) {
-
         message =
-            "Analyze this image.";
+            IMAGE_TYPES.has(uploadFile.type)
+                ? "Analyze this image."
+                : "Analyze this uploaded file.";
     }
 
     input.value =
@@ -1329,12 +1254,12 @@ async function sendMessage() {
     input.style.height =
         "auto";
 
-    resetImageAttachment();
+    resetAttachment();
 
     await sendMessageWithText(
         message,
         true,
-        imageFile
+        uploadFile
     );
 }
 
@@ -1342,7 +1267,7 @@ async function sendMessage() {
 async function sendMessageWithText(
     message,
     showUserMessage = true,
-    imageFile = null
+    uploadFile = null
 ) {
 
     if (!message) {
@@ -1363,11 +1288,11 @@ async function sendMessageWithText(
 
     if (showUserMessage) {
 
-        if (imageFile) {
+        if (uploadFile) {
 
-            addUserImageMessage(
+            addUserFileMessage(
                 message,
-                imageFile
+                uploadFile
             );
 
         } else {
@@ -1421,7 +1346,7 @@ async function sendMessageWithText(
         let fetchOptions;
 
 
-        if (imageFile) {
+        if (uploadFile) {
 
             const formData =
                 new FormData();
@@ -1447,9 +1372,9 @@ async function sendMessageWithText(
             }
 
             formData.append(
-                "image",
-                imageFile,
-                imageFile.name
+                "file",
+                uploadFile,
+                uploadFile.name
             );
 
             fetchOptions = {
@@ -1491,7 +1416,7 @@ async function sendMessageWithText(
                 ...requestBody,
                 hasImage:
                     Boolean(
-                        imageFile
+                        uploadFile
                     )
             }
         );
@@ -1559,7 +1484,7 @@ async function sendMessageWithText(
             return sendMessageWithText(
                 message,
                 false,
-                imageFile
+                uploadFile
             );
         }
 
@@ -2809,14 +2734,21 @@ async function loadCurrentChat() {
         .forEach(
             (msg) => {
 
-                const content =
-                    (
-                        msg.role ===
-                            "user" &&
-                        msg.has_image
-                    )
-                        ? `📷 ${msg.content}`
-                        : msg.content;
+                let content =
+                    msg.content;
+
+                if (
+                    msg.role === "user" &&
+                    msg.has_image
+                ) {
+                    content = `📷 ${msg.content}`;
+                } else if (
+                    msg.role === "user" &&
+                    msg.has_file
+                ) {
+                    content =
+                        `📎 ${msg.file_name || "Uploaded file"}\n\n${msg.content}`;
+                }
 
 
                 addMessage(
