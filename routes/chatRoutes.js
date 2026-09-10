@@ -4,9 +4,15 @@ const multer = require("multer");
 const router = express.Router();
 
 const {
-    MAX_IMAGE_BYTES,
     SUPPORTED_IMAGE_TYPES
 } = require("../services/visionService");
+
+const {
+    MAX_FILE_BYTES,
+    DOCUMENT_EXTENSIONS
+} = require("../services/fileIntelligenceService");
+
+const path = require("path");
 
 const {
     chat
@@ -38,120 +44,57 @@ const {
 
 
 // ======================================================
-// IMAGE UPLOAD
+// FILE UPLOAD
 // ======================================================
 
-const imageUpload =
-    multer({
+const fileUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+        fileSize: MAX_FILE_BYTES,
+        files: 1
+    },
+    fileFilter: (req, file, callback) => {
+        const ext = path
+            .extname(file.originalname || "")
+            .toLowerCase();
 
-        storage:
-            multer.memoryStorage(),
+        const allowed =
+            SUPPORTED_IMAGE_TYPES.has(file.mimetype) ||
+            DOCUMENT_EXTENSIONS.has(ext);
 
-        limits: {
-            fileSize:
-                MAX_IMAGE_BYTES,
-            files:
-                1
-        },
-
-        fileFilter: (
-            req,
-            file,
-            callback
-        ) => {
-
-            if (
-                !SUPPORTED_IMAGE_TYPES.has(
-                    file.mimetype
-                )
-            ) {
-
-                const error =
-                    new Error(
-                        "Unsupported image type."
-                    );
-
-                error.code =
-                    "UNSUPPORTED_IMAGE_TYPE";
-
-                return callback(
-                    error
-                );
-            }
-
-            callback(
-                null,
-                true
-            );
+        if (!allowed) {
+            const error = new Error("Unsupported file type.");
+            error.code = "UNSUPPORTED_FILE_TYPE";
+            return callback(error);
         }
+
+        callback(null, true);
+    }
+});
+
+function singleFile(req, res, next) {
+    fileUpload.single("file")(req, res, error => {
+        if (!error) return next();
+
+        if (error?.code === "LIMIT_FILE_SIZE") {
+            return res.status(413).json({
+                success: false,
+                reply: "That file is too large. Use a file under 20 MB."
+            });
+        }
+
+        if (error?.code === "UNSUPPORTED_FILE_TYPE") {
+            return res.status(415).json({
+                success: false,
+                reply: "That file type is not supported yet."
+            });
+        }
+
+        return res.status(400).json({
+            success: false,
+            reply: "The file could not be uploaded."
+        });
     });
-
-
-function singleImage(
-    req,
-    res,
-    next
-) {
-
-    imageUpload.single(
-        "image"
-    )(
-        req,
-        res,
-        error => {
-
-            if (!error) {
-                return next();
-            }
-
-            console.error(
-                "IMAGE UPLOAD ERROR:",
-                error?.message
-            );
-
-            if (
-                error?.code ===
-                "LIMIT_FILE_SIZE"
-            ) {
-
-                return res
-                    .status(413)
-                    .json({
-                        success:
-                            false,
-
-                        reply:
-                            "That image is too large. Please use an image under 20 MB."
-                    });
-            }
-
-            if (
-                error?.code ===
-                "UNSUPPORTED_IMAGE_TYPE"
-            ) {
-
-                return res
-                    .status(415)
-                    .json({
-                        success:
-                            false,
-
-                        reply:
-                            "Please upload a JPEG, PNG, WebP or GIF image."
-                    });
-            }
-
-            return res
-                .status(400)
-                .json({
-                    success:
-                        false,
-
-                    reply:
-                        "The image could not be uploaded."
-                });
-        }
-    );
 }
 
 
@@ -207,7 +150,7 @@ function cleanWorkspace(
 router.post(
     "/",
     requireAuth,
-    singleImage,
+    singleFile,
     async (req, res, next) => {
 
         req.body =
