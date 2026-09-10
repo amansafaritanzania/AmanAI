@@ -5,7 +5,14 @@ const {
 } = require("../services/visionService");
 
 const {
-    saveMessageVisionContext
+    isImageFile,
+    extractDocument,
+    buildDocumentContext
+} = require("../services/fileIntelligenceService");
+
+const {
+    saveMessageVisionContext,
+    saveMessageFileContext
 } = require("../memory/database");
 
 const chooseExpert =
@@ -1547,8 +1554,18 @@ async function chat(req, res) {
                 restoredVisionContext
         } = req.body || {};
 
-        const uploadedImage =
+        const uploadedFile =
             req.file || null;
+
+        const uploadedImage =
+            uploadedFile && isImageFile(uploadedFile)
+                ? uploadedFile
+                : null;
+
+        const uploadedDocument =
+            uploadedFile && !uploadedImage
+                ? uploadedFile
+                : null;
 
         /*
         Secure account identity takes priority.
@@ -1599,7 +1616,7 @@ async function chat(req, res) {
 
         if (
             !message &&
-            !uploadedImage &&
+            !uploadedFile &&
             !restoredVisionContext
         ) {
 
@@ -1610,7 +1627,7 @@ async function chat(req, res) {
                         false,
 
                     reply:
-                        "Please enter a message or upload an image."
+                        "Please enter a message or upload a file."
                 });
         }
 
@@ -1618,7 +1635,9 @@ async function chat(req, res) {
         if (!message) {
 
             message =
-                "Analyze this image.";
+                uploadedDocument
+                    ? "Analyze this uploaded file."
+                    : "Analyze this image.";
         }
 
 
@@ -1702,6 +1721,59 @@ async function chat(req, res) {
                         reply:
                             "I couldn't analyze that image right now. Please try again."
                     });
+            }
+        }
+
+
+        // ==================================================
+        // DOCUMENT INTELLIGENCE
+        // ==================================================
+
+        let documentData = null;
+        let documentContext = "";
+
+        if (uploadedDocument) {
+            try {
+                documentData = await extractDocument(
+                    uploadedDocument
+                );
+
+                documentContext =
+                    buildDocumentContext(
+                        documentData
+                    );
+
+                console.log(
+                    "📄 FILE ANALYSIS: SUCCESS",
+                    documentData.kind,
+                    documentData.filename
+                );
+            } catch (documentError) {
+                console.error(
+                    "📄 FILE ERROR:",
+                    documentError?.message
+                );
+
+                const status =
+                    documentError?.code === "FILE_TOO_LARGE"
+                        ? 413
+                        : documentError?.code === "UNSUPPORTED_FILE_TYPE"
+                            ? 415
+                            : documentError?.code === "EMPTY_DOCUMENT"
+                                ? 422
+                                : 500;
+
+                return res.status(status).json({
+                    success: false,
+                    reply:
+                        status === 413
+                            ? "That file is too large. Use a file under 20 MB."
+                            : status === 415
+                                ? "That file type is not supported yet."
+                                : status === 422
+                                    ? "I couldn't extract readable text from that file."
+                                    : "I couldn't read that file right now."
+                });
             }
         }
 
@@ -1795,6 +1867,23 @@ the image alone.
         }
 
 
+        if (
+            documentData &&
+            userMessageId
+        ) {
+            await saveMessageFileContext(
+                userId,
+                chatId,
+                userMessageId,
+                {
+                    fileName: documentData.filename,
+                    fileKind: documentData.kind,
+                    fileContext: documentData.text
+                }
+            );
+        }
+
+
         // ==================================================
         // UPDATE PERMANENT MEMORY
         // ==================================================
@@ -1829,15 +1918,20 @@ const olderContext =
         // ==================================================
 
         const routingMessage =
-            imageAnalysis
-                ? `${message}
+            `${message}
 
-Visual evidence:
-${limitText(
-    imageAnalysis,
-    2200
-)}`
-                : message;
+${imageAnalysis
+    ? `Visual evidence:
+${limitText(imageAnalysis, 2200)}`
+    : ""}
+
+${documentData
+    ? `Uploaded file: ${documentData.filename}
+Type: ${documentData.kind}
+
+Extracted content:
+${limitText(documentData.text, 5000)}`
+    : ""}`.trim();
 
 
         const expert =
@@ -2137,6 +2231,8 @@ No specialist input is available.
 }
 
 ${visualContext}
+
+${documentContext}
 
 ${responseStyleInstructions}
 
