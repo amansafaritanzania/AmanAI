@@ -1,5 +1,13 @@
 const groq = require("../config/groq");
 
+const {
+    analyzeImage
+} = require("../services/visionService");
+
+const {
+    saveMessageVisionContext
+} = require("../memory/database");
+
 const chooseExpert =
     require("../services/expertRouter");
 
@@ -1534,8 +1542,13 @@ async function chat(req, res) {
         let {
             message,
             chatId,
-            workspace
+            workspace,
+            visionContext:
+                restoredVisionContext
         } = req.body || {};
+
+        const uploadedImage =
+            req.file || null;
 
         /*
         Secure account identity takes priority.
@@ -1571,17 +1584,12 @@ async function chat(req, res) {
         // ==================================================
 
         if (
-            !message ||
-            typeof message !== "string"
+            typeof message !==
+            "string"
         ) {
 
-            return res.status(400).json({
-
-                reply:
-                    "Please enter a message."
-
-            });
-
+            message =
+                "";
         }
 
 
@@ -1589,16 +1597,139 @@ async function chat(req, res) {
             message.trim();
 
 
+        if (
+            !message &&
+            !uploadedImage &&
+            !restoredVisionContext
+        ) {
+
+            return res
+                .status(400)
+                .json({
+                    success:
+                        false,
+
+                    reply:
+                        "Please enter a message or upload an image."
+                });
+        }
+
+
         if (!message) {
 
-            return res.status(400).json({
-
-                reply:
-                    "Message cannot be empty."
-
-            });
-
+            message =
+                "Analyze this image.";
         }
+
+
+        // ==================================================
+        // IMAGE INTELLIGENCE
+        // ==================================================
+
+        let imageAnalysis =
+            typeof restoredVisionContext ===
+            "string"
+                ? restoredVisionContext
+                    .trim()
+                : "";
+
+
+        if (uploadedImage) {
+
+            try {
+
+                imageAnalysis =
+                    await analyzeImage({
+                        buffer:
+                            uploadedImage.buffer,
+
+                        mimeType:
+                            uploadedImage.mimetype,
+
+                        userMessage:
+                            message
+                    });
+
+                console.log(
+                    "🖼️ VISION ANALYSIS: SUCCESS"
+                );
+
+            } catch (visionError) {
+
+                console.error(
+                    "🖼️ VISION ERROR:",
+                    visionError?.message
+                );
+
+                if (
+                    visionError?.code ===
+                    "IMAGE_TOO_LARGE"
+                ) {
+
+                    return res
+                        .status(413)
+                        .json({
+                            success:
+                                false,
+
+                            reply:
+                                "That image is too large. Please use an image under 20 MB."
+                        });
+                }
+
+                if (
+                    visionError?.code ===
+                    "UNSUPPORTED_IMAGE_TYPE"
+                ) {
+
+                    return res
+                        .status(415)
+                        .json({
+                            success:
+                                false,
+
+                            reply:
+                                "That image format is not supported. Please use JPEG, PNG, WebP or GIF."
+                        });
+                }
+
+                return res
+                    .status(502)
+                    .json({
+                        success:
+                            false,
+
+                        reply:
+                            "I couldn't analyze that image right now. Please try again."
+                    });
+            }
+        }
+
+
+        const visualContext =
+            imageAnalysis
+                ? `
+
+==================================================
+UPLOADED IMAGE EVIDENCE
+==================================================
+
+${limitText(
+    imageAnalysis,
+    9000
+)}
+
+Use this visual evidence with the user's request.
+
+Do not claim details that are not present in the evidence.
+
+For agriculture, visible symptoms are evidence rather than
+automatic confirmation of a diagnosis.
+
+For health images, do not make a definitive diagnosis from
+the image alone.
+`
+                : "";
 
 
         // ==================================================
@@ -1650,6 +1781,20 @@ async function chat(req, res) {
             );
 
 
+        if (
+            imageAnalysis &&
+            userMessageId
+        ) {
+
+            await saveMessageVisionContext(
+                userId,
+                chatId,
+                userMessageId,
+                imageAnalysis
+            );
+        }
+
+
         // ==================================================
         // UPDATE PERMANENT MEMORY
         // ==================================================
@@ -1683,9 +1828,21 @@ const olderContext =
         // PRIMARY EXPERT
         // ==================================================
 
+        const routingMessage =
+            imageAnalysis
+                ? `${message}
+
+Visual evidence:
+${limitText(
+    imageAnalysis,
+    2200
+)}`
+                : message;
+
+
         const expert =
             chooseExpert(
-                message,
+                routingMessage,
                 recentContext
             );
 
@@ -1884,7 +2041,7 @@ console.log(
                         expert.secondary,
 
                     userMessage:
-                        message,
+                        routingMessage,
 
                     memoryText,
 
@@ -1978,6 +2135,8 @@ Never mention the specialist to the user.
 No specialist input is available.
 `
 }
+
+${visualContext}
 
 ${responseStyleInstructions}
 
