@@ -1641,12 +1641,13 @@ async function chat(req, res) {
         // SAVE USER MESSAGE
         // ==================================================
 
-        await saveMessage(
-            userId,
-            chatId,
-            "user",
-            message
-        );
+        const userMessageId =
+            await saveMessage(
+                userId,
+                chatId,
+                "user",
+                message
+            );
 
 
         // ==================================================
@@ -1843,17 +1844,20 @@ console.log(
                 "🛡️ HEALTH DOSE CLARIFICATION: ACTIVE"
             );
 
-            await saveMessage(
-                userId,
-                chatId,
-                "assistant",
-                reply
-            );
+            const assistantMessageId =
+                await saveMessage(
+                    userId,
+                    chatId,
+                    "assistant",
+                    reply
+                );
 
             return res.json({
                 success: true,
                 chatId,
-                reply
+                reply,
+                userMessageId,
+                assistantMessageId
             });
         }
 
@@ -2171,12 +2175,13 @@ Do not add unnecessary filler.
         // SAVE ASSISTANT RESPONSE
         // ==================================================
 
-        await saveMessage(
-            userId,
-            chatId,
-            "assistant",
-            reply
-        );
+        const assistantMessageId =
+            await saveMessage(
+                userId,
+                chatId,
+                "assistant",
+                reply
+            );
 
 
         // ==================================================
@@ -2190,7 +2195,11 @@ Do not add unnecessary filler.
 
             chatId,
 
-            reply
+            reply,
+
+            userMessageId,
+
+            assistantMessageId
 
         });
 
