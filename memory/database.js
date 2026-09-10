@@ -5,13 +5,16 @@ if (!process.env.DATABASE_URL) {
 }
 
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString:
+        process.env.DATABASE_URL,
     ssl: {
         rejectUnauthorized: false
     }
 });
 
+
 async function initDatabase() {
+
     await pool.query(`
         CREATE TABLE IF NOT EXISTS users (
             user_id TEXT PRIMARY KEY,
@@ -51,37 +54,70 @@ async function initDatabase() {
             IF NOT EXISTS (
                 SELECT 1
                 FROM pg_constraint
-                WHERE conname = 'users_auto_logout_minutes_check'
+                WHERE conname =
+                    'users_auto_logout_minutes_check'
             ) THEN
                 ALTER TABLE users
-                ADD CONSTRAINT users_auto_logout_minutes_check
+                ADD CONSTRAINT
+                    users_auto_logout_minutes_check
                 CHECK (
-                    auto_logout_minutes IN (0, 5, 15, 30, 60, 240)
+                    auto_logout_minutes
+                    IN (0, 5, 15, 30, 60, 240)
                 ) NOT VALID;
             END IF;
         END
         $$;
 
-        CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_unique
+        CREATE UNIQUE INDEX IF NOT EXISTS
+            idx_users_email_unique
         ON users (LOWER(email))
         WHERE email IS NOT NULL;
+
 
         CREATE TABLE IF NOT EXISTS user_memory (
             user_id TEXT PRIMARY KEY
                 REFERENCES users(user_id)
                 ON DELETE CASCADE,
-            memory JSONB NOT NULL DEFAULT '{}'::jsonb,
-            updated_at TIMESTAMPTZ DEFAULT NOW()
+            memory JSONB NOT NULL
+                DEFAULT '{}'::jsonb,
+            updated_at TIMESTAMPTZ
+                DEFAULT NOW()
         );
+
 
         CREATE TABLE IF NOT EXISTS chats (
             chat_id TEXT PRIMARY KEY,
             user_id TEXT NOT NULL
                 REFERENCES users(user_id)
                 ON DELETE CASCADE,
-            title TEXT DEFAULT 'New Chat',
-            created_at TIMESTAMPTZ DEFAULT NOW()
+            title TEXT
+                DEFAULT 'New Chat',
+            created_at TIMESTAMPTZ
+                DEFAULT NOW()
         );
+
+        /*
+        Aman AI v5 workspace/chat-management upgrade.
+        Existing chats remain valid and automatically
+        become General workspace chats.
+        */
+
+        ALTER TABLE chats
+        ADD COLUMN IF NOT EXISTS workspace TEXT
+            NOT NULL DEFAULT 'general';
+
+        ALTER TABLE chats
+        ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN
+            NOT NULL DEFAULT FALSE;
+
+        ALTER TABLE chats
+        ADD COLUMN IF NOT EXISTS is_archived BOOLEAN
+            NOT NULL DEFAULT FALSE;
+
+        ALTER TABLE chats
+        ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ
+            NOT NULL DEFAULT NOW();
+
 
         CREATE TABLE IF NOT EXISTS messages (
             id BIGSERIAL PRIMARY KEY,
@@ -90,8 +126,10 @@ async function initDatabase() {
                 ON DELETE CASCADE,
             role TEXT NOT NULL,
             content TEXT NOT NULL,
-            created_at TIMESTAMPTZ DEFAULT NOW()
+            created_at TIMESTAMPTZ
+                DEFAULT NOW()
         );
+
 
         CREATE TABLE IF NOT EXISTS sessions (
             session_id TEXT PRIMARY KEY,
@@ -100,13 +138,26 @@ async function initDatabase() {
                 ON DELETE CASCADE,
             token_hash TEXT NOT NULL UNIQUE,
             user_agent TEXT,
-            created_at TIMESTAMPTZ DEFAULT NOW(),
-            last_seen_at TIMESTAMPTZ DEFAULT NOW(),
-            expires_at TIMESTAMPTZ NOT NULL
+            created_at TIMESTAMPTZ
+                DEFAULT NOW(),
+            last_seen_at TIMESTAMPTZ
+                DEFAULT NOW(),
+            expires_at TIMESTAMPTZ
+                NOT NULL
         );
+
 
         CREATE INDEX IF NOT EXISTS idx_chats_user
         ON chats(user_id);
+
+        CREATE INDEX IF NOT EXISTS idx_chats_user_workspace
+        ON chats(user_id, workspace);
+
+        CREATE INDEX IF NOT EXISTS idx_chats_user_updated
+        ON chats(user_id, updated_at DESC);
+
+        CREATE INDEX IF NOT EXISTS idx_chats_user_pinned
+        ON chats(user_id, is_pinned);
 
         CREATE INDEX IF NOT EXISTS idx_messages_chat
         ON messages(chat_id);
@@ -118,10 +169,16 @@ async function initDatabase() {
         ON sessions(expires_at);
     `);
 
-    console.log("🗄️ Permanent database + accounts ready");
+    console.log(
+        "🗄️ Permanent database + accounts + workspaces ready"
+    );
 }
 
-async function ensureUser(userId) {
+
+async function ensureUser(
+    userId
+) {
+
     await pool.query(
         `
         INSERT INTO users(user_id)
@@ -134,8 +191,14 @@ async function ensureUser(userId) {
 
     await pool.query(
         `
-        INSERT INTO user_memory(user_id, memory)
-        VALUES($1, '{}'::jsonb)
+        INSERT INTO user_memory(
+            user_id,
+            memory
+        )
+        VALUES(
+            $1,
+            '{}'::jsonb
+        )
         ON CONFLICT(user_id)
         DO NOTHING
         `,
@@ -143,138 +206,578 @@ async function ensureUser(userId) {
     );
 }
 
-async function getUserMemory(userId) {
-    await ensureUser(userId);
-    const result = await pool.query(
-        `SELECT memory FROM user_memory WHERE user_id = $1`,
-        [userId]
+
+async function getUserMemory(
+    userId
+) {
+
+    await ensureUser(
+        userId
     );
-    return result.rows[0]?.memory || {};
+
+    const result =
+        await pool.query(
+            `
+            SELECT memory
+            FROM user_memory
+            WHERE user_id = $1
+            `,
+            [userId]
+        );
+
+    return (
+        result.rows[0]
+            ?.memory ||
+        {}
+    );
 }
 
-async function saveUserMemory(userId, memory) {
-    await ensureUser(userId);
+
+async function saveUserMemory(
+    userId,
+    memory
+) {
+
+    await ensureUser(
+        userId
+    );
+
     await pool.query(
         `
         UPDATE user_memory
-        SET memory = $2,
+        SET
+            memory = $2,
             updated_at = NOW()
         WHERE user_id = $1
         `,
-        [userId, JSON.stringify(memory)]
+        [
+            userId,
+            JSON.stringify(
+                memory || {}
+            )
+        ]
     );
 }
 
-async function createChat(userId, title = "New Chat") {
-    await ensureUser(userId);
+
+async function createChat(
+    userId,
+    title = "New Chat",
+    workspace = "general"
+) {
+
+    await ensureUser(
+        userId
+    );
+
+    const safeWorkspace =
+        String(
+            workspace || "general"
+        )
+            .trim()
+            .toLowerCase()
+            .slice(
+                0,
+                40
+            );
 
     const chatId =
         "chat_" +
         Date.now() +
         "_" +
-        Math.random().toString(36).substring(2, 8);
+        Math
+            .random()
+            .toString(36)
+            .substring(
+                2,
+                8
+            );
 
-    const result = await pool.query(
-        `
-        INSERT INTO chats(chat_id, user_id, title)
-        VALUES($1, $2, $3)
-        RETURNING chat_id
-        `,
-        [chatId, userId, title]
+    const result =
+        await pool.query(
+            `
+            INSERT INTO chats(
+                chat_id,
+                user_id,
+                title,
+                workspace
+            )
+            VALUES(
+                $1,
+                $2,
+                $3,
+                $4
+            )
+            RETURNING
+                chat_id,
+                workspace
+            `,
+            [
+                chatId,
+                userId,
+                title,
+                safeWorkspace
+            ]
+        );
+
+    console.log(
+        "CHAT CREATED IN DATABASE:",
+        result.rows[0].chat_id,
+        "USER:",
+        userId,
+        "WORKSPACE:",
+        result.rows[0].workspace
     );
 
-    console.log("CHAT CREATED IN DATABASE:", result.rows[0].chat_id, "USER:", userId);
     return result.rows[0].chat_id;
 }
 
-async function getUserChats(userId) {
-    const result = await pool.query(
-        `
-        SELECT chat_id, title, created_at
-        FROM chats
-        WHERE user_id = $1
-        ORDER BY created_at DESC
-        `,
-        [userId]
-    );
+
+async function getUserChats(
+    userId
+) {
+
+    const result =
+        await pool.query(
+            `
+            SELECT
+                chat_id,
+                title,
+                workspace,
+                is_pinned,
+                is_archived,
+                created_at,
+                updated_at
+            FROM chats
+            WHERE user_id = $1
+            ORDER BY
+                is_pinned DESC,
+                updated_at DESC,
+                created_at DESC
+            `,
+            [userId]
+        );
+
     return result.rows;
 }
 
-async function getChat(userId, chatId) {
-    const result = await pool.query(
-        `
-        SELECT m.role, m.content, m.created_at AS time
-        FROM messages m
-        INNER JOIN chats c ON c.chat_id = m.chat_id
-        WHERE c.user_id = $1
-        AND c.chat_id = $2
-        ORDER BY m.id ASC
-        `,
-        [userId, chatId]
-    );
+
+async function getChat(
+    userId,
+    chatId
+) {
+
+    const result =
+        await pool.query(
+            `
+            SELECT
+                m.role,
+                m.content,
+                m.created_at AS time
+            FROM messages m
+            INNER JOIN chats c
+                ON c.chat_id =
+                   m.chat_id
+            WHERE c.user_id = $1
+            AND c.chat_id = $2
+            ORDER BY m.id ASC
+            `,
+            [
+                userId,
+                chatId
+            ]
+        );
+
     return result.rows;
 }
 
-async function saveMessage(userId, chatId, role, content) {
-    const chatCheck = await pool.query(
-        `
-        SELECT chat_id, user_id
-        FROM chats
-        WHERE chat_id = $1
-        `,
-        [chatId]
-    );
 
-    if (chatCheck.rows.length === 0) {
-        console.error("CHAT NOT FOUND:", chatId);
-        throw new Error("Chat does not exist");
+async function saveMessage(
+    userId,
+    chatId,
+    role,
+    content
+) {
+
+    const chatCheck =
+        await pool.query(
+            `
+            SELECT
+                chat_id,
+                user_id
+            FROM chats
+            WHERE chat_id = $1
+            `,
+            [chatId]
+        );
+
+    if (
+        chatCheck.rows.length ===
+        0
+    ) {
+
+        console.error(
+            "CHAT NOT FOUND:",
+            chatId
+        );
+
+        throw new Error(
+            "Chat does not exist"
+        );
     }
 
-    if (chatCheck.rows[0].user_id !== userId) {
-        console.error("CHAT OWNER MISMATCH:", {
-            chatId,
-            expectedUser: chatCheck.rows[0].user_id,
-            receivedUser: userId
-        });
-        throw new Error("Chat does not belong to user");
+    if (
+        chatCheck.rows[0]
+            .user_id !==
+        userId
+    ) {
+
+        console.error(
+            "CHAT OWNER MISMATCH:",
+            {
+                chatId,
+                expectedUser:
+                    chatCheck.rows[0]
+                        .user_id,
+                receivedUser:
+                    userId
+            }
+        );
+
+        throw new Error(
+            "Chat does not belong to user"
+        );
     }
 
     await pool.query(
         `
-        INSERT INTO messages(chat_id, role, content)
-        VALUES($1, $2, $3)
+        INSERT INTO messages(
+            chat_id,
+            role,
+            content
+        )
+        VALUES(
+            $1,
+            $2,
+            $3
+        )
         `,
-        [chatId, role, content]
+        [
+            chatId,
+            role,
+            content
+        ]
     );
 
-    if (role === "user") {
+    /*
+    Keep last-used chats at the top.
+    */
+
+    await pool.query(
+        `
+        UPDATE chats
+        SET updated_at = NOW()
+        WHERE chat_id = $1
+        AND user_id = $2
+        `,
+        [
+            chatId,
+            userId
+        ]
+    );
+
+    if (
+        role === "user"
+    ) {
+
         await pool.query(
             `
             UPDATE chats
-            SET title = CASE
-                WHEN title = 'New Chat' THEN LEFT($2, 35)
-                ELSE title
-            END
+            SET
+                title =
+                    CASE
+                        WHEN title =
+                            'New Chat'
+                        THEN LEFT(
+                            $3,
+                            60
+                        )
+                        ELSE title
+                    END,
+                updated_at = NOW()
             WHERE chat_id = $1
+            AND user_id = $2
             `,
-            [chatId, content]
+            [
+                chatId,
+                userId,
+                content
+            ]
         );
     }
 }
 
-async function deleteChat(userId, chatId) {
-    await pool.query(
-        `DELETE FROM chats WHERE chat_id = $1 AND user_id = $2`,
-        [chatId, userId]
+
+async function updateChatMetadata(
+    userId,
+    chatId,
+    changes = {}
+) {
+
+    const sets = [];
+    const values = [
+        userId,
+        chatId
+    ];
+
+    let position =
+        values.length + 1;
+
+    if (
+        typeof changes.title ===
+        "string"
+    ) {
+
+        const title =
+            changes.title
+                .trim()
+                .slice(
+                    0,
+                    100
+                );
+
+        if (title) {
+
+            sets.push(
+                `title = $${position}`
+            );
+
+            values.push(
+                title
+            );
+
+            position++;
+        }
+    }
+
+    if (
+        typeof changes.workspace ===
+        "string"
+    ) {
+
+        sets.push(
+            `workspace = $${position}`
+        );
+
+        values.push(
+            changes.workspace
+                .trim()
+                .toLowerCase()
+                .slice(
+                    0,
+                    40
+                ) ||
+            "general"
+        );
+
+        position++;
+    }
+
+    if (
+        typeof changes.isPinned ===
+        "boolean"
+    ) {
+
+        sets.push(
+            `is_pinned = $${position}`
+        );
+
+        values.push(
+            changes.isPinned
+        );
+
+        position++;
+    }
+
+    if (
+        typeof changes.isArchived ===
+        "boolean"
+    ) {
+
+        sets.push(
+            `is_archived = $${position}`
+        );
+
+        values.push(
+            changes.isArchived
+        );
+
+        position++;
+    }
+
+    if (
+        sets.length === 0
+    ) {
+
+        const current =
+            await pool.query(
+                `
+                SELECT
+                    chat_id,
+                    title,
+                    workspace,
+                    is_pinned,
+                    is_archived,
+                    created_at,
+                    updated_at
+                FROM chats
+                WHERE user_id = $1
+                AND chat_id = $2
+                `,
+                [
+                    userId,
+                    chatId
+                ]
+            );
+
+        return (
+            current.rows[0] ||
+            null
+        );
+    }
+
+    sets.push(
+        "updated_at = NOW()"
+    );
+
+    const result =
+        await pool.query(
+            `
+            UPDATE chats
+            SET
+                ${sets.join(",\n")}
+            WHERE user_id = $1
+            AND chat_id = $2
+            RETURNING
+                chat_id,
+                title,
+                workspace,
+                is_pinned,
+                is_archived,
+                created_at,
+                updated_at
+            `,
+            values
+        );
+
+    return (
+        result.rows[0] ||
+        null
     );
 }
 
-async function deleteAllChats(userId) {
+
+async function searchUserChats(
+    userId,
+    query,
+    workspace = null
+) {
+
+    const term =
+        `%${String(
+            query || ""
+        )
+            .trim()
+            .slice(
+                0,
+                120
+            )}%`;
+
+    const values = [
+        userId,
+        term
+    ];
+
+    let workspaceSql =
+        "";
+
+    if (workspace) {
+
+        values.push(
+            workspace
+        );
+
+        workspaceSql =
+            `
+            AND c.workspace = $3
+            `;
+    }
+
+    const result =
+        await pool.query(
+            `
+            SELECT DISTINCT
+                c.chat_id,
+                c.title,
+                c.workspace,
+                c.is_pinned,
+                c.is_archived,
+                c.created_at,
+                c.updated_at
+            FROM chats c
+            LEFT JOIN messages m
+                ON m.chat_id =
+                   c.chat_id
+            WHERE c.user_id = $1
+            ${workspaceSql}
+            AND (
+                c.title ILIKE $2
+                OR m.content ILIKE $2
+            )
+            ORDER BY
+                c.is_pinned DESC,
+                c.updated_at DESC
+            LIMIT 50
+            `,
+            values
+        );
+
+    return result.rows;
+}
+
+
+async function deleteChat(
+    userId,
+    chatId
+) {
+
     await pool.query(
-        `DELETE FROM chats WHERE user_id = $1`,
+        `
+        DELETE FROM chats
+        WHERE chat_id = $1
+        AND user_id = $2
+        `,
+        [
+            chatId,
+            userId
+        ]
+    );
+}
+
+
+async function deleteAllChats(
+    userId
+) {
+
+    await pool.query(
+        `
+        DELETE FROM chats
+        WHERE user_id = $1
+        `,
         [userId]
     );
 }
+
 
 module.exports = {
     pool,
@@ -286,6 +789,8 @@ module.exports = {
     getUserChats,
     getChat,
     saveMessage,
+    updateChatMetadata,
+    searchUserChats,
     deleteChat,
     deleteAllChats
 };
