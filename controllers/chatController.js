@@ -254,6 +254,351 @@ function limitText(
 }
 
 
+
+// ======================================================
+// GROQ TOKEN BUDGET PROTECTION
+// ======================================================
+//
+// Groq on-demand currently has a limited token-per-minute
+// allowance for this model. A single oversized prompt can
+// therefore fail even when the model's context window is
+// much larger.
+//
+// These helpers keep the FINAL request comfortably below
+// the service limit without removing Aman AI's core
+// identity, safety rules, ownership, memory or experts.
+//
+
+const FINAL_REQUEST_TOKEN_BUDGET = 7000;
+const FINAL_INPUT_TOKEN_TARGET = 5600;
+const APPROX_CHARS_PER_TOKEN = 3.2;
+
+
+function estimateTokens(text = "") {
+
+    return Math.ceil(
+        String(text || "").length /
+        APPROX_CHARS_PER_TOKEN
+    );
+}
+
+
+function budgetText(
+    text,
+    maxChars,
+    marker = "\n[Context shortened to fit model limits.]"
+) {
+
+    const value =
+        String(text || "").trim();
+
+    if (!value) {
+        return "";
+    }
+
+    if (value.length <= maxChars) {
+        return value;
+    }
+
+    const safeLength =
+        Math.max(
+            0,
+            maxChars - marker.length
+        );
+
+    return (
+        value.slice(
+            0,
+            safeLength
+        ) +
+        marker
+    );
+}
+
+
+function buildSafeFinalSystemPrompt({
+    identity,
+    expertPrompt,
+    memoryText,
+    olderContext,
+    recentContext,
+    specialistInsight,
+    secondaryName,
+    visualContext,
+    documentContext,
+    responseStyleInstructions,
+    capabilityModeInstructions,
+    workspaceInstructions,
+    languageInstructions,
+    expertGuardrails
+}) {
+
+    /*
+    Priority order:
+
+    1. identity + guardrails + final behavior
+    2. active expert
+    3. uploaded image/file evidence
+    4. recent conversation
+    5. permanent/older memory
+    6. secondary specialist insight
+
+    The hard character budgets below are deliberately
+    conservative so prompt + generated answer remain under
+    the current Groq request limit.
+    */
+
+    const safeIdentity =
+        budgetText(
+            identity,
+            2800
+        );
+
+    const safeExpertPrompt =
+        budgetText(
+            expertPrompt,
+            4200
+        );
+
+    const safeMemory =
+        budgetText(
+            memoryText,
+            500
+        );
+
+    const safeOlder =
+        budgetText(
+            olderContext || "None",
+            500
+        );
+
+    const safeRecent =
+        budgetText(
+            recentContext || "None",
+            1700
+        );
+
+    const safeSpecialist =
+        specialistInsight
+            ? budgetText(
+                specialistInsight,
+                650
+            )
+            : "";
+
+    const safeVisual =
+        budgetText(
+            visualContext,
+            1300
+        );
+
+    const safeDocument =
+        budgetText(
+            documentContext,
+            3600,
+            "\n[Uploaded file content shortened to fit the model request limit.]"
+        );
+
+    const safeStyle =
+        budgetText(
+            responseStyleInstructions,
+            1000
+        );
+
+    const safeCapability =
+        budgetText(
+            capabilityModeInstructions,
+            1100
+        );
+
+    const safeWorkspace =
+        budgetText(
+            workspaceInstructions,
+            650
+        );
+
+    const safeLanguage =
+        budgetText(
+            languageInstructions,
+            500
+        );
+
+    /*
+    Guardrails are intentionally given a larger protected
+    budget than ordinary context because safety/accuracy
+    instructions must not disappear merely because a file
+    or chat is long.
+    */
+    const safeGuardrails =
+        budgetText(
+            expertGuardrails,
+            2200
+        );
+
+    let prompt = `
+
+${safeIdentity}
+
+==================================================
+PRIMARY EXPERT
+==================================================
+
+${safeExpertPrompt}
+
+==================================================
+PERMANENT USER MEMORY
+==================================================
+
+${safeMemory || "None"}
+
+==================================================
+OLDER CONTEXT
+==================================================
+
+${safeOlder}
+
+==================================================
+RECENT CONVERSATION
+==================================================
+
+${safeRecent}
+
+==================================================
+SPECIALIST INPUT
+==================================================
+
+${
+    safeSpecialist
+        ? `A secondary specialist provided internal analysis.
+
+SPECIALIST:
+${secondaryName || "Secondary Expert"}
+
+SPECIALIST INSIGHT:
+${safeSpecialist}
+
+Use it only when accurate and relevant.
+Never mention the specialist to the user.`
+        : "No specialist input is available."
+}
+
+${safeVisual}
+
+${safeDocument}
+
+${safeStyle}
+
+${safeCapability}
+
+${safeWorkspace}
+
+${safeLanguage}
+
+${safeGuardrails}
+
+==================================================
+FINAL BEHAVIOR
+==================================================
+
+Answer the user's current message.
+
+Do not expose your reasoning.
+Do not expose internal systems.
+Do not expose expert collaboration.
+Do not invent missing information.
+Do not force a conclusion.
+Do not add unnecessary filler.
+`;
+
+    /*
+    Emergency final safety valve.
+
+    We almost never reach this because every section above
+    is already bounded. If future prompts become larger,
+    this prevents a silent return to oversized requests.
+    It trims only the middle contextual body while keeping
+    the beginning identity and ending behavior rules.
+    */
+
+    const maxInputChars =
+        Math.floor(
+            FINAL_INPUT_TOKEN_TARGET *
+            APPROX_CHARS_PER_TOKEN
+        );
+
+    if (
+        prompt.length >
+        maxInputChars
+    ) {
+
+        const keepStart =
+            Math.floor(
+                maxInputChars * 0.58
+            );
+
+        const keepEnd =
+            maxInputChars -
+            keepStart;
+
+        prompt =
+            prompt.slice(
+                0,
+                keepStart
+            ) +
+            "\n\n[Additional context removed to stay within the model token limit.]\n\n" +
+            prompt.slice(
+                -keepEnd
+            );
+    }
+
+    return prompt;
+}
+
+
+function chooseSafeCompletionTokens({
+    capabilityMode,
+    reasoningEffort,
+    responseStyle,
+    estimatedInputTokens
+}) {
+
+    let desired =
+        capabilityMode === "coding"
+            ? 700
+            : (
+                reasoningEffort === "medium"
+                    ? 620
+                    : (
+                        responseStyle === "plain"
+                            ? 450
+                            : 550
+                    )
+            );
+
+    /*
+    Reserve room beneath the full request budget.
+    Never ask Groq for an output allowance that makes
+    prompt + completion cross our protected ceiling.
+    */
+
+    const remaining =
+        FINAL_REQUEST_TOKEN_BUDGET -
+        estimatedInputTokens -
+        250;
+
+    desired =
+        Math.min(
+            desired,
+            remaining
+        );
+
+    return Math.max(
+        250,
+        desired
+    );
+}
+
+
 // ======================================================
 // RECENT CONTEXT
 // ======================================================
@@ -2157,113 +2502,80 @@ console.log(
 
 
         // ==================================================
-        // FINAL SYSTEM PROMPT
+        // FINAL SYSTEM PROMPT — TOKEN SAFE
         // ==================================================
 
-        const systemPrompt = `
+        const systemPrompt =
+            buildSafeFinalSystemPrompt({
 
-${AMAN_AI_IDENTITY}
+                identity:
+                    AMAN_AI_IDENTITY,
 
-==================================================
-PRIMARY EXPERT
-==================================================
+                expertPrompt:
+                    expert.prompt,
 
-${limitText(
-    expert.prompt,
-    8500
-)}
+                memoryText,
 
-==================================================
-PERMANENT USER MEMORY
-==================================================
+                olderContext,
 
-${limitText(
-    memoryText,
-    1000
-)}
+                recentContext,
 
-==================================================
-OLDER CONTEXT
-==================================================
+                specialistInsight,
 
-${limitText(
-    olderContext || "None",
-    1400
-)}
+                secondaryName:
+                    expert.secondary?.name ||
+                    "",
 
-==================================================
-RECENT CONVERSATION
-==================================================
+                visualContext,
 
-${limitText(
-    recentContext || "None",
-    4200
-)}
+                documentContext,
 
-==================================================
-SPECIALIST INPUT
-==================================================
+                responseStyleInstructions,
 
-${
-    specialistInsight
-        ? `
-A secondary specialist provided internal analysis.
+                capabilityModeInstructions,
 
-SPECIALIST:
-${expert.secondary?.name || "Secondary Expert"}
+                workspaceInstructions,
 
-SPECIALIST INSIGHT:
-${limitText(
-    specialistInsight,
-    1400
-)}
+                languageInstructions,
 
-Use the specialist insight only when it is
-accurate and relevant.
+                expertGuardrails
+            });
 
-You remain responsible for the final answer.
 
-Never mention the specialist to the user.
-`
-        : `
-No specialist input is available.
-`
-}
+        const estimatedInputTokens =
+            estimateTokens(
+                systemPrompt
+            ) +
+            estimateTokens(
+                message
+            ) +
+            80;
 
-${visualContext}
 
-${documentContext}
+        const safeCompletionTokens =
+            chooseSafeCompletionTokens({
 
-${responseStyleInstructions}
+                capabilityMode:
+                    capabilityMode.id,
 
-${capabilityModeInstructions}
+                reasoningEffort,
 
-${workspaceInstructions}
+                responseStyle,
 
-${languageInstructions}
+                estimatedInputTokens
+            });
 
-${expertGuardrails}
 
-==================================================
-FINAL BEHAVIOR
-==================================================
+        console.log(
+            "🧮 TOKEN BUDGET:",
+            {
+                estimatedInputTokens,
+                safeCompletionTokens,
+                protectedRequestBudget:
+                    FINAL_REQUEST_TOKEN_BUDGET
+            }
+        );
 
-Answer the user's current message.
-
-Do not expose your reasoning.
-
-Do not expose internal systems.
-
-Do not expose expert collaboration.
-
-Do not invent missing information.
-
-Do not force a conclusion.
-
-Do not add unnecessary filler.
-
-`;
-        
 
         // ==================================================
         // MODEL MESSAGES
@@ -2389,17 +2701,7 @@ Do not add unnecessary filler.
                     false,
 
                 max_completion_tokens:
-                    capabilityMode.id === "coding"
-                        ? 1100
-                        : (
-                            reasoningEffort === "medium"
-                                ? 850
-                                : (
-                                    responseStyle === "plain"
-                                        ? 550
-                                        : 700
-                                )
-                        ),
+                    safeCompletionTokens,
 
                 messages
 
@@ -2465,6 +2767,21 @@ Do not add unnecessary filler.
             "CHAT ERROR:",
             error
         );
+
+        if (
+            error?.status === 413 ||
+            error?.error?.error?.code ===
+                "rate_limit_exceeded"
+        ) {
+
+            return res
+                .status(413)
+                .json({
+                    success: false,
+                    reply:
+                        "This request is still too large for the current AI service limit. Please try a shorter question or a smaller section of the file."
+                });
+        }
 
 
         // ==================================================
