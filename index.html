@@ -2,55 +2,86 @@
 <html lang="en">
 
 <head>
-
     <meta charset="UTF-8">
-    <meta name="viewport" 
-    content="width=device-width, 
-    initial-scale=1.0">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>Aman AI</title>
 
-    <link rel="stylesheet" href="style.css">
-    <a href="/dashboard" class="dashboard-link">
-    Dashboard
-</a>
-    <style>
-        .dashboard-link{
-    padding:10px 14px;
-    border-radius:10px;
-    text-decoration:none;
-    font-weight:700;
-}
-    </style>
-    
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
 
+    <style>
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dashboard-link {
+            padding: 9px 13px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 14px;
+            color: white;
+            background: #1f7a5a;
+            white-space: nowrap;
+        }
+
+        .dashboard-link:hover {
+            opacity: 0.9;
+        }
+
+        @media (max-width: 520px) {
+            .dashboard-link {
+                padding: 8px 10px;
+                font-size: 12px;
+            }
+
+            .header-actions {
+                gap: 6px;
+            }
+        }
+    </style>
 </head>
 
 <body>
 
     <!-- Animated Background -->
     <div class="background">
-
         <div class="orb orb1"></div>
         <div class="orb orb2"></div>
         <div class="grid"></div>
-
     </div>
 
     <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
+    <aside
+        class="sidebar"
+        id="sidebar"
+    >
 
         <div class="sidebar-header">
-
             <h2>🤖 Aman AI</h2>
 
-            <button id="closeSidebarBtn" class="icon-btn">
+            <button
+                id="closeSidebarBtn"
+                class="icon-btn"
+                type="button"
+            >
                 ✕
             </button>
-
         </div>
 
-        <button id="newChatBtn" class="new-chat-btn">
+        <button
+            id="newChatBtn"
+            class="new-chat-btn"
+            type="button"
+        >
             ＋ New Chat
         </button>
 
@@ -58,14 +89,18 @@
             Chats
         </div>
 
-        <div id="chatList" class="chat-list">
-
-        </div>
+        <div
+            id="chatList"
+            class="chat-list"
+        ></div>
 
     </aside>
 
     <!-- Overlay -->
-    <div id="overlay" class="overlay"></div>
+    <div
+        id="overlay"
+        class="overlay"
+    ></div>
 
     <!-- Main -->
     <main class="main">
@@ -75,43 +110,54 @@
 
             <div class="left-header">
 
-                <button id="menuBtn" class="icon-btn">
+                <button
+                    id="menuBtn"
+                    class="icon-btn"
+                    type="button"
+                >
                     ☰
                 </button>
 
                 <div>
-
                     <div class="logo">
-
                         🤖 Aman AI
-
                     </div>
 
                     <div class="status">
-
                         ● Online
-
                     </div>
-
                 </div>
 
             </div>
 
-            <button id="deleteChatBtn" class="icon-btn danger">
+            <div class="header-actions">
 
-                🗑
+                <a
+                    href="/dashboard"
+                    class="dashboard-link"
+                >
+                    Dashboard
+                </a>
 
-            </button>
+                <button
+                    id="deleteChatBtn"
+                    class="icon-btn danger"
+                    type="button"
+                    aria-label="Delete chat"
+                >
+                    🗑
+                </button>
+
+            </div>
 
         </header>
 
         <!-- Chat -->
         <section
             id="chat"
-            class="chat">
-
+            class="chat"
+        >
             <!-- Messages appear here -->
-
         </section>
 
         <!-- Input -->
@@ -119,28 +165,37 @@
 
             <button
                 id="voiceBtn"
-                class="composer-btn">
-
+                class="composer-btn"
+                type="button"
+            >
                 🎤
-
             </button>
 
             <textarea
                 id="input"
                 rows="1"
-                placeholder="Message Aman AI..."></textarea>
+                placeholder="Message Aman AI..."
+            ></textarea>
 
             <button
                 id="sendBtn"
-                class="send-btn">
-
+                class="send-btn"
+                type="button"
+            >
                 ➤
-
             </button>
 
         </footer>
 
     </main>
+
+    <!-- Hidden File Input -->
+    <input
+        type="file"
+        id="fileInput"
+        hidden
+        accept=".pdf,.txt,.doc,.docx,.csv,image/*"
+    >
 
     <!-- Markdown -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -148,20 +203,12 @@
     <!-- Highlight.js -->
     <link
         rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
+    >
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
     <!-- Main Script -->
-     <input
-           type="file"
-           id="fileInput"
-           hidden
-        accept=".pdf, .txt, .doc, .docx, .csv, image/*">
-
-     <script
-     src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-
     <script src="script.js"></script>
 
 </body>
