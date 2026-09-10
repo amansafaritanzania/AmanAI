@@ -53,6 +53,15 @@ document.getElementById("chatList");
 const fileInput =
 document.getElementById("fileInput");
 
+const attachBtn =
+document.getElementById("attachBtn");
+
+const workspaceSelect =
+document.getElementById("workspaceSelect");
+
+const workspaceBadge =
+document.getElementById("workspaceBadge");
+
 
 // ======================================================
 // AUTHENTICATED ACCOUNT IDENTITY
@@ -243,47 +252,127 @@ if (!isValidChatId(currentChatId)) {
 
 
 // ======================================================
-// SIDEBAR
+// SIDEBAR — DESKTOP + MOBILE SAFE
 // ======================================================
+
+function setSidebarState(
+    open
+) {
+
+    if (!sidebar) {
+        return;
+    }
+
+    sidebar.classList.toggle(
+        "open",
+        open
+    );
+
+    if (overlay) {
+        overlay.classList.toggle(
+            "show",
+            open
+        );
+
+        overlay.setAttribute(
+            "aria-hidden",
+            open
+                ? "false"
+                : "true"
+        );
+    }
+
+    sidebar.setAttribute(
+        "aria-hidden",
+        open
+            ? "false"
+            : "true"
+    );
+
+    if (menuBtn) {
+        menuBtn.setAttribute(
+            "aria-expanded",
+            open
+                ? "true"
+                : "false"
+        );
+    }
+
+    document.body.classList.toggle(
+        "sidebar-open",
+        open
+    );
+}
+
 
 function openSidebar() {
 
-    sidebar.classList.add("open");
+    setSidebarState(
+        true
+    );
 
-    overlay.classList.add("show");
 }
 
 
 function closeSidebar() {
 
-    sidebar.classList.remove("open");
+    setSidebarState(
+        false
+    );
 
-    overlay.classList.remove("show");
 }
 
 
 if (menuBtn) {
-    menuBtn.onclick = openSidebar;
+
+    menuBtn.addEventListener(
+        "click",
+        () => {
+
+            const open =
+                sidebar?.classList
+                    .contains(
+                        "open"
+                    );
+
+            setSidebarState(
+                !open
+            );
+
+        }
+    );
+
 }
 
 
 if (closeSidebarBtn) {
-    closeSidebarBtn.onclick =
-    closeSidebar;
+
+    closeSidebarBtn.addEventListener(
+        "click",
+        closeSidebar
+    );
+
 }
 
 
 if (overlay) {
-    overlay.onclick =
-    closeSidebar;
+
+    overlay.addEventListener(
+        "click",
+        closeSidebar
+    );
+
 }
 
 
 document.addEventListener(
     "keydown",
-    (e) => {
+    (event) => {
 
-        if (e.key === "Escape") {
+        if (
+            event.key ===
+            "Escape"
+        ) {
 
             closeSidebar();
 
@@ -291,6 +380,92 @@ document.addEventListener(
 
     }
 );
+
+
+/*
+Close mobile sidebar after rotating/resizing
+into desktop layout so the overlay never gets stuck.
+*/
+
+window.addEventListener(
+    "resize",
+    () => {
+
+        if (
+            window.innerWidth >
+            900
+        ) {
+
+            closeSidebar();
+
+        }
+
+    }
+);
+
+
+/*
+Simple swipe-to-close support on phones.
+*/
+
+let sidebarTouchStartX =
+    null;
+
+
+if (sidebar) {
+
+    sidebar.addEventListener(
+        "touchstart",
+        (event) => {
+
+            sidebarTouchStartX =
+                event.touches?.[0]
+                    ?.clientX ?? null;
+
+        },
+        {
+            passive: true
+        }
+    );
+
+
+    sidebar.addEventListener(
+        "touchend",
+        (event) => {
+
+            if (
+                sidebarTouchStartX ===
+                null
+            ) {
+                return;
+            }
+
+            const endX =
+                event.changedTouches?.[0]
+                    ?.clientX ?? sidebarTouchStartX;
+
+            const delta =
+                endX -
+                sidebarTouchStartX;
+
+            sidebarTouchStartX =
+                null;
+
+            if (
+                delta < -70
+            ) {
+
+                closeSidebar();
+
+            }
+
+        },
+        {
+            passive: true
+        }
+    );
+
+}
 
 
 // ======================================================
@@ -316,61 +491,170 @@ if (input) {
 
 
 // ======================================================
-// PLUS BUTTON
+// FILE ATTACH BUTTON
 // ======================================================
 
-const plusButton =
-document.createElement("button");
+if (attachBtn) {
 
-plusButton.className =
-"composer-btn";
+    attachBtn.addEventListener(
+        "click",
+        () => {
 
-plusButton.innerHTML =
-"➕";
+            fileInput?.click();
 
-
-const composer =
-document.querySelector(".composer");
-
-
-if (composer && voiceBtn) {
-
-    composer.insertBefore(
-        plusButton,
-        voiceBtn
+        }
     );
 
 }
 
 
-plusButton.onclick = () => {
+if (fileInput) {
 
-    if (fileInput) {
-        fileInput.click();
-    }
+    fileInput.addEventListener(
+        "change",
+        () => {
+
+            const file =
+                fileInput.files?.[0];
+
+            if (!file) {
+                return;
+            }
+
+            addMessage(
+                "📎 " + file.name,
+                "user"
+            );
+
+            fileInput.value =
+                "";
+
+        }
+    );
+
+}
+
+
+// ======================================================
+// WORKSPACES
+// ======================================================
+
+const WORKSPACES = {
+
+    general:
+        "General",
+
+    school:
+        "School",
+
+    coding:
+        "Coding",
+
+    business:
+        "Business",
+
+    safari:
+        "Safari",
+
+    agriculture:
+        "Agriculture",
+
+    health:
+        "Health",
+
+    bible:
+        "Bible"
 
 };
 
 
-if (fileInput) {
+let currentWorkspace =
+    localStorage.getItem(
+        "AmanWorkspace"
+    ) ||
+    "general";
 
-    fileInput.onchange = () => {
 
-        const file =
-        fileInput.files[0];
+if (
+    !WORKSPACES[
+        currentWorkspace
+    ]
+) {
 
-        if (!file) {
-            return;
-        }
-
-        addMessage(
-            "📎 " + file.name,
-            "user"
-        );
-
-    };
+    currentWorkspace =
+        "general";
 
 }
+
+
+function updateWorkspaceUI() {
+
+    if (workspaceSelect) {
+
+        workspaceSelect.value =
+            currentWorkspace;
+
+    }
+
+    if (workspaceBadge) {
+
+        workspaceBadge.textContent =
+            WORKSPACES[
+                currentWorkspace
+            ] ||
+            "General";
+
+    }
+
+}
+
+
+function setWorkspace(
+    workspace
+) {
+
+    if (
+        !WORKSPACES[
+            workspace
+        ]
+    ) {
+        return;
+    }
+
+    currentWorkspace =
+        workspace;
+
+    localStorage.setItem(
+        "AmanWorkspace",
+        currentWorkspace
+    );
+
+    updateWorkspaceUI();
+
+    showWelcome();
+
+    closeSidebar();
+
+}
+
+
+if (workspaceSelect) {
+
+    workspaceSelect.addEventListener(
+        "change",
+        (event) => {
+
+            setWorkspace(
+                event.target.value
+            );
+
+        }
+    );
+
+}
+
+
+updateWorkspaceUI();
 
 
 // ======================================================
@@ -379,24 +663,82 @@ if (fileInput) {
 
 function showWelcome() {
 
+    const workspaceName =
+        WORKSPACES[
+            currentWorkspace
+        ] ||
+        "General";
+
     chat.innerHTML = `
 
         <div class="empty-chat">
 
-            <h1>🤖</h1>
+            <div class="welcome-mark">
+                A
+            </div>
 
-            <h2>Welcome to Aman AI</h2>
+            <h1>
+                ${workspaceName}
+                Workspace
+            </h1>
 
             <p>
-                Ask anything...
-                Generate code...
-                Upload files...
-                Learn faster...
+                Ask Aman AI anything related to this workspace.
+                Your account, chats and memory remain connected.
             </p>
+
+            <div class="quick-prompts">
+
+                <button
+                    type="button"
+                    data-prompt="Help me start something useful in this workspace."
+                >
+                    Start something
+                </button>
+
+                <button
+                    type="button"
+                    data-prompt="Explain the most important thing I should focus on here."
+                >
+                    What should I focus on?
+                </button>
+
+                <button
+                    type="button"
+                    data-prompt="Give me a practical plan for my next task."
+                >
+                    Make a plan
+                </button>
+
+            </div>
 
         </div>
 
     `;
+
+    chat
+        .querySelectorAll(
+            "[data-prompt]"
+        )
+        .forEach(
+            button => {
+
+                button.addEventListener(
+                    "click",
+                    () => {
+
+                        input.value =
+                            button.dataset
+                                .prompt ||
+                            "";
+
+                        input.focus();
+
+                    }
+                );
+
+            }
+        );
 
 }
 
@@ -772,7 +1114,10 @@ async function sendMessageWithText(
 
         const requestBody = {
 
-            message
+            message,
+
+            workspace:
+                currentWorkspace
 
         };
 
@@ -822,10 +1167,25 @@ async function sendMessageWithText(
 
 
         const data =
-        await res.json();
+        await res.json()
+            .catch(
+                () => ({})
+            );
 
 
         loading.remove();
+
+
+        if (
+            res.status === 401
+        ) {
+
+            location.replace(
+                "/login"
+            );
+
+            return;
+        }
 
 
         /*
@@ -1101,6 +1461,17 @@ async function loadChats() {
             }
         );
 
+
+        if (
+            res.status === 401
+        ) {
+
+            location.replace(
+                "/login"
+            );
+
+            return;
+        }
 
         if (!res.ok) {
 
@@ -1445,7 +1816,10 @@ async function createNewChat() {
                 "same-origin",
 
                 body:
-                JSON.stringify({})
+                JSON.stringify({
+                    workspace:
+                        currentWorkspace
+                })
 
             }
         );
