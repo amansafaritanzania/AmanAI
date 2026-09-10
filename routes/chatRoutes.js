@@ -19,7 +19,11 @@ const {
 const {
     pool,
     updateChatMetadata,
-    searchUserChats
+    searchUserChats,
+    getChatRecord,
+    deleteLastAssistantMessage,
+    branchChat,
+    saveMessageFeedback
 } = require("../memory/database");
 
 const {
@@ -524,6 +528,254 @@ router.patch(
                 success: false,
                 message:
                     "Unable to update chat."
+            });
+        }
+    }
+);
+
+
+// ======================================================
+// REGENERATE LAST RESPONSE
+// ======================================================
+
+router.post(
+    "/:chatId/regenerate",
+    requireAuth,
+    async (req, res, next) => {
+
+        try {
+
+            const userId =
+                req.auth.userId;
+
+            const chatId =
+                req.params.chatId;
+
+            const history =
+                await getChat(
+                    userId,
+                    chatId
+                );
+
+            const lastUserMessage =
+                [...history]
+                    .reverse()
+                    .find(
+                        item =>
+                            item.role ===
+                            "user"
+                    );
+
+            if (!lastUserMessage) {
+
+                return res
+                    .status(400)
+                    .json({
+                        success: false,
+                        message:
+                            "No user message to regenerate from."
+                    });
+            }
+
+            await deleteLastAssistantMessage(
+                userId,
+                chatId
+            );
+
+            /*
+            chatController will save the user message again,
+            so remove the previous copy first to avoid duplicates.
+            */
+
+            await pool.query(
+                `
+                DELETE FROM messages
+                WHERE id = $1
+                AND chat_id = $2
+                `,
+                [
+                    lastUserMessage.id,
+                    chatId
+                ]
+            );
+
+            req.body = {
+                message:
+                    lastUserMessage.content,
+                chatId,
+                workspace:
+                    req.body?.workspace ||
+                    "general",
+                userId
+            };
+
+            return chat(
+                req,
+                res,
+                next
+            );
+
+        } catch (error) {
+
+            console.error(
+                "REGENERATE ERROR:",
+                error
+            );
+
+            res.status(500).json({
+                success: false,
+                message:
+                    "Unable to regenerate response."
+            });
+        }
+    }
+);
+
+
+// ======================================================
+// BRANCH CHAT FROM MESSAGE
+// ======================================================
+
+router.post(
+    "/:chatId/branch",
+    requireAuth,
+    async (req, res) => {
+
+        try {
+
+            const messageId =
+                Number(
+                    req.body?.messageId
+                );
+
+            if (
+                !Number.isInteger(
+                    messageId
+                ) ||
+                messageId <= 0
+            ) {
+
+                return res
+                    .status(400)
+                    .json({
+                        success: false,
+                        message:
+                            "Invalid message."
+                    });
+            }
+
+            const newChatId =
+                await branchChat(
+                    req.auth.userId,
+                    req.params.chatId,
+                    messageId
+                );
+
+            if (!newChatId) {
+
+                return res
+                    .status(404)
+                    .json({
+                        success: false,
+                        message:
+                            "Could not branch this chat."
+                    });
+            }
+
+            res.json({
+                success: true,
+                chatId:
+                    newChatId
+            });
+
+        } catch (error) {
+
+            console.error(
+                "BRANCH ERROR:",
+                error
+            );
+
+            res.status(500).json({
+                success: false,
+                message:
+                    "Unable to create branch."
+            });
+        }
+    }
+);
+
+
+// ======================================================
+// RATE RESPONSE
+// ======================================================
+
+router.post(
+    "/:chatId/feedback",
+    requireAuth,
+    async (req, res) => {
+
+        try {
+
+            const messageId =
+                Number(
+                    req.body?.messageId
+                );
+
+            const rating =
+                Number(
+                    req.body?.rating
+                );
+
+            if (
+                !Number.isInteger(
+                    messageId
+                ) ||
+                ![-1, 1].includes(
+                    rating
+                )
+            ) {
+
+                return res
+                    .status(400)
+                    .json({
+                        success: false,
+                        message:
+                            "Invalid feedback."
+                    });
+            }
+
+            const saved =
+                await saveMessageFeedback(
+                    req.auth.userId,
+                    req.params.chatId,
+                    messageId,
+                    rating
+                );
+
+            if (!saved) {
+
+                return res
+                    .status(404)
+                    .json({
+                        success: false,
+                        message:
+                            "Response not found."
+                    });
+            }
+
+            res.json({
+                success: true
+            });
+
+        } catch (error) {
+
+            console.error(
+                "FEEDBACK ERROR:",
+                error
+            );
+
+            res.status(500).json({
+                success: false
             });
         }
     }
