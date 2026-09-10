@@ -55,25 +55,76 @@ document.getElementById("fileInput");
 
 
 // ======================================================
-// USER ID
+// AUTHENTICATED ACCOUNT IDENTITY
 // ======================================================
 
-let userId =
-localStorage.getItem("AmanUser");
+/*
+The browser no longer creates or chooses a userId.
 
+The secure HTTP-only session cookie identifies the user
+on the server.
 
-// Create permanent browser identity
-// only if one does not already exist.
+All fetch requests use credentials:"same-origin".
+*/
 
-if (!userId) {
+let accountUserId = null;
 
-    userId =
-    "user_" + Date.now();
+async function loadAuthenticatedAccount() {
 
-    localStorage.setItem(
-        "AmanUser",
-        userId
-    );
+    try {
+
+        const res =
+        await fetch(
+            "/api/auth/me",
+            {
+                credentials:
+                "same-origin"
+            }
+        );
+
+        if (!res.ok) {
+
+            location.replace(
+                "/login"
+            );
+
+            return false;
+        }
+
+        const data =
+        await res.json();
+
+        accountUserId =
+        data.user?.userId ||
+        data.userId ||
+        null;
+
+        /*
+        Remove the old browser-generated identity.
+        It must never control chat ownership again.
+        */
+
+        localStorage.removeItem(
+            "AmanUser"
+        );
+
+        return true;
+
+    }
+    catch (error) {
+
+        console.error(
+            "ACCOUNT CHECK ERROR:",
+            error
+        );
+
+        location.replace(
+            "/login"
+        );
+
+        return false;
+    }
+
 }
 
 
@@ -647,9 +698,7 @@ async function sendMessage() {
 
         const requestBody = {
 
-            message,
-
-            userId
+            message
 
         };
 
@@ -685,6 +734,9 @@ async function sendMessage() {
                     "application/json"
 
                 },
+
+                credentials:
+                "same-origin",
 
                 body:
                 JSON.stringify(
@@ -931,7 +983,11 @@ async function loadChats() {
 
         const res =
         await fetch(
-            `${API}/chats/${userId}`
+            `${API}/chats`,
+            {
+                credentials:
+                "same-origin"
+            }
         );
 
 
@@ -1160,7 +1216,11 @@ async function loadCurrentChat() {
 
         const res =
         await fetch(
-            `${API}/${userId}/${currentChatId}`
+            `${API}/${currentChatId}`,
+            {
+                credentials:
+                "same-origin"
+            }
         );
 
 
@@ -1261,12 +1321,11 @@ async function createNewChat() {
 
                 },
 
+                credentials:
+                "same-origin",
+
                 body:
-                JSON.stringify({
-
-                    userId
-
-                })
+                JSON.stringify({})
 
             }
         );
@@ -1375,10 +1434,13 @@ async function deleteCurrentChat() {
     try {
 
         await fetch(
-            `${API}/${userId}/${currentChatId}`,
+            `${API}/${currentChatId}`,
             {
 
-                method: "DELETE"
+                method: "DELETE",
+
+                credentials:
+                "same-origin"
 
             }
         );
@@ -1441,30 +1503,42 @@ if (voiceBtn) {
 // START APPLICATION
 // ======================================================
 
-if (
-    !isValidChatId(
-        currentChatId
-    )
-) {
+async function startApplication() {
 
-    currentChatId =
-    null;
+    const authenticated =
+    await loadAuthenticatedAccount();
 
-    localStorage.removeItem(
-        "AmanChat"
-    );
+    if (!authenticated) {
+        return;
+    }
 
-    showWelcome();
+    if (
+        !isValidChatId(
+            currentChatId
+        )
+    ) {
+
+        currentChatId =
+        null;
+
+        localStorage.removeItem(
+            "AmanChat"
+        );
+
+        showWelcome();
+
+    }
+    else {
+
+        loadCurrentChat();
+
+    }
+
+    loadChats();
 
 }
-else {
 
-    loadCurrentChat();
-
-}
-
-
-loadChats();
+startApplication();
 
 
 // ======================================================
