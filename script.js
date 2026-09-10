@@ -56,6 +56,9 @@ document.getElementById("fileInput");
 const attachBtn =
 document.getElementById("attachBtn");
 
+const creatorBtn =
+document.getElementById("creatorBtn");
+
 const workspaceSelect =
 document.getElementById("workspaceSelect");
 
@@ -703,6 +706,745 @@ if (actionModal) {
                 closeActionModal();
             }
         }
+    );
+}
+
+
+// ======================================================
+// CREATOR MODE
+// ======================================================
+
+const CREATOR_POLL_MS =
+    3500;
+
+const CREATOR_MAX_POLLS =
+    240;
+
+
+function escapeHtml(
+    value
+) {
+
+    return String(
+        value || ""
+    )
+        .replaceAll(
+            "&",
+            "&amp;"
+        )
+        .replaceAll(
+            "<",
+            "&lt;"
+        )
+        .replaceAll(
+            ">",
+            "&gt;"
+        )
+        .replaceAll(
+            '"',
+            "&quot;"
+        )
+        .replaceAll(
+            "'",
+            "&#039;"
+        );
+}
+
+
+function sleep(
+    ms
+) {
+
+    return new Promise(
+        resolve =>
+            setTimeout(
+                resolve,
+                ms
+            )
+    );
+}
+
+
+function renderCreatorResult({
+    mediaType,
+    url,
+    prompt
+}) {
+
+    const wrapper =
+        document.createElement(
+            "div"
+        );
+
+    wrapper.className =
+        "message ai creator-message";
+
+
+    const bubble =
+        document.createElement(
+            "div"
+        );
+
+    bubble.className =
+        "bubble creator-result";
+
+
+    const safeUrl =
+        escapeHtml(
+            url
+        );
+
+    const safePrompt =
+        escapeHtml(
+            prompt
+        );
+
+
+    if (
+        mediaType ===
+        "video"
+    ) {
+
+        bubble.innerHTML = `
+            <div class="creator-result-head">
+                <span>🎬 Created video</span>
+            </div>
+
+            <video
+                class="creator-media creator-video"
+                controls
+                playsinline
+                preload="metadata"
+                src="${safeUrl}"
+            ></video>
+
+            <div class="creator-caption">
+                ${safePrompt}
+            </div>
+
+            <a
+                class="creator-open-link"
+                href="${safeUrl}"
+                target="_blank"
+                rel="noopener noreferrer"
+            >
+                Open video
+            </a>
+        `;
+
+    } else {
+
+        bubble.innerHTML = `
+            <div class="creator-result-head">
+                <span>🎨 Created image</span>
+            </div>
+
+            <img
+                class="creator-media creator-image"
+                src="${safeUrl}"
+                alt="${safePrompt}"
+                loading="lazy"
+            >
+
+            <div class="creator-caption">
+                ${safePrompt}
+            </div>
+
+            <a
+                class="creator-open-link"
+                href="${safeUrl}"
+                target="_blank"
+                rel="noopener noreferrer"
+            >
+                Open image
+            </a>
+        `;
+    }
+
+
+    wrapper.appendChild(
+        bubble
+    );
+
+    chat.appendChild(
+        wrapper
+    );
+
+    scrollChat();
+}
+
+
+function renderCreatorProgress(
+    mediaType
+) {
+
+    const wrapper =
+        document.createElement(
+            "div"
+        );
+
+    wrapper.className =
+        "message ai creator-progress-message";
+
+
+    const bubble =
+        document.createElement(
+            "div"
+        );
+
+    bubble.className =
+        "bubble creator-progress";
+
+
+    bubble.innerHTML = `
+        <div class="creator-progress-line">
+            <span class="creator-spinner"></span>
+            <span>
+                ${
+                    mediaType === "video"
+                        ? "Creating video…"
+                        : "Creating image…"
+                }
+            </span>
+        </div>
+
+        <div class="creator-progress-sub">
+            You can keep Aman AI open while generation continues.
+        </div>
+    `;
+
+
+    wrapper.appendChild(
+        bubble
+    );
+
+    chat.appendChild(
+        wrapper
+    );
+
+    scrollChat();
+
+    return {
+        wrapper,
+        bubble
+    };
+}
+
+
+async function pollCreatorJob({
+    requestId,
+    mediaType,
+    prompt,
+    progress
+}) {
+
+    for (
+        let attempt = 0;
+        attempt < CREATOR_MAX_POLLS;
+        attempt++
+    ) {
+
+        await sleep(
+            CREATOR_POLL_MS
+        );
+
+
+        const res =
+            await fetch(
+                `${API}/creator/${encodeURIComponent(requestId)}/status`,
+                {
+                    credentials:
+                        "same-origin"
+                }
+            );
+
+
+        const data =
+            await res.json()
+                .catch(
+                    () => ({})
+                );
+
+
+        if (!res.ok) {
+
+            throw new Error(
+                data.message ||
+                "Creator Mode status check failed."
+            );
+        }
+
+
+        if (
+            data.status ===
+            "COMPLETED"
+        ) {
+
+            progress.wrapper.remove();
+
+            renderCreatorResult({
+                mediaType,
+                url:
+                    data.url,
+                prompt
+            });
+
+            return;
+        }
+
+
+        if (
+            data.status ===
+            "FAILED"
+        ) {
+
+            throw new Error(
+                data.message ||
+                "Media generation failed."
+            );
+        }
+
+
+        const queueText =
+            data.status ===
+            "IN_QUEUE"
+                ? (
+                    data.queuePosition !==
+                    null &&
+                    data.queuePosition !==
+                    undefined
+                        ? `Queued • position ${data.queuePosition}`
+                        : "Queued…"
+                )
+                : "Generating…";
+
+
+        progress.bubble.innerHTML = `
+            <div class="creator-progress-line">
+                <span class="creator-spinner"></span>
+                <span>
+                    ${
+                        mediaType === "video"
+                            ? "Creating video…"
+                            : "Creating image…"
+                    }
+                </span>
+            </div>
+
+            <div class="creator-progress-sub">
+                ${escapeHtml(queueText)}
+            </div>
+        `;
+    }
+
+
+    throw new Error(
+        "Generation is taking longer than expected. Try checking again shortly."
+    );
+}
+
+
+async function startCreatorGeneration({
+    mediaType,
+    prompt,
+    imageSize,
+    duration,
+    aspectRatio,
+    generateAudio
+}) {
+
+    const cleanPrompt =
+        String(
+            prompt || ""
+        ).trim();
+
+
+    if (!cleanPrompt) {
+
+        alert(
+            "Describe what you want Aman AI to create."
+        );
+
+        return;
+    }
+
+
+    /*
+    Show the user's request in the conversation.
+    */
+    addMessage(
+        `${
+            mediaType === "video"
+                ? "🎬"
+                : "🎨"
+        } ${cleanPrompt}`,
+        "user"
+    );
+
+
+    const progress =
+        renderCreatorProgress(
+            mediaType
+        );
+
+
+    try {
+
+        const res =
+            await fetch(
+                `${API}/creator/${mediaType}`,
+                {
+                    method:
+                        "POST",
+
+                    credentials:
+                        "same-origin",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify({
+                            prompt:
+                                cleanPrompt,
+
+                            imageSize,
+
+                            duration,
+
+                            aspectRatio,
+
+                            generateAudio
+                        })
+                }
+            );
+
+
+        const data =
+            await res.json()
+                .catch(
+                    () => ({})
+                );
+
+
+        if (!res.ok) {
+
+            throw new Error(
+                data.message ||
+                "Creator Mode could not start."
+            );
+        }
+
+
+        await pollCreatorJob({
+            requestId:
+                data.requestId,
+            mediaType,
+            prompt:
+                cleanPrompt,
+            progress
+        });
+
+
+    } catch (error) {
+
+        progress.wrapper.remove();
+
+        addMessage(
+            `⚠️ ${
+                error.message ||
+                "Creator Mode failed."
+            }`,
+            "ai"
+        );
+
+        console.error(
+            "CREATOR MODE ERROR:",
+            error
+        );
+    }
+}
+
+
+function openCreatorMode() {
+
+    openActionModal(
+        "Creator Mode",
+        `
+        <div class="creator-panel">
+
+            <div class="creator-tabs">
+                <button
+                    type="button"
+                    class="creator-tab active"
+                    data-creator-mode="image"
+                >
+                    🎨 Image
+                </button>
+
+                <button
+                    type="button"
+                    class="creator-tab"
+                    data-creator-mode="video"
+                >
+                    🎬 Video
+                </button>
+            </div>
+
+            <label class="creator-label">
+                Describe what to create
+            </label>
+
+            <textarea
+                id="creatorPrompt"
+                class="creator-prompt"
+                rows="5"
+                maxlength="4000"
+                placeholder="Example: A cinematic Tanzania safari poster at golden hour..."
+            ></textarea>
+
+            <div
+                id="creatorImageOptions"
+                class="creator-options"
+            >
+                <label>
+                    Image shape
+
+                    <select
+                        id="creatorImageSize"
+                    >
+                        <option value="landscape_4_3">
+                            Landscape
+                        </option>
+
+                        <option value="landscape_16_9">
+                            Wide 16:9
+                        </option>
+
+                        <option value="square_hd">
+                            Square HD
+                        </option>
+
+                        <option value="portrait_4_3">
+                            Portrait
+                        </option>
+
+                        <option value="portrait_16_9">
+                            Tall 9:16
+                        </option>
+                    </select>
+                </label>
+            </div>
+
+            <div
+                id="creatorVideoOptions"
+                class="creator-options"
+                hidden
+            >
+                <label>
+                    Duration
+
+                    <select
+                        id="creatorDuration"
+                    >
+                        <option value="5">
+                            5 seconds
+                        </option>
+
+                        <option value="8">
+                            8 seconds
+                        </option>
+
+                        <option value="10">
+                            10 seconds
+                        </option>
+                    </select>
+                </label>
+
+                <label>
+                    Video shape
+
+                    <select
+                        id="creatorAspectRatio"
+                    >
+                        <option value="16:9">
+                            Landscape 16:9
+                        </option>
+
+                        <option value="9:16">
+                            Vertical 9:16
+                        </option>
+
+                        <option value="1:1">
+                            Square
+                        </option>
+                    </select>
+                </label>
+
+                <label class="creator-check">
+                    <input
+                        id="creatorAudio"
+                        type="checkbox"
+                    >
+                    Generate audio
+                </label>
+            </div>
+
+            <button
+                id="creatorGenerateBtn"
+                class="modal-primary-btn creator-generate-btn"
+                type="button"
+            >
+                ✦ Create
+            </button>
+
+        </div>
+        `
+    );
+
+
+    let mode =
+        "image";
+
+
+    const tabs =
+        actionModalBody
+            ?.querySelectorAll(
+                "[data-creator-mode]"
+            ) ||
+        [];
+
+
+    const imageOptions =
+        document.getElementById(
+            "creatorImageOptions"
+        );
+
+    const videoOptions =
+        document.getElementById(
+            "creatorVideoOptions"
+        );
+
+
+    tabs.forEach(
+        tab => {
+
+            tab.addEventListener(
+                "click",
+                () => {
+
+                    mode =
+                        tab.dataset
+                            .creatorMode;
+
+
+                    tabs.forEach(
+                        item =>
+                            item.classList
+                                .toggle(
+                                    "active",
+                                    item === tab
+                                )
+                    );
+
+
+                    if (imageOptions) {
+
+                        imageOptions.hidden =
+                            mode !==
+                            "image";
+                    }
+
+
+                    if (videoOptions) {
+
+                        videoOptions.hidden =
+                            mode !==
+                            "video";
+                    }
+                }
+            );
+        }
+    );
+
+
+    document
+        .getElementById(
+            "creatorGenerateBtn"
+        )
+        ?.addEventListener(
+            "click",
+            async () => {
+
+                const prompt =
+                    document
+                        .getElementById(
+                            "creatorPrompt"
+                        )
+                        ?.value ||
+                    "";
+
+
+                const payload = {
+
+                    mediaType:
+                        mode,
+
+                    prompt,
+
+                    imageSize:
+                        document
+                            .getElementById(
+                                "creatorImageSize"
+                            )
+                            ?.value ||
+                        "landscape_4_3",
+
+                    duration:
+                        document
+                            .getElementById(
+                                "creatorDuration"
+                            )
+                            ?.value ||
+                        "5",
+
+                    aspectRatio:
+                        document
+                            .getElementById(
+                                "creatorAspectRatio"
+                            )
+                            ?.value ||
+                        "16:9",
+
+                    generateAudio:
+                        Boolean(
+                            document
+                                .getElementById(
+                                    "creatorAudio"
+                                )
+                                ?.checked
+                        )
+                };
+
+
+                closeActionModal();
+
+
+                await startCreatorGeneration(
+                    payload
+                );
+            }
+        );
+}
+
+
+if (creatorBtn) {
+
+    creatorBtn.addEventListener(
+        "click",
+        openCreatorMode
     );
 }
 
