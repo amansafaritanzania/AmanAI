@@ -1872,3 +1872,176 @@ body.sidebar-open{
         flex-basis:38px;
     }
 }
+
+
+/* =====================================================
+   Aman AI v5.2 — Chat Controls + Response Actions
+===================================================== */
+
+.action-modal{
+    position:fixed;
+    inset:0;
+    z-index:500;
+    display:none;
+    place-items:center;
+    padding:18px;
+    background:rgba(0,0,0,.62);
+    backdrop-filter:blur(10px);
+}
+
+.action-modal.show{
+    display:grid;
+}
+
+.action-modal-card{
+    width:min(440px,100%);
+    max-height:min(680px,88dvh);
+    overflow:auto;
+    border:1px solid var(--border);
+    border-radius:20px;
+    background:#111827;
+    box-shadow:var(--shadow);
+}
+
+.action-modal-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding:16px;
+    border-bottom:1px solid var(--border);
+}
+
+.action-modal-head h3{
+    margin:0;
+    font-size:17px;
+}
+
+.action-modal-body{
+    padding:16px;
+}
+
+.chat-action-stack,
+.modal-form{
+    display:grid;
+    gap:10px;
+}
+
+.chat-action-stack button,
+.modal-form button,
+.modal-form input,
+.modal-form select{
+    width:100%;
+    min-height:46px;
+    border-radius:12px;
+    border:1px solid var(--border);
+    padding:0 13px;
+    font:inherit;
+}
+
+.chat-action-stack button,
+.modal-form button{
+    cursor:pointer;
+    text-align:left;
+    background:rgba(255,255,255,.06);
+    color:var(--text);
+}
+
+.modal-form button{
+    text-align:center;
+    background:var(--primary);
+    border-color:transparent;
+}
+
+.modal-form input,
+.modal-form select{
+    outline:none;
+    background:#0b1220;
+    color:var(--text);
+}
+
+.danger-action{
+    color:#fecaca !important;
+    border-color:rgba(239,68,68,.3) !important;
+}
+
+.chat-item{
+    display:flex;
+    align-items:center;
+    gap:5px;
+    padding:5px;
+}
+
+.chat-item.archived{
+    opacity:.62;
+}
+
+.chat-item-main{
+    flex:1;
+    min-width:0;
+    border:0;
+    background:transparent;
+    color:var(--text);
+    text-align:left;
+    cursor:pointer;
+    padding:9px;
+}
+
+.chat-item-title{
+    display:block;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    font-size:13px;
+}
+
+.chat-item-workspace{
+    display:block;
+    margin-top:4px;
+    color:var(--muted);
+    font-size:10px;
+}
+
+.chat-item-menu{
+    width:34px;
+    height:34px;
+    flex:0 0 34px;
+    border:0;
+    border-radius:9px;
+    cursor:pointer;
+    background:rgba(255,255,255,.06);
+    color:var(--text);
+    font-size:19px;
+}
+
+.message-actions{
+    flex-wrap:wrap;
+}
+
+.message-actions button.selected{
+    background:var(--primary);
+    outline:2px solid rgba(59,130,246,.22);
+}
+
+@media(max-width:700px){
+
+    .action-modal{
+        align-items:end;
+        padding:8px;
+    }
+
+    .action-modal-card{
+        width:100%;
+        max-height:82dvh;
+        border-radius:20px 20px 14px 14px;
+    }
+
+    .message-actions{
+        gap:4px;
+    }
+
+    .message-actions button{
+        width:31px;
+        height:31px;
+    }
+}
