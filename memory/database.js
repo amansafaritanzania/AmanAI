@@ -131,6 +131,14 @@ async function initDatabase() {
         );
 
 
+        ALTER TABLE messages
+        ADD COLUMN IF NOT EXISTS has_image BOOLEAN
+            NOT NULL DEFAULT FALSE;
+
+        ALTER TABLE messages
+        ADD COLUMN IF NOT EXISTS vision_context TEXT;
+
+
         CREATE TABLE IF NOT EXISTS sessions (
             session_id TEXT PRIMARY KEY,
             user_id TEXT NOT NULL
@@ -401,6 +409,8 @@ async function getChat(
                 m.id,
                 m.role,
                 m.content,
+                m.has_image,
+                m.vision_context,
                 m.created_at AS time
             FROM messages m
             INNER JOIN chats c
@@ -779,6 +789,48 @@ async function searchUserChats(
 
 
 
+
+async function saveMessageVisionContext(
+    userId,
+    chatId,
+    messageId,
+    visionContext
+) {
+
+    const result =
+        await pool.query(
+            `
+            UPDATE messages AS m
+            SET
+                has_image = TRUE,
+                vision_context = $4
+            FROM chats AS c
+            WHERE m.id = $1
+            AND m.chat_id = $2
+            AND c.chat_id = m.chat_id
+            AND c.user_id = $3
+            AND m.role = 'user'
+            RETURNING m.id
+            `,
+            [
+                messageId,
+                chatId,
+                userId,
+                String(
+                    visionContext || ""
+                ).slice(
+                    0,
+                    12000
+                )
+            ]
+        );
+
+    return Boolean(
+        result.rows[0]
+    );
+}
+
+
 async function getChatRecord(
     userId,
     chatId
@@ -870,7 +922,9 @@ async function branchChat(
             SELECT
                 id,
                 role,
-                content
+                content,
+                has_image,
+                vision_context
             FROM messages
             WHERE chat_id = $1
             ORDER BY id ASC
@@ -955,18 +1009,27 @@ async function branchChat(
                 INSERT INTO messages(
                     chat_id,
                     role,
-                    content
+                    content,
+                    has_image,
+                    vision_context
                 )
                 VALUES(
                     $1,
                     $2,
-                    $3
+                    $3,
+                    $4,
+                    $5
                 )
                 `,
                 [
                     branchId,
                     message.role,
-                    message.content
+                    message.content,
+                    Boolean(
+                        message.has_image
+                    ),
+                    message.vision_context ||
+                    null
                 ]
             );
         }
@@ -1105,6 +1168,7 @@ module.exports = {
     saveMessage,
     updateChatMetadata,
     searchUserChats,
+    saveMessageVisionContext,
     getChatRecord,
     deleteLastAssistantMessage,
     branchChat,
