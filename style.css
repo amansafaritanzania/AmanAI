@@ -3425,3 +3425,156 @@ html[data-theme="light"]
         min-height:96px;
     }
 }
+
+
+/* =====================================================
+   Aman AI v9.4 — Smart Hover Tooltips
+===================================================== */
+
+.tooltip-target{
+    position:relative;
+}
+
+.tooltip-target::after{
+    content:attr(data-tooltip);
+    position:absolute;
+    left:50%;
+    top:calc(100% + 10px);
+    transform:
+        translateX(-50%)
+        translateY(-4px);
+
+    min-width:max-content;
+    max-width:220px;
+    padding:8px 10px;
+
+    border:1px solid var(--border);
+    border-radius:10px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--panel2) 96%,
+            #000 4%
+        );
+
+    color:var(--text);
+    box-shadow:
+        0 12px 34px rgba(0,0,0,.32);
+
+    font-size:11px;
+    font-weight:750;
+    line-height:1.2;
+    white-space:nowrap;
+
+    opacity:0;
+    visibility:hidden;
+    pointer-events:none;
+
+    z-index:900;
+
+    transition:
+        opacity .16s ease,
+        transform .16s ease,
+        visibility .16s ease;
+}
+
+.tooltip-target::before{
+    content:"";
+    position:absolute;
+    left:50%;
+    top:calc(100% + 5px);
+    transform:
+        translateX(-50%)
+        translateY(-4px)
+        rotate(45deg);
+
+    width:8px;
+    height:8px;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--panel2) 96%,
+            #000 4%
+        );
+
+    border-left:
+        1px solid var(--border);
+    border-top:
+        1px solid var(--border);
+
+    opacity:0;
+    visibility:hidden;
+    pointer-events:none;
+
+    z-index:899;
+
+    transition:
+        opacity .16s ease,
+        transform .16s ease,
+        visibility .16s ease;
+}
+
+@media(hover:hover) and (pointer:fine){
+
+    .tooltip-target:hover::after,
+    .tooltip-target:focus-visible::after,
+    .tooltip-target:hover::before,
+    .tooltip-target:focus-visible::before{
+        opacity:1;
+        visibility:visible;
+    }
+
+    .tooltip-target:hover::after,
+    .tooltip-target:focus-visible::after{
+        transform:
+            translateX(-50%)
+            translateY(0);
+    }
+
+    .tooltip-target:hover::before,
+    .tooltip-target:focus-visible::before{
+        transform:
+            translateX(-50%)
+            translateY(0)
+            rotate(45deg);
+    }
+}
+
+/*
+Sidebar controls are close to the left edge,
+so keep their tooltips inside the viewport.
+*/
+.sidebar .tooltip-target::after{
+    left:0;
+    transform:
+        translateX(0)
+        translateY(-4px);
+}
+
+.sidebar .tooltip-target:hover::after,
+.sidebar .tooltip-target:focus-visible::after{
+    transform:
+        translateX(0)
+        translateY(0);
+}
+
+/*
+No floating hover labels on touch-only phones.
+The same controls still retain title/aria-label metadata.
+*/
+@media(hover:none), (pointer:coarse){
+
+    .tooltip-target::after,
+    .tooltip-target::before{
+        display:none !important;
+    }
+}
+
+html[data-reduce-motion="true"]
+.tooltip-target::after,
+html[data-reduce-motion="true"]
+.tooltip-target::before{
+    transition:none !important;
+}
