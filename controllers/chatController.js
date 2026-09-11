@@ -13,8 +13,8 @@ const {
 
 
 // ======================================================
-// AMAN AI CORE v9
-// Secure Identity + Memory + Reasoning + Collaboration + Adaptive Modes
+// AMAN AI CORE v8
+// Memory + Reasoning + Collaboration + Response Style
 // ======================================================
 
 
@@ -173,20 +173,94 @@ function formatMemory(memory) {
     ) {
 
         return "No permanent user memories yet.";
-
     }
 
     const lines = [];
 
     if (memory.name) {
-
         lines.push(
             `Preferred/name: ${memory.name}`
         );
-
     }
 
-    return lines.join("\n");
+    if (memory.preferredLanguage) {
+        lines.push(
+            `Preferred language: ${memory.preferredLanguage}`
+        );
+    }
+
+    if (memory.preference) {
+        lines.push(
+            `Preference: ${memory.preference}`
+        );
+    }
+
+    if (memory.goal) {
+        lines.push(
+            `Long-term goal: ${memory.goal}`
+        );
+    }
+
+    if (
+        Array.isArray(
+            memory.projects
+        ) &&
+        memory.projects.length
+    ) {
+
+        lines.push(
+            "Active / durable projects:"
+        );
+
+        memory.projects
+            .slice(-12)
+            .forEach(
+                project => {
+                    lines.push(
+                        `- ${String(project).trim()}`
+                    );
+                }
+            );
+    }
+
+    /*
+    Older memory versions may already contain useful
+    account-wide facts. Include them too so upgrades do
+    not make those memories invisible.
+    */
+    if (
+        Array.isArray(
+            memory.facts
+        ) &&
+        memory.facts.length
+    ) {
+
+        lines.push(
+            "Other remembered facts:"
+        );
+
+        memory.facts
+            .slice(-20)
+            .forEach(
+                fact => {
+                    const value =
+                        String(
+                            fact || ""
+                        ).trim();
+
+                    if (value) {
+                        lines.push(
+                            `- ${value}`
+                        );
+                    }
+                }
+            );
+    }
+
+    return (
+        lines.join("\n") ||
+        "No permanent user memories yet."
+    );
 }
 
 
@@ -610,442 +684,6 @@ not writing a document.
 
 }
 // ======================================================
-// ADAPTIVE CAPABILITY MODE
-// ======================================================
-
-function detectCapabilityMode(
-    message
-) {
-
-    const text =
-        String(message || "")
-            .toLowerCase()
-            .trim();
-
-    const groups = {
-
-        coding: [
-            "code",
-            "javascript",
-            "typescript",
-            "python",
-            "html",
-            "css",
-            "node",
-            "express",
-            "api",
-            "database",
-            "debug",
-            "bug",
-            "error",
-            "github",
-            "render"
-        ],
-
-        learning: [
-            "teach me",
-            "explain",
-            "lesson",
-            "study",
-            "revision",
-            "exam",
-            "question",
-            "solve",
-            "derive",
-            "formula",
-            "topic",
-            "physics",
-            "chemistry",
-            "mathematics"
-        ],
-
-        planning: [
-            "plan",
-            "schedule",
-            "roadmap",
-            "strategy",
-            "budget",
-            "itinerary",
-            "timeline",
-            "organize",
-            "organise",
-            "prioritize",
-            "prioritise"
-        ],
-
-        creation: [
-            "write",
-            "create",
-            "generate",
-            "draft",
-            "design",
-            "caption",
-            "post",
-            "script",
-            "story",
-            "content",
-            "idea"
-        ],
-
-        analysis: [
-            "analyze",
-            "analyse",
-            "compare",
-            "evaluate",
-            "review",
-            "investigate",
-            "why",
-            "calculate",
-            "estimate",
-            "decision"
-        ]
-
-    };
-
-    let bestMode =
-        "general";
-
-    let bestScore =
-        0;
-
-    for (
-        const [mode, signals]
-        of Object.entries(groups)
-    ) {
-
-        const score =
-            signals.reduce(
-                (
-                    total,
-                    signal
-                ) =>
-                    total +
-                    (
-                        text.includes(
-                            signal
-                        )
-                            ? 1
-                            : 0
-                    ),
-                0
-            );
-
-        if (
-            score >
-            bestScore
-        ) {
-
-            bestMode =
-                mode;
-
-            bestScore =
-                score;
-        }
-    }
-
-    return {
-        id:
-            bestMode,
-
-        score:
-            bestScore
-    };
-}
-
-
-// ======================================================
-// CAPABILITY MODE INSTRUCTIONS
-// ======================================================
-
-function buildCapabilityModeInstructions(
-    mode
-) {
-
-    const modes = {
-
-        coding: `
-CODING MODE
-
-Work like a practical software engineering partner.
-
-Prefer complete, working solutions over vague advice.
-
-Preserve the user's existing architecture unless a change
-is genuinely necessary.
-
-When debugging, identify the exact failure before changing
-unrelated code.
-
-Do not invent APIs, packages or framework behavior.
-`,
-
-        learning: `
-LEARNING MODE
-
-Teach for understanding.
-
-Explain the idea clearly before adding complexity.
-
-Use examples, equations or steps when they genuinely help.
-
-Do not overwhelm the learner with unnecessary detail.
-`,
-
-        planning: `
-PLANNING MODE
-
-Turn the user's goal into an actionable plan.
-
-Respect time, money, dependencies and stated constraints.
-
-Prefer realistic sequencing over generic brainstorming.
-
-Make the next action obvious.
-`,
-
-        creation: `
-CREATION MODE
-
-Create a useful finished draft, concept or artifact.
-
-Match the user's requested tone and purpose.
-
-Avoid generic filler.
-
-Prefer concrete output that the user can directly use.
-`,
-
-        analysis: `
-ANALYSIS MODE
-
-Identify the important variables and trade-offs.
-
-Separate known facts from assumptions.
-
-Explain the reasoning at a useful level without exposing
-private chain-of-thought.
-
-Give a clear recommendation when the evidence supports one.
-`,
-
-        general: `
-GENERAL MODE
-
-Answer naturally and directly.
-
-Use the specialist system when the question belongs to a
-specific expert.
-
-Keep the response proportionate to the user's request.
-`
-    };
-
-    return `
-
-==================================================
-AMAN AI CAPABILITY MODE
-==================================================
-
-${modes[mode] || modes.general}
-`;
-}
-
-
-// ======================================================
-// WORKSPACE CONTEXT
-// ======================================================
-
-function normalizeWorkspace(
-    workspace
-) {
-
-    if (
-        typeof workspace !==
-        "string"
-    ) {
-
-        return "";
-    }
-
-    return workspace
-        .trim()
-        .toLowerCase()
-        .replace(
-            /[^a-z0-9_-]/g,
-            ""
-        )
-        .slice(
-            0,
-            40
-        );
-}
-
-
-function buildWorkspaceInstructions(
-    workspace
-) {
-
-    if (!workspace) {
-        return "";
-    }
-
-    return `
-
-==================================================
-ACTIVE WORKSPACE
-==================================================
-
-Workspace:
-${workspace}
-
-Treat this as context about what the user is currently
-working on.
-
-Do not claim the workspace gives you access to files,
-services or data that were not actually supplied.
-`;
-}
-
-
-// ======================================================
-// LANGUAGE PREFERENCE
-// ======================================================
-
-function buildLanguageInstructions(
-    preferredLanguage,
-    message
-) {
-
-    const text =
-        String(message || "").trim();
-
-    const LANGUAGE_NAMES = {
-        en: "English",
-        sw: "Tanzanian Kiswahili",
-        fr: "French",
-        es: "Spanish",
-        pt: "Portuguese",
-        de: "German",
-        ar: "Arabic",
-        hi: "Hindi",
-        zh: "Simplified Chinese",
-        ja: "Japanese"
-    };
-
-    const preferred =
-        String(
-            preferredLanguage || ""
-        )
-            .trim()
-            .toLowerCase();
-
-    const explicitLanguageRequest =
-        /\b(answer|reply|respond|write|speak)\s+(in|using)\s+(english|swahili|kiswahili|french|spanish|portuguese|german|arabic|hindi|chinese|japanese)\b/i
-            .test(text) ||
-        /\b(jibu|andika|ongea)\s+kwa\s+(kiingereza|kiswahili|kifaransa|kihispania|kireno|kijerumani|kiarabu|kihindi|kichina|kijapani)\b/i
-            .test(text) ||
-        /(用中文回答|请用中文|中文回答|请用英文|英語で|日本語で|باللغة العربية|بالعربية|en français|en español|em português|auf deutsch|हिंदी में)/i
-            .test(text);
-
-    if (explicitLanguageRequest) {
-
-        return `
-==================================================
-LANGUAGE PREFERENCE
-==================================================
-
-The user's current message explicitly requests a language.
-
-Follow that explicit language request for this response, even
-if it differs from the saved account language.
-
-Use natural, fluent language rather than literal translation.
-`;
-    }
-
-    const languageName =
-        LANGUAGE_NAMES[preferred];
-
-    if (!languageName) {
-
-        return `
-==================================================
-LANGUAGE PREFERENCE
-==================================================
-
-Match the language of the user's current message naturally.
-`;
-    }
-
-    if (preferred === "sw") {
-
-        return `
-==================================================
-LANGUAGE PREFERENCE
-==================================================
-
-The user's saved Aman AI language is Tanzanian Kiswahili.
-
-Reply in natural Tanzanian Kiswahili by default unless the
-user clearly asks for another language in the current message.
-
-Do not use stiff or literal translations. Technical English
-terms may be kept where they are more natural, but explain
-them clearly in Kiswahili.
-`;
-    }
-
-    if (preferred === "zh") {
-
-        return `
-==================================================
-LANGUAGE PREFERENCE
-==================================================
-
-The user's saved Aman AI language is Simplified Chinese.
-
-Reply in natural Simplified Chinese by default unless the
-user clearly asks for another language in the current message.
-
-Use fluent modern Chinese. Do not produce awkward literal
-translations from English.
-`;
-    }
-
-    if (preferred === "ar") {
-
-        return `
-==================================================
-LANGUAGE PREFERENCE
-==================================================
-
-The user's saved Aman AI language is Arabic.
-
-Reply in clear natural Arabic by default unless the user
-clearly asks for another language in the current message.
-
-Use Modern Standard Arabic unless the user clearly prefers
-another Arabic style.
-`;
-    }
-
-    return `
-==================================================
-LANGUAGE PREFERENCE
-==================================================
-
-The user's saved Aman AI language is ${languageName}.
-
-Reply in natural ${languageName} by default unless the user
-clearly asks for another language in the current message.
-
-Do not mechanically translate phrasing from English. Write
-naturally in the selected language.
-`;
-}
-
-
-// ======================================================
 // EXPERT-SPECIFIC GUARDRAILS
 // ======================================================
 
@@ -1316,82 +954,6 @@ agricultural terminology.
 }
 
 // ======================================================
-// HEALTH MEDICATION DOSE SAFETY
-// ======================================================
-
-function detectMedicationDoseRequest(message = "") {
-    const text = String(message || "").toLowerCase().trim();
-
-    const doseSignals = [
-        "how many tablets", "how many pills", "how many capsules",
-        "how much should i take", "what dose", "what dosage",
-        "how many mg", "dose should i take", "dosage should i take",
-        "how often should i take", "how many times should i take",
-        "dozi gani", "dozi ngapi", "vidonge vingapi",
-        "nitumie kiasi gani", "nitumie mara ngapi"
-    ];
-
-    return doseSignals.some(signal => text.includes(signal));
-}
-
-function hasAgeInformation(message = "") {
-    const text = String(message || "").toLowerCase();
-
-    const agePatterns = [
-        /\b(?:i am|i'm|im|age is|aged)\s+\d{1,3}\b/,
-        /\b\d{1,3}\s*(?:years?|yrs?)\s*old\b/,
-        /\b(?:ana miaka|nina miaka|umri(?: wangu)?(?: ni)?)\s*\d{1,3}\b/
-    ];
-
-    return agePatterns.some(pattern => pattern.test(text));
-}
-
-function hasMedicationStrength(message = "") {
-    const text = String(message || "").toLowerCase();
-    return /\b\d+(?:\.\d+)?\s*(?:mg|mcg|µg|g|ml)\b/.test(text);
-}
-
-function buildMedicationDoseClarification(message = "") {
-    const text = String(message || "").toLowerCase();
-
-    const swahili = [
-        "dozi", "vidonge", "kidonge", "nitumie", "dawa", "miaka", "umri"
-    ].some(signal => text.includes(signal));
-
-    const missingAge = !hasAgeInformation(message);
-    const missingStrength = !hasMedicationStrength(message);
-
-    if (swahili) {
-        if (missingAge && missingStrength) {
-            return "Dozi inaweza kutegemea umri wako na nguvu ya dawa. Una umri gani, na kwenye pakiti imeandikwa dawa hiyo ina nguvu gani, kwa mfano mg ngapi kwa kidonge?";
-        }
-        if (missingAge) {
-            return "Kabla sijakupa maelezo ya dozi, una umri gani? Umri unaweza kubadilisha dozi salama ya dawa.";
-        }
-        return "Dawa hiyo ina nguvu gani kwenye pakiti, kwa mfano mg ngapi kwa kidonge? Nahitaji hilo kabla ya kukupa maelezo ya dozi.";
-    }
-
-    if (missingAge && missingStrength) {
-        return "The dose can depend on your age and the strength of the medicine. How old are you, and what strength does the package show, for example how many mg per tablet?";
-    }
-    if (missingAge) {
-        return "Before I give dosing information, how old are you? Age can change what dose is appropriate.";
-    }
-    return "What strength does the medicine package show, for example how many mg per tablet? I need that before giving dosing information.";
-}
-
-function shouldClarifyMedicationDose(expertId, message) {
-    return (
-        expertId === "health" &&
-        detectMedicationDoseRequest(message) &&
-        (
-            !hasAgeInformation(message) ||
-            !hasMedicationStrength(message)
-        )
-    );
-}
-
-// ======================================================
 // SECONDARY EXPERT CONSULTATION
 // ======================================================
 //
@@ -1612,26 +1174,9 @@ async function chat(req, res) {
 
         let {
             message,
-            chatId,
-            workspace
-        } = req.body || {};
-
-        /*
-        Secure account identity takes priority.
-
-        chatRoutes already injects the authenticated user,
-        but the controller also enforces it here so future
-        routes cannot accidentally trust a browser userId.
-        */
-
-        const userId =
-            req.auth?.userId ||
-            req.body?.userId ||
-            "guest";
-
-        const preferredLanguage =
-            req.auth?.preferredLanguage ||
-            "";
+            userId = "guest",
+            chatId
+        } = req.body;
 
 
         console.log(
@@ -1642,11 +1187,6 @@ async function chat(req, res) {
         console.log(
             "CHAT ID:",
             chatId
-        );
-
-        console.log(
-            "🌍 PREFERRED LANGUAGE:",
-            preferredLanguage || "auto"
         );
 
 
@@ -1841,55 +1381,6 @@ const olderContext =
             buildResponseStyleInstructions(
                 responseStyle
             );
-
-        // ==================================================
-        // ADAPTIVE CAPABILITY MODE
-        // ==================================================
-
-        const capabilityMode =
-            detectCapabilityMode(
-                message
-            );
-
-        const capabilityModeInstructions =
-            buildCapabilityModeInstructions(
-                capabilityMode.id
-            );
-
-        console.log(
-            "🚀 CAPABILITY MODE:",
-            capabilityMode.id,
-            "SCORE:",
-            capabilityMode.score
-        );
-
-
-        // ==================================================
-        // WORKSPACE + LANGUAGE CONTEXT
-        // ==================================================
-
-        const activeWorkspace =
-            normalizeWorkspace(
-                workspace
-            );
-
-        const workspaceInstructions =
-            buildWorkspaceInstructions(
-                activeWorkspace
-            );
-
-        const languageInstructions =
-            buildLanguageInstructions(
-                preferredLanguage,
-                message
-            );
-
-        if (activeWorkspace) {
-            console.log(
-                "🗂️ WORKSPACE:",
-                activeWorkspace
-            );
-        }
 // ==================================================
 // EXPERT GUARDRAILS
 // ==================================================
@@ -1907,40 +1398,6 @@ console.log(
         ? "ACTIVE"
         : "NONE"
 );
-
-        // ==================================================
-        // DETERMINISTIC HEALTH DOSE CLARIFICATION
-        // ==================================================
-
-        if (
-            shouldClarifyMedicationDose(
-                expert.id,
-                message
-            )
-        ) {
-            const reply =
-                buildMedicationDoseClarification(
-                    message
-                );
-
-            console.log(
-                "🛡️ HEALTH DOSE CLARIFICATION: ACTIVE"
-            );
-
-            await saveMessage(
-                userId,
-                chatId,
-                "assistant",
-                reply
-            );
-
-            return res.json({
-                success: true,
-                chatId,
-                reply
-            });
-        }
-
 
         // ==================================================
         // SECONDARY COLLABORATION
@@ -2061,12 +1518,6 @@ No specialist input is available.
 
 ${responseStyleInstructions}
 
-${capabilityModeInstructions}
-
-${workspaceInstructions}
-
-${languageInstructions}
-
 ${expertGuardrails}
 
 ==================================================
@@ -2183,11 +1634,6 @@ Do not add unnecessary filler.
             responseStyle
         );
 
-        console.log(
-            "🚀 CAPABILITY MODE:",
-            capabilityMode.id
-        );
-
 
         // ==================================================
         // FINAL GROQ REQUEST
@@ -2214,17 +1660,9 @@ Do not add unnecessary filler.
                     false,
 
                 max_completion_tokens:
-                    capabilityMode.id === "coding"
-                        ? 1100
-                        : (
-                            reasoningEffort === "medium"
-                                ? 850
-                                : (
-                                    responseStyle === "plain"
-                                        ? 550
-                                        : 700
-                                )
-                        ),
+                    responseStyle === "plain"
+                        ? 550
+                        : 700,
 
                 messages
 
