@@ -376,6 +376,74 @@ function extractMemory(message) {
     }
 
 
+    // ==================================================
+    // ACTIVE / DURABLE PROJECTS
+    // ==================================================
+    //
+    // Save projects the user clearly says they are
+    // building, developing or working on. Projects are
+    // account-wide so every workspace can use them.
+    // ==================================================
+
+    const projectPatterns = [
+
+        /\bmy\s+(?:work\s+)?project\s+is\s+(.{2,180})$/i,
+
+        /\bmy\s+current\s+project\s+is\s+(.{2,180})$/i,
+
+        /\bi(?:'m|\s+am)\s+working\s+on\s+(.{2,180})$/i,
+
+        /\bi(?:'m|\s+am)\s+building\s+(.{2,180})$/i,
+
+        /\bi(?:'m|\s+am)\s+developing\s+(.{2,180})$/i,
+
+        /\bi\s+started\s+(?:a\s+project\s+called\s+)?(.{2,180})$/i,
+
+        /\bmradi\s+wangu\s+ni\s+(.{2,180})$/i,
+
+        /\bninafanya\s+(?:project|projekti|mradi)\s+(.{2,180})$/i,
+
+        /\bninaendeleza\s+(.{2,180})$/i,
+
+        /\bninatengeneza\s+(.{2,180})$/i
+    ];
+
+
+    for (
+        const pattern
+        of projectPatterns
+    ) {
+
+        const match =
+            text.match(
+                pattern
+            );
+
+        if (
+            match &&
+            match[1]
+        ) {
+
+            const project =
+                cleanValue(
+                    match[1],
+                    180
+                );
+
+            if (
+                project &&
+                project.length >= 2
+            ) {
+
+                memories.projects =
+                    [project];
+            }
+
+            break;
+        }
+    }
+
+
     return memories;
 }
 
@@ -410,6 +478,69 @@ function mergeMemory(
         ...previous,
         ...incoming
     };
+
+
+    // ==================================================
+    // MERGE PROJECTS ACCOUNT-WIDE
+    // ==================================================
+
+    let projects =
+        Array.isArray(
+            previous.projects
+        )
+            ? [...previous.projects]
+            : [];
+
+    const incomingProjects =
+        Array.isArray(
+            incoming.projects
+        )
+            ? incoming.projects
+            : [];
+
+    for (
+        const project
+        of incomingProjects
+    ) {
+
+        const cleanProject =
+            cleanValue(
+                project,
+                180
+            );
+
+        if (!cleanProject) {
+            continue;
+        }
+
+        const exists =
+            projects.some(
+                item =>
+                    String(item)
+                        .toLowerCase() ===
+                    cleanProject
+                        .toLowerCase()
+            );
+
+        if (!exists) {
+            projects.push(
+                cleanProject
+            );
+        }
+    }
+
+    /*
+    Keep several durable projects, not only the latest one.
+    This allows Coding, Business, School, Safari and other
+    workspaces to remember the same account projects.
+    */
+    projects =
+        projects.slice(-12);
+
+    if (projects.length) {
+        merged.projects =
+            projects;
+    }
 
 
     // ==================================================
@@ -467,6 +598,26 @@ function mergeMemory(
                 facts,
                 `User's goal is ${incoming.goal}`
             );
+    }
+
+
+    if (
+        Array.isArray(
+            incoming.projects
+        )
+    ) {
+
+        for (
+            const project
+            of incoming.projects
+        ) {
+
+            facts =
+                addUniqueFact(
+                    facts,
+                    `User project: ${project}`
+                );
+        }
     }
 
 
