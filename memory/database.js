@@ -75,6 +75,12 @@ async function initDatabase() {
 
 
         ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS terms_accepted_at TIMESTAMPTZ;
+
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS privacy_accepted_at TIMESTAMPTZ;
+
+        ALTER TABLE users
         ADD COLUMN IF NOT EXISTS google_sub TEXT;
 
         ALTER TABLE users
