@@ -753,6 +753,87 @@ async function resetPasswordWithCode(email, code, newPassword) {
     }
 }
 
+
+const DEFAULT_UI_PREFERENCES = Object.freeze({
+    language: "en",
+    fontSize: "normal",
+    fontFamily: "inter",
+    fontColor: "#f8fafc",
+    theme: "cinematic",
+    accent: "#7c9cff",
+    background: "aurora",
+    density: "comfortable",
+    bubbleStyle: "soft",
+    reduceMotion: false
+});
+
+const ALLOWED_UI = {
+    language: new Set(["en","sw","fr","es","pt","de","ar","hi","zh","ja"]),
+    fontSize: new Set(["small","normal","large","xlarge"]),
+    fontFamily: new Set(["inter","system","serif","rounded","mono"]),
+    theme: new Set(["cinematic","midnight","amoled","light","ocean","sunset"]),
+    background: new Set(["aurora","nebula","grid","plain","forest","sunset"]),
+    density: new Set(["compact","comfortable","spacious"]),
+    bubbleStyle: new Set(["soft","glass","minimal"])
+};
+
+function sanitizeHexColor(value, fallback) {
+    const color = String(value || "").trim();
+    return /^#[0-9a-fA-F]{6}$/.test(color) ? color : fallback;
+}
+
+function sanitizeUiPreferences(input = {}) {
+    const base = { ...DEFAULT_UI_PREFERENCES };
+
+    for (const key of Object.keys(ALLOWED_UI)) {
+        if (ALLOWED_UI[key].has(String(input[key] || ""))) {
+            base[key] = String(input[key]);
+        }
+    }
+
+    base.fontColor = sanitizeHexColor(
+        input.fontColor,
+        DEFAULT_UI_PREFERENCES.fontColor
+    );
+
+    base.accent = sanitizeHexColor(
+        input.accent,
+        DEFAULT_UI_PREFERENCES.accent
+    );
+
+    base.reduceMotion = input.reduceMotion === true;
+
+    return base;
+}
+
+async function getUiPreferences(userId) {
+    const result = await pool.query(
+        `SELECT ui_preferences FROM users WHERE user_id = $1 LIMIT 1`,
+        [userId]
+    );
+
+    const stored = result.rows[0]?.ui_preferences || {};
+    return sanitizeUiPreferences(stored);
+}
+
+async function updateUiPreferences(userId, input = {}) {
+    const preferences = sanitizeUiPreferences(input);
+
+    const result = await pool.query(
+        `
+        UPDATE users
+        SET ui_preferences = $2::jsonb
+        WHERE user_id = $1
+        RETURNING ui_preferences
+        `,
+        [userId, JSON.stringify(preferences)]
+    );
+
+    return sanitizeUiPreferences(
+        result.rows[0]?.ui_preferences || preferences
+    );
+}
+
 module.exports = {
     SESSION_DAYS,
     createAccount,
@@ -769,5 +850,7 @@ module.exports = {
     requestPasswordReset,
     verifyPasswordResetCode,
     resetPasswordWithCode,
-    getGoogleClientId
+    getGoogleClientId,
+    getUiPreferences,
+    updateUiPreferences
 };
