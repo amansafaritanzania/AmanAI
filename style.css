@@ -3215,3 +3215,213 @@ html[dir="rtl"] .sidebar.open{
         display:none;
     }
 }
+
+/* =====================================================
+   Aman AI v9.1 — Personal Custom Chat Background
+===================================================== */
+
+.custom-background-box{
+    margin-top:14px;
+    padding:14px;
+    border:1px solid var(--border);
+    border-radius:16px;
+    background:
+        color-mix(
+            in srgb,
+            var(--panel2) 82%,
+            transparent
+        );
+}
+
+.custom-background-copy{
+    display:grid;
+    gap:4px;
+    margin-bottom:11px;
+}
+
+.custom-background-copy strong{
+    font-size:13px;
+}
+
+.custom-background-copy small{
+    color:var(--muted);
+    font-size:11px;
+    line-height:1.5;
+}
+
+.custom-background-preview{
+    position:relative;
+    width:100%;
+    aspect-ratio:16 / 8;
+    min-height:118px;
+    display:grid;
+    place-items:center;
+    overflow:hidden;
+    border:1px solid var(--border);
+    border-radius:14px;
+    background:
+        linear-gradient(
+            135deg,
+            rgba(255,255,255,.05),
+            rgba(255,255,255,.015)
+        );
+    background-size:cover;
+    background-position:center;
+    color:var(--muted);
+    text-align:center;
+    font-size:11px;
+}
+
+.custom-background-preview.has-image{
+    box-shadow:
+        inset 0 0 0 1px
+        rgba(255,255,255,.04),
+        0 10px 28px
+        rgba(0,0,0,.16);
+}
+
+.custom-background-preview span{
+    max-width:190px;
+    padding:12px;
+}
+
+.custom-background-actions{
+    display:grid;
+    grid-template-columns:
+        1.15fr .9fr .75fr;
+    gap:8px;
+    margin-top:10px;
+}
+
+.custom-background-actions button{
+    min-width:0;
+    min-height:42px;
+    padding:8px 10px;
+    font-size:11px;
+}
+
+.custom-background-remove{
+    color:#ffb4b4;
+}
+
+.custom-background-status{
+    min-height:16px;
+    margin-top:8px;
+    color:var(--muted);
+    font-size:10px;
+    line-height:1.45;
+}
+
+.custom-background-status.ok{
+    color:#93e9b2;
+}
+
+.custom-background-status.error{
+    color:#ffb4b4;
+}
+
+/*
+Personal user image.
+The dark overlays protect readability regardless of
+whether the uploaded photo is bright or busy.
+*/
+.background.custom-user-background{
+    background-image:
+        linear-gradient(
+            180deg,
+            rgba(3,7,14,.63),
+            rgba(3,7,14,.74)
+        ),
+        linear-gradient(
+            90deg,
+            rgba(3,7,14,.24),
+            rgba(3,7,14,.24)
+        ),
+        var(--custom-background-image) !important;
+
+    background-size:
+        cover,
+        cover,
+        cover !important;
+
+    background-position:
+        center,
+        center,
+        center !important;
+
+    background-repeat:
+        no-repeat !important;
+}
+
+.background.custom-user-background .orb{
+    opacity:.22;
+}
+
+.background.custom-user-background .grid{
+    opacity:.10;
+}
+
+/*
+Light theme still keeps a soft dark veil behind chat
+content because uploaded images can be unpredictable.
+*/
+html[data-theme="light"]
+.background.custom-user-background{
+    background-image:
+        linear-gradient(
+            180deg,
+            rgba(245,248,252,.66),
+            rgba(236,241,248,.78)
+        ),
+        linear-gradient(
+            90deg,
+            rgba(255,255,255,.18),
+            rgba(255,255,255,.18)
+        ),
+        var(--custom-background-image) !important;
+}
+
+@media(max-width:700px){
+
+    .custom-background-preview{
+        aspect-ratio:16 / 9;
+        min-height:104px;
+    }
+
+    .custom-background-actions{
+        grid-template-columns:
+            1fr 1fr;
+    }
+
+    .custom-background-actions
+    .custom-background-remove{
+        grid-column:
+            1 / -1;
+    }
+}
+
+@media(max-width:380px){
+
+    .custom-background-box{
+        padding:11px;
+        border-radius:13px;
+    }
+
+    .custom-background-actions{
+        grid-template-columns:1fr;
+    }
+
+    .custom-background-actions
+    .custom-background-remove{
+        grid-column:auto;
+    }
+
+    .custom-background-actions button{
+        width:100%;
+        min-height:44px;
+    }
+
+    .custom-background-preview{
+        min-height:96px;
+    }
+}
