@@ -95,8 +95,9 @@ function safeUser(row) {
     };
 }
 
-async function createAccount({ name, email, password, preferredLanguage = "en" }) {
+async function createAccount({ name, email, password, preferredLanguage = "en", acceptTerms, acceptPrivacy }) {
     const checked = validateSignupInput({ name, email, password, preferredLanguage });
+if(acceptTerms!==true||acceptPrivacy!==true){const error=new Error("You must agree to the Terms of Use and Privacy Policy.");error.code="CONSENT_REQUIRED";throw error;}
 
     if (!checked.ok) {
         const error = new Error(checked.message);
@@ -130,9 +131,11 @@ async function createAccount({ name, email, password, preferredLanguage = "en" }
                 display_name,
                 password_hash,
                 preferred_language,
-                account_status
+                account_status,
+                terms_accepted_at,
+                privacy_accepted_at
             )
-            VALUES($1, $2, $3, $4, $5, 'active')
+            VALUES($1, $2, $3, $4, $5, 'active', NOW(), NOW())
             `,
             [userId, checked.email, checked.name, passwordHash, checked.preferredLanguage]
         );
@@ -212,7 +215,7 @@ function getGoogleClientId() {
     return String(process.env.GOOGLE_CLIENT_ID || "").trim();
 }
 
-async function authenticateGoogleCredential(credential) {
+async function authenticateGoogleCredential(credential, { acceptTerms = false, acceptPrivacy = false } = {}) {
     const clientId = getGoogleClientId();
 
     if (!clientId) {
@@ -265,6 +268,8 @@ async function authenticateGoogleCredential(credential) {
 
             user = byEmail.rows[0];
 
+            if (!user && (acceptTerms !== true || acceptPrivacy !== true)) { const error = new Error("You must agree to the Terms of Use and Privacy Policy before creating an account."); error.code = "CONSENT_REQUIRED"; throw error; }
+
             if (user) {
                 if (user.google_sub && user.google_sub !== sub) {
                     const error = new Error("This email is already linked to another Google account.");
@@ -298,9 +303,11 @@ async function authenticateGoogleCredential(credential) {
                         google_sub,
                         email_verified_at,
                         last_login_at,
-                        lock_on_hidden
+                        lock_on_hidden,
+                        terms_accepted_at,
+                        privacy_accepted_at
                     )
-                    VALUES($1, $2, $3, NULL, 'en', 'active', $4, NOW(), NOW(), FALSE)
+                    VALUES($1, $2, $3, NULL, 'en', 'active', $4, NOW(), NOW(), FALSE, NOW(), NOW())
                     `,
                     [userId, email, name, sub]
                 );
