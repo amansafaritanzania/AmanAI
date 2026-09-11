@@ -1,7 +1,6 @@
 const crypto = require("crypto");
 const { promisify } = require("util");
 const { OAuth2Client } = require("google-auth-library");
-const nodemailer = require("nodemailer");
 const { pool } = require("../memory/database");
 
 const scryptAsync = promisify(crypto.scrypt);
@@ -522,57 +521,90 @@ async function updatePrivacyPreferences(userId, { lockOnHidden, autoLogoutMinute
 
 function recoveryMailerConfigured() {
     return Boolean(
-        process.env.SMTP_HOST &&
-        process.env.SMTP_PORT &&
-        process.env.SMTP_USER &&
-        process.env.SMTP_PASS &&
-        process.env.SMTP_FROM
+        process.env.RESEND_API_KEY &&
+        process.env.RESEND_FROM
     );
 }
 
-function createTransporter() {
-    if (!recoveryMailerConfigured()) return null;
-
-    return nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT),
-        secure: String(process.env.SMTP_SECURE || "").toLowerCase() === "true",
-        auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS
-        }
-    });
+function escapeHtml(value = "") {
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
 async function sendRecoveryEmail(to, code, displayName) {
-    const transporter = createTransporter();
-
-    if (!transporter) {
+    if (!recoveryMailerConfigured()) {
         const error = new Error("Email recovery is not configured yet.");
         error.code = "EMAIL_NOT_CONFIGURED";
         throw error;
     }
 
     const safeName = normalizeName(displayName || "there");
+    const safeHtmlName = escapeHtml(safeName);
 
-    await transporter.sendMail({
-        from: process.env.SMTP_FROM,
-        to,
-        subject: "Your Aman AI password reset code",
-        text:
-            `Hello ${safeName},\n\n` +
-            `Your Aman AI password reset code is: ${code}\n\n` +
-            `It expires in ${RECOVERY_MINUTES} minutes. If you did not request this, ignore this email.`,
-        html:
-            `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#17231d">` +
-            `<h2>Aman AI password reset</h2>` +
-            `<p>Hello ${safeName},</p>` +
-            `<p>Your verification code is:</p>` +
-            `<div style="font-size:30px;font-weight:800;letter-spacing:8px;padding:14px 0">${code}</div>` +
-            `<p>This code expires in ${RECOVERY_MINUTES} minutes.</p>` +
-            `<p>If you did not request a password reset, ignore this email.</p>` +
-            `</div>`
-    });
+    let response;
+
+    try {
+        response = await fetch(
+            "https://api.resend.com/emails",
+            {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    from: process.env.RESEND_FROM,
+                    to: [to],
+                    subject: "Your Aman AI password reset code",
+                    text:
+                        `Hello ${safeName}\n\n` +
+                        `Your Aman AI password reset code is: ${code}\n\n` +
+                        `It expires in ${RECOVERY_MINUTES} minutes. ` +
+                        `If you did not request this, ignore this email.`,
+                    html:
+                        `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#17231d">` +
+                        `<h2>Aman AI password reset</h2>` +
+                        `<p>Hello ${safeHtmlName},</p>` +
+                        `<p>Your verification code is:</p>` +
+                        `<div style="font-size:30px;font-weight:800;letter-spacing:8px;padding:14px 0">${code}</div>` +
+                        `<p>This code expires in ${RECOVERY_MINUTES} minutes.</p>` +
+                        `<p>If you did not request a password reset, ignore this email.</p>` +
+                        `</div>`
+                })
+            }
+        );
+    } catch (networkError) {
+        const error = new Error("Could not reach the email service.");
+        error.code = "EMAIL_SEND_FAILED";
+        error.cause = networkError;
+        throw error;
+    }
+
+    const data = await response
+        .json()
+        .catch(() => ({}));
+
+    if (!response.ok) {
+        console.error(
+            "RESEND EMAIL ERROR:",
+            response.status,
+            data
+        );
+
+        const error = new Error(
+            data?.message ||
+            "Could not send recovery email."
+        );
+
+        error.code = "EMAIL_SEND_FAILED";
+        throw error;
+    }
+
+    return data;
 }
 
 async function requestPasswordReset(email) {
