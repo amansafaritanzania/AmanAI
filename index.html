@@ -499,6 +499,61 @@
                         <option value="forest">Forest night</option>
                         <option value="sunset">Sunset haze</option>
                     </select>
+
+                    <div class="custom-background-box">
+                        <div class="custom-background-copy">
+                            <strong>Use your own photo</strong>
+                            <small>
+                                Pick a photo from this phone or computer.
+                                It stays on this device and is compressed before saving.
+                            </small>
+                        </div>
+
+                        <div
+                            id="customBackgroundPreview"
+                            class="custom-background-preview"
+                            aria-label="Custom background preview"
+                        >
+                            <span id="customBackgroundEmpty">
+                                No personal background selected
+                            </span>
+                        </div>
+
+                        <div class="custom-background-actions">
+                            <button
+                                id="chooseCustomBackgroundBtn"
+                                class="settings-secondary"
+                                type="button"
+                            >
+                                📷 Choose photo
+                            </button>
+
+                            <button
+                                id="useCustomBackgroundBtn"
+                                class="settings-secondary"
+                                type="button"
+                                disabled
+                            >
+                                Use photo
+                            </button>
+
+                            <button
+                                id="removeCustomBackgroundBtn"
+                                class="settings-secondary custom-background-remove"
+                                type="button"
+                                disabled
+                            >
+                                Remove
+                            </button>
+                        </div>
+
+                        <div
+                            id="customBackgroundStatus"
+                            class="custom-background-status"
+                            aria-live="polite"
+                        ></div>
+                    </div>
+
                 </section>
 
                 <section class="settings-section two-col-settings">
@@ -553,6 +608,16 @@
             </div>
         </div>
     </div>
+
+
+
+    <!-- Personal chat background picker -->
+    <input
+        type="file"
+        id="customBackgroundInput"
+        hidden
+        accept="image/jpeg,image/png,image/webp"
+    >
 
 
     <!-- Hidden File Input -->
