@@ -1,5 +1,7 @@
 const express=require("express");
-const {signup,login,googleLogin,googleConfig,forgotPassword,verifyResetCode,resetPassword,logout,me,sessions,removeSession,logoutAll,privacyPreferences,savePrivacyPreferences,unlock}=require("./authController");
+const {signup,login,googleLogin,googleConfig,forgotPassword,verifyResetCode,resetPassword,logout,me,sessions,removeSession,logoutAll,privacyPreferences,savePrivacyPreferences,unlock,
+    uiPreferences,
+    saveUiPreferences}=require("./authController");
 const {requireAuth,requireSameOrigin,authRateLimit}=require("./authMiddleware");
 const router=express.Router();
 router.get("/google-config",googleConfig);
@@ -17,4 +19,18 @@ router.post("/logout-all",requireSameOrigin,requireAuth,logoutAll);
 router.get("/privacy",requireAuth,privacyPreferences);
 router.put("/privacy",requireSameOrigin,requireAuth,savePrivacyPreferences);
 router.post("/unlock",requireSameOrigin,requireAuth,authRateLimit,unlock);
+
+router.get(
+    "/preferences",
+    requireAuth,
+    uiPreferences
+);
+
+router.put(
+    "/preferences",
+    requireSameOrigin,
+    requireAuth,
+    saveUiPreferences
+);
+
 module.exports=router;
