@@ -81,6 +81,11 @@ async function initDatabase() {
         ADD COLUMN IF NOT EXISTS privacy_accepted_at TIMESTAMPTZ;
 
         ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS ui_preferences JSONB
+            NOT NULL DEFAULT '{}'::jsonb;
+
+
+        ALTER TABLE users
         ADD COLUMN IF NOT EXISTS google_sub TEXT;
 
         ALTER TABLE users
