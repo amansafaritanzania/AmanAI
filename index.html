@@ -56,7 +56,7 @@
 
                 <div>
                     <h2>Aman AI</h2>
-                    <span>Your AI workspace</span>
+                    <span id="sidebarTagline">Your AI workspace</span>
                 </div>
             </div>
 
@@ -75,46 +75,28 @@
         <!-- Workspace Switcher -->
         <div class="workspace-section">
 
-            <div class="sidebar-section-title">
-                Workspace
-            </div>
+            <div id="workspaceSectionTitle" class="sidebar-section-title">Workspace</div>
 
             <select
                 id="workspaceSelect"
                 class="workspace-select"
                 aria-label="Select workspace"
             >
-                <option value="general">
-                    🌐 General
-                </option>
+                <option id="workspaceGeneralOption" value="general">🌐 General</option>
 
-                <option value="school">
-                    🎓 School
-                </option>
+                <option id="workspaceSchoolOption" value="school">🎓 School</option>
 
-                <option value="coding">
-                    💻 Coding
-                </option>
+                <option id="workspaceCodingOption" value="coding">💻 Coding</option>
 
-                <option value="business">
-                    📊 Business
-                </option>
+                <option id="workspaceBusinessOption" value="business">📊 Business</option>
 
-                <option value="safari">
-                    🦁 Safari
-                </option>
+                <option id="workspaceSafariOption" value="safari">🦁 Safari</option>
 
-                <option value="agriculture">
-                    🌱 Agriculture
-                </option>
+                <option id="workspaceAgricultureOption" value="agriculture">🌱 Agriculture</option>
 
-                <option value="health">
-                    🩺 Health
-                </option>
+                <option id="workspaceHealthOption" value="health">🩺 Health</option>
 
-                <option value="bible">
-                    📖 Bible
-                </option>
+                <option id="workspaceBibleOption" value="bible">📖 Bible</option>
             </select>
 
         </div>
@@ -218,9 +200,7 @@
                     href="/dashboard"
                     class="dashboard-link"
                 >
-                    <span class="dashboard-label">
-                        Dashboard
-                    </span>
+                    <span id="headerDashboardLabel" class="dashboard-label">Dashboard</span>
 
                     <span
                         class="dashboard-icon"
@@ -306,9 +286,7 @@
 
             </div>
 
-            <div class="composer-note">
-                Aman AI can make mistakes. Verify important information.
-            </div>
+            <div id="composerNote" class="composer-note">Aman AI can make mistakes. Verify important information.</div>
 
         </footer>
 
@@ -328,9 +306,7 @@
             aria-labelledby="actionModalTitle"
         >
             <div class="action-modal-head">
-                <h3 id="actionModalTitle">
-                    Chat action
-                </h3>
+                <h3 id="actionModalTitle">Chat action</h3>
 
                 <button
                     id="actionModalClose"
@@ -364,9 +340,9 @@
         >
             <div class="personalization-head">
                 <div>
-                    <div class="personalization-kicker">Aman AI Studio</div>
+                    <div id="personalizationKicker" class="personalization-kicker">Aman AI Studio</div>
                     <h2 id="personalizationTitle">Personalization</h2>
-                    <p>Make Aman AI feel like yours.</p>
+                    <p id="personalizationSubtitle">Make Aman AI feel like yours.</p>
                 </div>
 
                 <button
@@ -385,8 +361,8 @@
                     <div class="settings-title">
                         <span>🌍</span>
                         <div>
-                            <strong>Language</strong>
-                            <small>Changes interface language.</small>
+                            <strong id="languageLabel">Language</strong>
+                            <small id="languageHelp">Changes interface language.</small>
                         </div>
                     </div>
 
@@ -408,8 +384,8 @@
                     <div class="settings-title">
                         <span>🎨</span>
                         <div>
-                            <strong>Theme</strong>
-                            <small>Choose the mood of the whole workspace.</small>
+                            <strong id="themeLabel">Theme</strong>
+                            <small id="themeHelp">Choose the mood of the whole workspace.</small>
                         </div>
                     </div>
 
@@ -443,7 +419,7 @@
 
                 <section class="settings-section two-col-settings">
                     <label>
-                        <span>Text size</span>
+                        <span id="fontSizeLabel">Text size</span>
                         <select id="prefFontSize" class="settings-control">
                             <option value="small">Small</option>
                             <option value="normal">Normal</option>
@@ -453,7 +429,7 @@
                     </label>
 
                     <label>
-                        <span>Font</span>
+                        <span id="fontFamilyLabel">Font</span>
                         <select id="prefFontFamily" class="settings-control">
                             <option value="inter">Modern</option>
                             <option value="system">System</option>
@@ -466,7 +442,7 @@
 
                 <section class="settings-section two-col-settings">
                     <label>
-                        <span>Text color</span>
+                        <span id="fontColorLabel">Text color</span>
                         <div class="color-control">
                             <input id="prefFontColor" type="color" value="#f8fafc">
                             <span id="prefFontColorValue">#f8fafc</span>
@@ -474,7 +450,7 @@
                     </label>
 
                     <label>
-                        <span>Accent color</span>
+                        <span id="accentColorLabel">Accent color</span>
                         <div class="color-control">
                             <input id="prefAccent" type="color" value="#7c9cff">
                             <span id="prefAccentValue">#7c9cff</span>
@@ -486,8 +462,8 @@
                     <div class="settings-title">
                         <span>🌌</span>
                         <div>
-                            <strong>Chat background</strong>
-                            <small>Changes the conversation atmosphere.</small>
+                            <strong id="backgroundLabel">Chat background</strong>
+                            <small id="backgroundHelp">Changes the conversation atmosphere.</small>
                         </div>
                     </div>
 
@@ -502,8 +478,8 @@
 
                     <div class="custom-background-box">
                         <div class="custom-background-copy">
-                            <strong>Use your own photo</strong>
-                            <small>
+                            <strong id="customPhotoLabel">Use your own photo</strong>
+                            <small id="customPhotoHelp">
                                 Pick a photo from this phone or computer.
                                 It stays on this device and is compressed before saving.
                             </small>
@@ -558,7 +534,7 @@
 
                 <section class="settings-section two-col-settings">
                     <label>
-                        <span>Message spacing</span>
+                        <span id="densityLabel">Message spacing</span>
                         <select id="prefDensity" class="settings-control">
                             <option value="compact">Compact</option>
                             <option value="comfortable">Comfortable</option>
@@ -567,7 +543,7 @@
                     </label>
 
                     <label>
-                        <span>Bubble style</span>
+                        <span id="bubbleStyleLabel">Bubble style</span>
                         <select id="prefBubbleStyle" class="settings-control">
                             <option value="soft">Soft</option>
                             <option value="glass">Glass</option>
@@ -578,8 +554,8 @@
 
                 <section class="settings-section toggle-setting">
                     <div>
-                        <strong>Reduce motion</strong>
-                        <small>Reduces animated backgrounds and transitions.</small>
+                        <strong id="reduceMotionLabel">Reduce motion</strong>
+                        <small id="reduceMotionHelp">Reduces animated backgrounds and transitions.</small>
                     </div>
                     <label class="switch">
                         <input id="prefReduceMotion" type="checkbox">
@@ -594,7 +570,7 @@
                     id="resetPreferencesBtn"
                     class="settings-secondary"
                     type="button"
-                >
+                 id="resetPreferencesText">
                     Reset
                 </button>
 
@@ -602,7 +578,7 @@
                     id="savePreferencesBtn"
                     class="settings-primary"
                     type="button"
-                >
+                 id="savePreferencesText">
                     Save changes
                 </button>
             </div>
