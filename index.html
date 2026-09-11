@@ -266,6 +266,16 @@
                  data-tooltip="Voice input" title="Voice input">
                     🎤
                 </button>
+                <button
+                    id="liveVoiceBtn"
+                    class="composer-btn live-voice-launch tooltip-target"
+                    data-tooltip="Live Voice"
+                    title="Live Voice"
+                    type="button"
+                    aria-label="Start live voice conversation"
+                >
+                    🗣
+                </button>
 
                 <textarea
                     id="input"
@@ -586,6 +596,25 @@
     </div>
 
 
+
+
+    <div id="liveVoicePanel" class="live-voice-panel" aria-hidden="true">
+        <div class="live-voice-card" role="dialog" aria-modal="true">
+            <div class="live-voice-orb-wrap">
+                <div class="live-voice-orb">🎙</div>
+            </div>
+            <div class="live-voice-copy">
+                <div id="liveVoiceTitle" class="live-voice-title">Live Voice</div>
+                <div id="liveVoiceStatus" class="live-voice-status">Ready</div>
+                <div id="liveVoiceHint" class="live-voice-hint">
+                    Speak naturally. Your spoken words stay hidden from the composer.
+                </div>
+            </div>
+            <button id="endLiveVoiceBtn" class="end-live-voice-btn" type="button">
+                End voice chat
+            </button>
+        </div>
+    </div>
 
     <!-- Personal chat background picker -->
     <input
