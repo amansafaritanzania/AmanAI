@@ -2376,8 +2376,112 @@ if (input) {
 // ADVANCED RESPONSE ACTIONS
 // ======================================================
 
+let activeSpeechButton = null;
+let activeSpeechUtterance = null;
+
+const SPEECH_LOCALES = {
+    en: "en-US",
+    sw: "sw-TZ",
+    fr: "fr-FR",
+    es: "es-ES",
+    pt: "pt-BR",
+    de: "de-DE",
+    ar: "ar-SA",
+    hi: "hi-IN",
+    zh: "zh-CN",
+    ja: "ja-JP"
+};
+
+function getPreferredSpeechLocale() {
+    const language =
+        uiPreferences?.language ||
+        document.documentElement.lang ||
+        "en";
+
+    return (
+        SPEECH_LOCALES[language] ||
+        "en-US"
+    );
+}
+
+function cleanSpeechText(text) {
+    return String(text || "")
+        .replace(/```[\s\S]*?```/g, " code block ")
+        .replace(/`([^`]+)`/g, "$1")
+        .replace(/!\[[^\]]*\]\([^)]+\)/g, "")
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+        .replace(/#{1,6}\s*/g, "")
+        .replace(/[*_~>|]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+function chooseSpeechVoice(locale) {
+    if (!("speechSynthesis" in window)) {
+        return null;
+    }
+
+    const voices =
+        window.speechSynthesis.getVoices();
+
+    if (!voices.length) {
+        return null;
+    }
+
+    const exact =
+        voices.find(
+            voice =>
+                voice.lang
+                    ?.toLowerCase() ===
+                locale.toLowerCase()
+        );
+
+    if (exact) {
+        return exact;
+    }
+
+    const base =
+        locale
+            .split("-")[0]
+            .toLowerCase();
+
+    return (
+        voices.find(
+            voice =>
+                voice.lang
+                    ?.toLowerCase()
+                    .startsWith(base)
+        ) ||
+        null
+    );
+}
+
+function stopReadAloud() {
+    if (
+        "speechSynthesis" in window
+    ) {
+        window.speechSynthesis.cancel();
+    }
+
+    if (activeSpeechButton) {
+        activeSpeechButton.textContent =
+            "🔊";
+
+        activeSpeechButton.classList.remove(
+            "speaking"
+        );
+    }
+
+    activeSpeechButton =
+        null;
+
+    activeSpeechUtterance =
+        null;
+}
+
 function readAloud(
-    text
+    text,
+    button = null
 ) {
 
     if (
@@ -2391,15 +2495,78 @@ function readAloud(
         return;
     }
 
-    window.speechSynthesis.cancel();
+    if (
+        activeSpeechButton === button &&
+        window.speechSynthesis.speaking
+    ) {
+        stopReadAloud();
+        return;
+    }
+
+    stopReadAloud();
+
+    const spokenText =
+        cleanSpeechText(text);
+
+    if (!spokenText) {
+        return;
+    }
+
+    const locale =
+        getPreferredSpeechLocale();
 
     const utterance =
         new SpeechSynthesisUtterance(
-            text
+            spokenText
         );
+
+    utterance.lang =
+        locale;
 
     utterance.rate =
         1;
+
+    utterance.pitch =
+        1;
+
+    utterance.volume =
+        1;
+
+    const voice =
+        chooseSpeechVoice(
+            locale
+        );
+
+    if (voice) {
+        utterance.voice =
+            voice;
+    }
+
+    activeSpeechButton =
+        button;
+
+    activeSpeechUtterance =
+        utterance;
+
+    if (button) {
+        button.textContent =
+            "⏹";
+
+        button.classList.add(
+            "speaking"
+        );
+    }
+
+    utterance.onend =
+    utterance.onerror =
+        () => {
+            if (
+                activeSpeechUtterance ===
+                utterance
+            ) {
+                stopReadAloud();
+            }
+        };
 
     window.speechSynthesis.speak(
         utterance
@@ -2630,6 +2797,9 @@ async function regenerateLastResponse() {
 }
 
 
+
+const READ_ALOUD_LABELS = {"en": "Read aloud", "sw": "Soma kwa sauti", "zh": "朗读", "fr": "Lire à voix haute", "es": "Leer en voz alta", "pt": "Ler em voz alta", "de": "Vorlesen", "ar": "قراءة بصوت عالٍ", "hi": "ज़ोर से पढ़ें", "ja": "読み上げ"};
+
 function addMessageActions(
     messageBox,
     text,
@@ -2707,6 +2877,23 @@ function addMessageActions(
             "button"
         );
 
+    const readLabel =
+        READ_ALOUD_LABELS[
+            uiPreferences?.language ||
+            "en"
+        ] ||
+        READ_ALOUD_LABELS.en;
+
+    buttons[3].setAttribute(
+        "title",
+        readLabel
+    );
+
+    buttons[3].setAttribute(
+        "aria-label",
+        readLabel
+    );
+
     buttons[0].onclick =
         async () => {
 
@@ -2749,7 +2936,8 @@ function addMessageActions(
     buttons[3].onclick =
         () =>
             readAloud(
-                text
+                text,
+                buttons[3]
             );
 
 
@@ -3780,22 +3968,285 @@ if (deleteChatBtn) {
 
 
 // ======================================================
-// VOICE
+// VOICE INPUT
 // ======================================================
+
+const SpeechRecognition =
+    window.SpeechRecognition ||
+    window.webkitSpeechRecognition ||
+    null;
+
+let voiceRecognition =
+    null;
+
+let voiceListening =
+    false;
+
+let voiceBaseText =
+    "";
+
+function setVoiceButtonState(
+    listening
+) {
+
+    voiceListening =
+        listening;
+
+    if (!voiceBtn) {
+        return;
+    }
+
+    voiceBtn.classList.toggle(
+        "listening",
+        listening
+    );
+
+    voiceBtn.textContent =
+        listening
+            ? "⏹"
+            : "🎤";
+
+    const language =
+        uiPreferences?.language ||
+        "en";
+
+    const t =
+        TRANSLATIONS?.[language] ||
+        TRANSLATIONS?.en ||
+        {};
+
+    const label =
+        listening
+            ? (
+                t.stopVoiceTooltip ||
+                "Stop voice input"
+            )
+            : (
+                t.voiceTooltip ||
+                "Voice input"
+            );
+
+    voiceBtn.dataset.tooltip =
+        label;
+
+    voiceBtn.setAttribute(
+        "title",
+        label
+    );
+
+    voiceBtn.setAttribute(
+        "aria-label",
+        label
+    );
+}
+
+function autoResizeComposerInput() {
+    if (!input) {
+        return;
+    }
+
+    input.style.height =
+        "auto";
+
+    input.style.height =
+        Math.min(
+            input.scrollHeight,
+            180
+        ) + "px";
+}
+
+function stopVoiceInput() {
+    if (
+        voiceRecognition &&
+        voiceListening
+    ) {
+        try {
+            voiceRecognition.stop();
+        }
+        catch {}
+    }
+
+    setVoiceButtonState(
+        false
+    );
+}
+
+function startVoiceInput() {
+
+    if (!SpeechRecognition) {
+
+        alert(
+            "Voice input is not supported by this browser. Try a recent Chrome, Edge or Android browser."
+        );
+
+        return;
+    }
+
+    if (voiceListening) {
+        stopVoiceInput();
+        return;
+    }
+
+    stopReadAloud();
+
+    voiceRecognition =
+        new SpeechRecognition();
+
+    voiceRecognition.lang =
+        getPreferredSpeechLocale();
+
+    voiceRecognition.continuous =
+        false;
+
+    voiceRecognition.interimResults =
+        true;
+
+    voiceRecognition.maxAlternatives =
+        1;
+
+    voiceBaseText =
+        String(
+            input?.value || ""
+        ).trim();
+
+    voiceRecognition.onstart =
+        () => {
+            setVoiceButtonState(
+                true
+            );
+        };
+
+    voiceRecognition.onresult =
+        event => {
+
+            let interim =
+                "";
+
+            let finalText =
+                "";
+
+            for (
+                let i =
+                    event.resultIndex;
+                i <
+                    event.results.length;
+                i++
+            ) {
+
+                const transcript =
+                    event.results[i][0]
+                        ?.transcript ||
+                    "";
+
+                if (
+                    event.results[i]
+                        .isFinal
+                ) {
+                    finalText +=
+                        transcript;
+                }
+                else {
+                    interim +=
+                        transcript;
+                }
+            }
+
+            const spoken =
+                (
+                    finalText +
+                    interim
+                ).trim();
+
+            const prefix =
+                voiceBaseText
+                    ? voiceBaseText + " "
+                    : "";
+
+            if (input) {
+                input.value =
+                    prefix +
+                    spoken;
+
+                autoResizeComposerInput();
+
+                input.dispatchEvent(
+                    new Event(
+                        "input",
+                        {
+                            bubbles: true
+                        }
+                    )
+                );
+            }
+        };
+
+    voiceRecognition.onerror =
+        event => {
+
+            setVoiceButtonState(
+                false
+            );
+
+            const error =
+                event?.error ||
+                "";
+
+            if (
+                error === "not-allowed" ||
+                error === "service-not-allowed"
+            ) {
+
+                alert(
+                    "Microphone permission is blocked. Allow microphone access for Aman AI and try again."
+                );
+
+            }
+            else if (
+                error !== "aborted" &&
+                error !== "no-speech"
+            ) {
+
+                console.error(
+                    "VOICE INPUT ERROR:",
+                    error
+                );
+            }
+        };
+
+    voiceRecognition.onend =
+        () => {
+            setVoiceButtonState(
+                false
+            );
+
+            voiceRecognition =
+                null;
+
+            input?.focus();
+        };
+
+    try {
+        voiceRecognition.start();
+    }
+    catch (error) {
+
+        console.error(
+            "VOICE START ERROR:",
+            error
+        );
+
+        setVoiceButtonState(
+            false
+        );
+    }
+}
 
 if (voiceBtn) {
 
     voiceBtn.onclick =
-    () => {
-
-        alert(
-            "🎤 Voice Mode coming soon."
-        );
-
-    };
+        startVoiceInput;
 
 }
-
 
 
 // ======================================================
@@ -3907,6 +4358,7 @@ const TRANSLATIONS = {
         attachTooltip:"Attach file",
         creatorTooltip:"Creator Mode",
         voiceTooltip:"Voice input",
+        stopVoiceTooltip:"Stop voice input",
         sendTooltip:"Send message",
         closeTooltip:"Close",
         dashboardTooltip:"Dashboard",
@@ -3970,6 +4422,7 @@ const TRANSLATIONS = {
         attachTooltip:"Ambatisha faili",
         creatorTooltip:"Creator Mode",
         voiceTooltip:"Ingiza kwa sauti",
+        stopVoiceTooltip:"Simamisha sauti",
         sendTooltip:"Tuma ujumbe",
         closeTooltip:"Funga",
         dashboardTooltip:"Dashibodi",
@@ -4007,6 +4460,7 @@ const TRANSLATIONS = {
         attachTooltip:"添加文件",
         creatorTooltip:"创作模式",
         voiceTooltip:"语音输入",
+        stopVoiceTooltip:"停止语音输入",
         sendTooltip:"发送消息",
         closeTooltip:"关闭",
         dashboardTooltip:"控制面板",
@@ -4044,6 +4498,7 @@ const TRANSLATIONS = {
         attachTooltip:"Joindre un fichier",
         creatorTooltip:"Mode Créateur",
         voiceTooltip:"Saisie vocale",
+        stopVoiceTooltip:"Arrêter la saisie vocale",
         sendTooltip:"Envoyer",
         closeTooltip:"Fermer",
         dashboardTooltip:"Tableau de bord",
@@ -4080,6 +4535,7 @@ const TRANSLATIONS = {
         attachTooltip:"Adjuntar archivo",
         creatorTooltip:"Modo Creador",
         voiceTooltip:"Entrada de voz",
+        stopVoiceTooltip:"Detener entrada de voz",
         sendTooltip:"Enviar mensaje",
         closeTooltip:"Cerrar",
         dashboardTooltip:"Panel",
@@ -4112,6 +4568,7 @@ const TRANSLATIONS = {
         attachTooltip:"Anexar arquivo",
         creatorTooltip:"Modo Criador",
         voiceTooltip:"Entrada de voz",
+        stopVoiceTooltip:"Parar entrada de voz",
         sendTooltip:"Enviar mensagem",
         closeTooltip:"Fechar",
         dashboardTooltip:"Painel",
@@ -4144,6 +4601,7 @@ const TRANSLATIONS = {
         attachTooltip:"Datei anhängen",
         creatorTooltip:"Creator-Modus",
         voiceTooltip:"Spracheingabe",
+        stopVoiceTooltip:"Spracheingabe stoppen",
         sendTooltip:"Nachricht senden",
         closeTooltip:"Schließen",
         dashboardTooltip:"Übersicht",
@@ -4176,6 +4634,7 @@ const TRANSLATIONS = {
         attachTooltip:"إرفاق ملف",
         creatorTooltip:"وضع الإنشاء",
         voiceTooltip:"إدخال صوتي",
+        stopVoiceTooltip:"إيقاف الإدخال الصوتي",
         sendTooltip:"إرسال الرسالة",
         closeTooltip:"إغلاق",
         dashboardTooltip:"لوحة التحكم",
@@ -4208,6 +4667,7 @@ const TRANSLATIONS = {
         attachTooltip:"फ़ाइल जोड़ें",
         creatorTooltip:"क्रिएटर मोड",
         voiceTooltip:"वॉइस इनपुट",
+        stopVoiceTooltip:"वॉइस इनपुट रोकें",
         sendTooltip:"संदेश भेजें",
         closeTooltip:"बंद करें",
         dashboardTooltip:"डैशबोर्ड",
