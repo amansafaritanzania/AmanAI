@@ -3797,6 +3797,647 @@ if (voiceBtn) {
 }
 
 
+
+// ======================================================
+// AMAN AI v9 — PERSONALIZATION CENTER
+// ======================================================
+
+const personalizationModal =
+document.getElementById("personalizationModal");
+
+const personalizeBtn =
+document.getElementById("personalizeBtn");
+
+const personalizationClose =
+document.getElementById("personalizationClose");
+
+const savePreferencesBtn =
+document.getElementById("savePreferencesBtn");
+
+const resetPreferencesBtn =
+document.getElementById("resetPreferencesBtn");
+
+const prefLanguage =
+document.getElementById("prefLanguage");
+
+const prefFontSize =
+document.getElementById("prefFontSize");
+
+const prefFontFamily =
+document.getElementById("prefFontFamily");
+
+const prefFontColor =
+document.getElementById("prefFontColor");
+
+const prefAccent =
+document.getElementById("prefAccent");
+
+const prefBackground =
+document.getElementById("prefBackground");
+
+const prefDensity =
+document.getElementById("prefDensity");
+
+const prefBubbleStyle =
+document.getElementById("prefBubbleStyle");
+
+const prefReduceMotion =
+document.getElementById("prefReduceMotion");
+
+const prefFontColorValue =
+document.getElementById("prefFontColorValue");
+
+const prefAccentValue =
+document.getElementById("prefAccentValue");
+
+const DEFAULT_PREFERENCES = {
+    language: "en",
+    fontSize: "normal",
+    fontFamily: "inter",
+    fontColor: "#f8fafc",
+    theme: "cinematic",
+    accent: "#7c9cff",
+    background: "aurora",
+    density: "comfortable",
+    bubbleStyle: "soft",
+    reduceMotion: false
+};
+
+let uiPreferences = {
+    ...DEFAULT_PREFERENCES
+};
+
+const TRANSLATIONS = {
+    en: {
+        newChat: "＋ New Chat",
+        chats: "Chats",
+        dashboard: "⚙ Dashboard",
+        online: "● Online",
+        placeholder: "Message Aman AI..."
+    },
+    sw: {
+        newChat: "＋ Mazungumzo Mapya",
+        chats: "Mazungumzo",
+        dashboard: "⚙ Dashibodi",
+        online: "● Mtandaoni",
+        placeholder: "Andika ujumbe kwa Aman AI..."
+    },
+    fr: {
+        newChat: "＋ Nouveau chat",
+        chats: "Discussions",
+        dashboard: "⚙ Tableau de bord",
+        online: "● En ligne",
+        placeholder: "Écrivez à Aman AI..."
+    },
+    es: {
+        newChat: "＋ Nuevo chat",
+        chats: "Chats",
+        dashboard: "⚙ Panel",
+        online: "● En línea",
+        placeholder: "Escribe a Aman AI..."
+    },
+    pt: {
+        newChat: "＋ Nova conversa",
+        chats: "Conversas",
+        dashboard: "⚙ Painel",
+        online: "● Online",
+        placeholder: "Mensagem para Aman AI..."
+    },
+    de: {
+        newChat: "＋ Neuer Chat",
+        chats: "Chats",
+        dashboard: "⚙ Übersicht",
+        online: "● Online",
+        placeholder: "Nachricht an Aman AI..."
+    },
+    ar: {
+        newChat: "＋ محادثة جديدة",
+        chats: "المحادثات",
+        dashboard: "⚙ لوحة التحكم",
+        online: "● متصل",
+        placeholder: "اكتب رسالة إلى Aman AI..."
+    },
+    hi: {
+        newChat: "＋ नई चैट",
+        chats: "चैट",
+        dashboard: "⚙ डैशबोर्ड",
+        online: "● ऑनलाइन",
+        placeholder: "Aman AI को संदेश लिखें..."
+    },
+    zh: {
+        newChat: "＋ 新对话",
+        chats: "对话",
+        dashboard: "⚙ 控制面板",
+        online: "● 在线",
+        placeholder: "给 Aman AI 发消息..."
+    },
+    ja: {
+        newChat: "＋ 新しいチャット",
+        chats: "チャット",
+        dashboard: "⚙ ダッシュボード",
+        online: "● オンライン",
+        placeholder: "Aman AI にメッセージ..."
+    }
+};
+
+function applyTranslations(language) {
+    const dictionary =
+    TRANSLATIONS[language] ||
+    TRANSLATIONS.en;
+
+    document.documentElement.lang =
+    language;
+
+    document.documentElement.dir =
+    language === "ar"
+        ? "rtl"
+        : "ltr";
+
+    document
+        .querySelectorAll("[data-i18n]")
+        .forEach(element => {
+            const key =
+            element.dataset.i18n;
+
+            if (dictionary[key]) {
+                element.textContent =
+                dictionary[key];
+            }
+        });
+
+    if (input) {
+        input.placeholder =
+        dictionary.placeholder;
+    }
+}
+
+function applyPreferences(preferences) {
+
+    uiPreferences = {
+        ...DEFAULT_PREFERENCES,
+        ...(preferences || {})
+    };
+
+    const root =
+    document.documentElement;
+
+    root.dataset.theme =
+    uiPreferences.theme;
+
+    root.dataset.chatBackground =
+    uiPreferences.background;
+
+    root.dataset.density =
+    uiPreferences.density;
+
+    root.dataset.bubbleStyle =
+    uiPreferences.bubbleStyle;
+
+    root.dataset.fontSize =
+    uiPreferences.fontSize;
+
+    root.dataset.fontFamily =
+    uiPreferences.fontFamily;
+
+    root.dataset.reduceMotion =
+    uiPreferences.reduceMotion
+        ? "true"
+        : "false";
+
+    root.style.setProperty(
+        "--user-text",
+        uiPreferences.fontColor
+    );
+
+    root.style.setProperty(
+        "--user-accent",
+        uiPreferences.accent
+    );
+
+    root.style.setProperty(
+        "--primary",
+        uiPreferences.accent
+    );
+
+    applyTranslations(
+        uiPreferences.language
+    );
+
+    syncPreferenceControls();
+}
+
+function syncPreferenceControls() {
+
+    if (!prefLanguage) {
+        return;
+    }
+
+    prefLanguage.value =
+    uiPreferences.language;
+
+    prefFontSize.value =
+    uiPreferences.fontSize;
+
+    prefFontFamily.value =
+    uiPreferences.fontFamily;
+
+    prefFontColor.value =
+    uiPreferences.fontColor;
+
+    prefAccent.value =
+    uiPreferences.accent;
+
+    prefBackground.value =
+    uiPreferences.background;
+
+    prefDensity.value =
+    uiPreferences.density;
+
+    prefBubbleStyle.value =
+    uiPreferences.bubbleStyle;
+
+    prefReduceMotion.checked =
+    Boolean(
+        uiPreferences.reduceMotion
+    );
+
+    if (prefFontColorValue) {
+        prefFontColorValue.textContent =
+        uiPreferences.fontColor;
+    }
+
+    if (prefAccentValue) {
+        prefAccentValue.textContent =
+        uiPreferences.accent;
+    }
+
+    document
+        .querySelectorAll(
+            "[data-theme]"
+        )
+        .forEach(button => {
+            button.classList.toggle(
+                "active",
+                button.dataset.theme ===
+                uiPreferences.theme
+            );
+        });
+}
+
+function collectPreferences() {
+
+    return {
+        language:
+            prefLanguage?.value ||
+            "en",
+
+        fontSize:
+            prefFontSize?.value ||
+            "normal",
+
+        fontFamily:
+            prefFontFamily?.value ||
+            "inter",
+
+        fontColor:
+            prefFontColor?.value ||
+            "#f8fafc",
+
+        theme:
+            document
+                .querySelector(
+                    ".theme-choice.active"
+                )
+                ?.dataset
+                ?.theme ||
+            uiPreferences.theme ||
+            "cinematic",
+
+        accent:
+            prefAccent?.value ||
+            "#7c9cff",
+
+        background:
+            prefBackground?.value ||
+            "aurora",
+
+        density:
+            prefDensity?.value ||
+            "comfortable",
+
+        bubbleStyle:
+            prefBubbleStyle?.value ||
+            "soft",
+
+        reduceMotion:
+            Boolean(
+                prefReduceMotion?.checked
+            )
+    };
+}
+
+async function loadUiPreferences() {
+
+    try {
+
+        const response =
+        await fetch(
+            "/api/auth/preferences",
+            {
+                credentials:
+                    "same-origin"
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                "Could not load preferences."
+            );
+        }
+
+        const data =
+        await response.json();
+
+        applyPreferences(
+            data.preferences
+        );
+
+    }
+    catch (error) {
+
+        console.warn(
+            "PREFERENCES LOAD:",
+            error
+        );
+
+        const cached =
+        localStorage.getItem(
+            "AmanUIPreferences"
+        );
+
+        if (cached) {
+            try {
+                applyPreferences(
+                    JSON.parse(cached)
+                );
+                return;
+            }
+            catch {}
+        }
+
+        applyPreferences(
+            DEFAULT_PREFERENCES
+        );
+    }
+}
+
+async function saveUiPreferences() {
+
+    const next =
+    collectPreferences();
+
+    applyPreferences(next);
+
+    localStorage.setItem(
+        "AmanUIPreferences",
+        JSON.stringify(next)
+    );
+
+    if (savePreferencesBtn) {
+        savePreferencesBtn.disabled =
+        true;
+
+        savePreferencesBtn.textContent =
+        "Saving...";
+    }
+
+    try {
+
+        const response =
+        await fetch(
+            "/api/auth/preferences",
+            {
+                method: "PUT",
+
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
+
+                credentials:
+                    "same-origin",
+
+                body:
+                    JSON.stringify(next)
+            }
+        );
+
+        const data =
+        await response
+            .json()
+            .catch(() => ({}));
+
+        if (
+            !response.ok ||
+            !data.success
+        ) {
+            throw new Error(
+                data.message ||
+                "Could not save preferences."
+            );
+        }
+
+        applyPreferences(
+            data.preferences
+        );
+
+        closePersonalization();
+
+    }
+    catch (error) {
+
+        console.error(
+            "SAVE PREFERENCES ERROR:",
+            error
+        );
+
+        alert(
+            "Your appearance changed on this device, but Aman AI could not sync it to your account yet."
+        );
+    }
+    finally {
+
+        if (savePreferencesBtn) {
+            savePreferencesBtn.disabled =
+            false;
+
+            savePreferencesBtn.textContent =
+            "Save changes";
+        }
+    }
+}
+
+function openPersonalization() {
+
+    if (!personalizationModal) {
+        return;
+    }
+
+    syncPreferenceControls();
+
+    personalizationModal.classList.add(
+        "open"
+    );
+
+    personalizationModal.setAttribute(
+        "aria-hidden",
+        "false"
+    );
+
+    document.body.classList.add(
+        "personalization-open"
+    );
+}
+
+function closePersonalization() {
+
+    if (!personalizationModal) {
+        return;
+    }
+
+    personalizationModal.classList.remove(
+        "open"
+    );
+
+    personalizationModal.setAttribute(
+        "aria-hidden",
+        "true"
+    );
+
+    document.body.classList.remove(
+        "personalization-open"
+    );
+}
+
+if (personalizeBtn) {
+    personalizeBtn.onclick =
+    openPersonalization;
+}
+
+if (personalizationClose) {
+    personalizationClose.onclick =
+    closePersonalization;
+}
+
+if (personalizationModal) {
+    personalizationModal.addEventListener(
+        "click",
+        event => {
+            if (
+                event.target ===
+                personalizationModal
+            ) {
+                closePersonalization();
+            }
+        }
+    );
+}
+
+document
+    .querySelectorAll(
+        ".theme-choice"
+    )
+    .forEach(button => {
+        button.addEventListener(
+            "click",
+            () => {
+
+                document
+                    .querySelectorAll(
+                        ".theme-choice"
+                    )
+                    .forEach(item =>
+                        item.classList.remove(
+                            "active"
+                        )
+                    );
+
+                button.classList.add(
+                    "active"
+                );
+
+                applyPreferences({
+                    ...collectPreferences(),
+                    theme:
+                        button.dataset.theme
+                });
+            }
+        );
+    });
+
+[
+    prefLanguage,
+    prefFontSize,
+    prefFontFamily,
+    prefFontColor,
+    prefAccent,
+    prefBackground,
+    prefDensity,
+    prefBubbleStyle,
+    prefReduceMotion
+]
+.filter(Boolean)
+.forEach(control => {
+    control.addEventListener(
+        "input",
+        () => {
+
+            if (prefFontColorValue) {
+                prefFontColorValue.textContent =
+                prefFontColor.value;
+            }
+
+            if (prefAccentValue) {
+                prefAccentValue.textContent =
+                prefAccent.value;
+            }
+
+            applyPreferences(
+                collectPreferences()
+            );
+        }
+    );
+});
+
+if (resetPreferencesBtn) {
+    resetPreferencesBtn.onclick =
+    () => {
+        applyPreferences({
+            ...DEFAULT_PREFERENCES
+        });
+    };
+}
+
+if (savePreferencesBtn) {
+    savePreferencesBtn.onclick =
+    saveUiPreferences;
+}
+
+document.addEventListener(
+    "keydown",
+    event => {
+        if (
+            event.key === "Escape" &&
+            personalizationModal
+                ?.classList
+                .contains("open")
+        ) {
+            closePersonalization();
+        }
+    }
+);
+
+
 // ======================================================
 // START APPLICATION
 // ======================================================
@@ -3809,6 +4450,8 @@ async function startApplication() {
     if (!authenticated) {
         return;
     }
+
+    await loadUiPreferences();
 
     if (
         !isValidChatId(
