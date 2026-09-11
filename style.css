@@ -3871,3 +3871,80 @@ html[data-theme="light"] .personalization-modal .icon-btn{
     color:#152033;
     background:rgba(21,32,51,.07);
 }
+
+
+/* =====================================================
+   Aman AI v10 — Voice Input + Voice Output
+===================================================== */
+
+#voiceBtn{
+    position:relative;
+}
+
+#voiceBtn.listening{
+    background:
+        color-mix(
+            in srgb,
+            #ef4444 72%,
+            transparent
+        ) !important;
+    color:#ffffff !important;
+    box-shadow:
+        0 0 0 4px rgba(239,68,68,.14),
+        0 0 24px rgba(239,68,68,.22);
+}
+
+#voiceBtn.listening::after{
+    content:"";
+    position:absolute;
+    inset:-5px;
+    border-radius:inherit;
+    border:2px solid rgba(239,68,68,.45);
+    animation:
+        amanVoicePulse 1.25s ease-out infinite;
+    pointer-events:none;
+}
+
+.message-actions button.speaking{
+    background:
+        color-mix(
+            in srgb,
+            var(--primary) 86%,
+            transparent
+        );
+    color:#ffffff;
+    box-shadow:
+        0 0 0 3px
+        color-mix(
+            in srgb,
+            var(--primary) 18%,
+            transparent
+        );
+}
+
+@keyframes amanVoicePulse{
+    0%{
+        transform:scale(.94);
+        opacity:.85;
+    }
+    75%{
+        transform:scale(1.18);
+        opacity:0;
+    }
+    100%{
+        transform:scale(1.18);
+        opacity:0;
+    }
+}
+
+html[data-reduce-motion="true"]
+#voiceBtn.listening::after{
+    animation:none;
+}
+
+@media(max-width:380px){
+    #voiceBtn.listening{
+        box-shadow:
+            0 0 0 3px rgba(239,68,68,.12);
+    }
+}
