@@ -822,11 +822,19 @@ async function updateUiPreferences(userId, input = {}) {
     const result = await pool.query(
         `
         UPDATE users
-        SET ui_preferences = $2::jsonb
+        SET
+            ui_preferences = $2::jsonb,
+            preferred_language = $3
         WHERE user_id = $1
-        RETURNING ui_preferences
+        RETURNING
+            ui_preferences,
+            preferred_language
         `,
-        [userId, JSON.stringify(preferences)]
+        [
+            userId,
+            JSON.stringify(preferences),
+            preferences.language
+        ]
     );
 
     return sanitizeUiPreferences(
