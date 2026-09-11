@@ -3900,6 +3900,16 @@ let uiPreferences = {
 
 const TRANSLATIONS = {
     en: {
+        menuTooltip:"Open menu",
+        closeSidebarTooltip:"Close sidebar",
+        personalizeTooltip:"Personalize",
+        deleteTooltip:"Delete chat",
+        attachTooltip:"Attach file",
+        creatorTooltip:"Creator Mode",
+        voiceTooltip:"Voice input",
+        sendTooltip:"Send message",
+        closeTooltip:"Close",
+        dashboardTooltip:"Dashboard",
         newChat: "＋ New Chat",
         chats: "Chats",
         dashboard: "Dashboard",
@@ -3953,6 +3963,16 @@ const TRANSLATIONS = {
     },
 
     sw: {
+        menuTooltip:"Fungua menyu",
+        closeSidebarTooltip:"Funga menyu",
+        personalizeTooltip:"Binafsisha",
+        deleteTooltip:"Futa mazungumzo",
+        attachTooltip:"Ambatisha faili",
+        creatorTooltip:"Creator Mode",
+        voiceTooltip:"Ingiza kwa sauti",
+        sendTooltip:"Tuma ujumbe",
+        closeTooltip:"Funga",
+        dashboardTooltip:"Dashibodi",
         newChat:"＋ Mazungumzo Mapya", chats:"Mazungumzo", dashboard:"Dashibodi",
         sidebarTagline:"Eneo lako la kazi la AI", workspace:"Eneo la kazi", online:"● Mtandaoni",
         placeholder:"Andika ujumbe kwa Aman AI...",
@@ -3980,6 +4000,16 @@ const TRANSLATIONS = {
     },
 
     zh: {
+        menuTooltip:"打开菜单",
+        closeSidebarTooltip:"关闭侧栏",
+        personalizeTooltip:"个性化",
+        deleteTooltip:"删除对话",
+        attachTooltip:"添加文件",
+        creatorTooltip:"创作模式",
+        voiceTooltip:"语音输入",
+        sendTooltip:"发送消息",
+        closeTooltip:"关闭",
+        dashboardTooltip:"控制面板",
         newChat:"＋ 新对话", chats:"对话", dashboard:"控制面板",
         sidebarTagline:"你的 AI 工作空间", workspace:"工作空间", online:"● 在线",
         placeholder:"给 Aman AI 发消息...",
@@ -4007,6 +4037,16 @@ const TRANSLATIONS = {
     },
 
     fr: {
+        menuTooltip:"Ouvrir le menu",
+        closeSidebarTooltip:"Fermer la barre latérale",
+        personalizeTooltip:"Personnaliser",
+        deleteTooltip:"Supprimer le chat",
+        attachTooltip:"Joindre un fichier",
+        creatorTooltip:"Mode Créateur",
+        voiceTooltip:"Saisie vocale",
+        sendTooltip:"Envoyer",
+        closeTooltip:"Fermer",
+        dashboardTooltip:"Tableau de bord",
         newChat:"＋ Nouveau chat", chats:"Discussions", dashboard:"Tableau de bord",
         sidebarTagline:"Votre espace de travail IA", workspace:"Espace de travail", online:"● En ligne",
         placeholder:"Écrivez à Aman AI...",
@@ -4033,6 +4073,16 @@ const TRANSLATIONS = {
     },
 
     es: {
+        menuTooltip:"Abrir menú",
+        closeSidebarTooltip:"Cerrar barra lateral",
+        personalizeTooltip:"Personalizar",
+        deleteTooltip:"Eliminar chat",
+        attachTooltip:"Adjuntar archivo",
+        creatorTooltip:"Modo Creador",
+        voiceTooltip:"Entrada de voz",
+        sendTooltip:"Enviar mensaje",
+        closeTooltip:"Cerrar",
+        dashboardTooltip:"Panel",
         newChat:"＋ Nuevo chat", chats:"Chats", dashboard:"Panel",
         sidebarTagline:"Tu espacio de trabajo con IA", workspace:"Espacio de trabajo", online:"● En línea",
         placeholder:"Escribe a Aman AI...", composerNote:"Aman AI puede equivocarse. Verifica la información importante.",
@@ -4055,6 +4105,16 @@ const TRANSLATIONS = {
     },
 
     pt: {
+        menuTooltip:"Abrir menu",
+        closeSidebarTooltip:"Fechar barra lateral",
+        personalizeTooltip:"Personalizar",
+        deleteTooltip:"Excluir conversa",
+        attachTooltip:"Anexar arquivo",
+        creatorTooltip:"Modo Criador",
+        voiceTooltip:"Entrada de voz",
+        sendTooltip:"Enviar mensagem",
+        closeTooltip:"Fechar",
+        dashboardTooltip:"Painel",
         newChat:"＋ Nova conversa", chats:"Conversas", dashboard:"Painel",
         sidebarTagline:"Seu espaço de trabalho com IA", workspace:"Espaço de trabalho", online:"● Online",
         placeholder:"Mensagem para Aman AI...", composerNote:"Aman AI pode cometer erros. Verifique informações importantes.",
@@ -4077,6 +4137,16 @@ const TRANSLATIONS = {
     },
 
     de: {
+        menuTooltip:"Menü öffnen",
+        closeSidebarTooltip:"Seitenleiste schließen",
+        personalizeTooltip:"Personalisieren",
+        deleteTooltip:"Chat löschen",
+        attachTooltip:"Datei anhängen",
+        creatorTooltip:"Creator-Modus",
+        voiceTooltip:"Spracheingabe",
+        sendTooltip:"Nachricht senden",
+        closeTooltip:"Schließen",
+        dashboardTooltip:"Übersicht",
         newChat:"＋ Neuer Chat", chats:"Chats", dashboard:"Übersicht",
         sidebarTagline:"Dein KI-Arbeitsbereich", workspace:"Arbeitsbereich", online:"● Online",
         placeholder:"Nachricht an Aman AI...", composerNote:"Aman AI kann Fehler machen. Prüfe wichtige Informationen.",
@@ -4099,6 +4169,16 @@ const TRANSLATIONS = {
     },
 
     ar: {
+        menuTooltip:"فتح القائمة",
+        closeSidebarTooltip:"إغلاق الشريط الجانبي",
+        personalizeTooltip:"تخصيص",
+        deleteTooltip:"حذف المحادثة",
+        attachTooltip:"إرفاق ملف",
+        creatorTooltip:"وضع الإنشاء",
+        voiceTooltip:"إدخال صوتي",
+        sendTooltip:"إرسال الرسالة",
+        closeTooltip:"إغلاق",
+        dashboardTooltip:"لوحة التحكم",
         newChat:"＋ محادثة جديدة", chats:"المحادثات", dashboard:"لوحة التحكم",
         sidebarTagline:"مساحة عملك بالذكاء الاصطناعي", workspace:"مساحة العمل", online:"● متصل",
         placeholder:"اكتب رسالة إلى Aman AI...", composerNote:"قد يخطئ Aman AI. تحقّق من المعلومات المهمة.",
@@ -4121,6 +4201,16 @@ const TRANSLATIONS = {
     },
 
     hi: {
+        menuTooltip:"मेनू खोलें",
+        closeSidebarTooltip:"साइडबार बंद करें",
+        personalizeTooltip:"व्यक्तिगत करें",
+        deleteTooltip:"चैट हटाएँ",
+        attachTooltip:"फ़ाइल जोड़ें",
+        creatorTooltip:"क्रिएटर मोड",
+        voiceTooltip:"वॉइस इनपुट",
+        sendTooltip:"संदेश भेजें",
+        closeTooltip:"बंद करें",
+        dashboardTooltip:"डैशबोर्ड",
         newChat:"＋ नई चैट", chats:"चैट", dashboard:"डैशबोर्ड",
         sidebarTagline:"आपका AI कार्यक्षेत्र", workspace:"कार्यक्षेत्र", online:"● ऑनलाइन",
         placeholder:"Aman AI को संदेश लिखें...", composerNote:"Aman AI से गलती हो सकती है। महत्वपूर्ण जानकारी जाँच लें।",
@@ -4183,11 +4273,63 @@ function setOptionText(selectId, values) {
     });
 }
 
+
+function setTooltip(id, value) {
+    const element =
+        document.getElementById(id);
+
+    if (!element || !value) {
+        return;
+    }
+
+    element.dataset.tooltip =
+        value;
+
+    element.setAttribute(
+        "title",
+        value
+    );
+
+    element.setAttribute(
+        "aria-label",
+        value
+    );
+}
+
+function applyTooltipTranslations(t) {
+    setTooltip("menuBtn", t.menuTooltip);
+    setTooltip("closeSidebarBtn", t.closeSidebarTooltip);
+    setTooltip("personalizeBtn", t.personalizeTooltip);
+    setTooltip("deleteChatBtn", t.deleteTooltip);
+    setTooltip("attachBtn", t.attachTooltip);
+    setTooltip("creatorBtn", t.creatorTooltip);
+    setTooltip("voiceBtn", t.voiceTooltip);
+    setTooltip("sendBtn", t.sendTooltip);
+    setTooltip("personalizationClose", t.closeTooltip);
+    setTooltip("actionModalClose", t.closeTooltip);
+
+    document
+        .querySelectorAll(
+            ".dashboard-link, .sidebar-dashboard-link"
+        )
+        .forEach(element => {
+            element.dataset.tooltip =
+                t.dashboardTooltip;
+
+            element.setAttribute(
+                "title",
+                t.dashboardTooltip
+            );
+        });
+}
+
 function applyTranslations(language) {
     const t = TRANSLATIONS[language] || TRANSLATIONS.en;
 
     document.documentElement.lang = language;
     document.documentElement.dir = language === "ar" ? "rtl" : "ltr";
+
+    applyTooltipTranslations(t);
 
     document.querySelectorAll("[data-i18n]").forEach(element => {
         const key = element.dataset.i18n;
