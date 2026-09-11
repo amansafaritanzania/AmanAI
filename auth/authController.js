@@ -3,7 +3,9 @@ const {
     createSession, deleteSessionByToken, listUserSessions, revokeSession,
     revokeAllSessions, getPrivacyPreferences, updatePrivacyPreferences,
     requestPasswordReset, verifyPasswordResetCode, resetPasswordWithCode,
-    getGoogleClientId
+    getGoogleClientId,
+    getUiPreferences,
+    updateUiPreferences
 } = require("./authService");
 const { COOKIE_NAME } = require("./authMiddleware");
 function isSecureEnvironment(){return process.env.NODE_ENV==="production"||String(process.env.RENDER||"").toLowerCase()==="true";}
@@ -24,4 +26,37 @@ async function logoutAll(req,res){try{await revokeAllSessions(req.auth.userId);c
 async function privacyPreferences(req,res){try{const preferences=await getPrivacyPreferences(req.auth.userId);res.json({success:true,preferences});}catch(error){console.error("PRIVACY PREFS ERROR:",error);res.status(500).json({success:false,message:"Could not load privacy settings."});}}
 async function savePrivacyPreferences(req,res){try{const preferences=await updatePrivacyPreferences(req.auth.userId,{lockOnHidden:req.body?.lockOnHidden,autoLogoutMinutes:req.body?.autoLogoutMinutes});res.json({success:true,preferences});}catch(error){if(error.code==="VALIDATION_ERROR")return res.status(400).json({success:false,message:error.message});console.error("SAVE PRIVACY PREFS ERROR:",error);res.status(500).json({success:false,message:"Could not save privacy settings."});}}
 async function unlock(req,res){try{if(!req.auth.hasPassword)return res.status(400).json({success:false,message:"This Google-only account does not have a password. Sign out and use Continue with Google."});const password=req.body?.password;if(typeof password!=="string"||!password)return res.status(400).json({success:false,message:"Enter your password."});const user=await authenticateUser(req.auth.email,password);if(!user)return res.status(401).json({success:false,message:"Incorrect password."});res.json({success:true});}catch(error){console.error("UNLOCK ERROR:",error);res.status(500).json({success:false,message:"Could not unlock Aman AI."});}}
-module.exports={signup,login,googleLogin,googleConfig,forgotPassword,verifyResetCode,resetPassword,logout,me,sessions,removeSession,logoutAll,privacyPreferences,savePrivacyPreferences,unlock};
+
+async function uiPreferences(req, res) {
+    try {
+        const preferences = await getUiPreferences(req.auth.userId);
+        res.json({ success: true, preferences });
+    } catch (error) {
+        console.error("UI PREFERENCES ERROR:", error);
+        res.status(500).json({
+            success: false,
+            message: "Could not load appearance settings."
+        });
+    }
+}
+
+async function saveUiPreferences(req, res) {
+    try {
+        const preferences = await updateUiPreferences(
+            req.auth.userId,
+            req.body || {}
+        );
+
+        res.json({ success: true, preferences });
+    } catch (error) {
+        console.error("SAVE UI PREFERENCES ERROR:", error);
+        res.status(500).json({
+            success: false,
+            message: "Could not save appearance settings."
+        });
+    }
+}
+
+module.exports = {
+    uiPreferences,
+    saveUiPreferences,signup,login,googleLogin,googleConfig,forgotPassword,verifyResetCode,resetPassword,logout,me,sessions,removeSession,logoutAll,privacyPreferences,savePrivacyPreferences,unlock};
