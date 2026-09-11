@@ -3850,6 +3850,37 @@ document.getElementById("prefFontColorValue");
 const prefAccentValue =
 document.getElementById("prefAccentValue");
 
+const customBackgroundInput =
+document.getElementById("customBackgroundInput");
+
+const chooseCustomBackgroundBtn =
+document.getElementById("chooseCustomBackgroundBtn");
+
+const useCustomBackgroundBtn =
+document.getElementById("useCustomBackgroundBtn");
+
+const removeCustomBackgroundBtn =
+document.getElementById("removeCustomBackgroundBtn");
+
+const customBackgroundPreview =
+document.getElementById("customBackgroundPreview");
+
+const customBackgroundEmpty =
+document.getElementById("customBackgroundEmpty");
+
+const customBackgroundStatus =
+document.getElementById("customBackgroundStatus");
+
+const backgroundLayer =
+document.querySelector(".background");
+
+const MAX_CUSTOM_BACKGROUND_FILE_BYTES =
+6 * 1024 * 1024;
+
+const CUSTOM_BACKGROUND_MAX_EDGE =
+1600;
+
+
 const DEFAULT_PREFERENCES = {
     language: "en",
     fontSize: "normal",
@@ -3971,6 +4002,609 @@ function applyTranslations(language) {
     }
 }
 
+
+function customBackgroundStorageKey() {
+    return (
+        "AmanCustomBackground:" +
+        (accountUserId || "device")
+    );
+}
+
+function customBackgroundEnabledKey() {
+    return (
+        "AmanCustomBackgroundEnabled:" +
+        (accountUserId || "device")
+    );
+}
+
+function getStoredCustomBackground() {
+    try {
+        return localStorage.getItem(
+            customBackgroundStorageKey()
+        );
+    }
+    catch {
+        return null;
+    }
+}
+
+function isCustomBackgroundEnabled() {
+    try {
+        return (
+            localStorage.getItem(
+                customBackgroundEnabledKey()
+            ) === "true"
+        );
+    }
+    catch {
+        return false;
+    }
+}
+
+function setCustomBackgroundStatus(
+    message = "",
+    type = ""
+) {
+    if (!customBackgroundStatus) {
+        return;
+    }
+
+    customBackgroundStatus.textContent =
+    message;
+
+    customBackgroundStatus.className =
+    "custom-background-status" +
+    (type ? " " + type : "");
+}
+
+function refreshCustomBackgroundPreview() {
+
+    const imageData =
+    getStoredCustomBackground();
+
+    const enabled =
+    isCustomBackgroundEnabled();
+
+    if (customBackgroundPreview) {
+
+        if (imageData) {
+            customBackgroundPreview.style.backgroundImage =
+            `linear-gradient(
+                rgba(4,8,16,.18),
+                rgba(4,8,16,.18)
+            ),
+            url("${imageData}")`;
+
+            customBackgroundPreview.classList.add(
+                "has-image"
+            );
+
+            if (customBackgroundEmpty) {
+                customBackgroundEmpty.hidden =
+                true;
+            }
+        }
+        else {
+            customBackgroundPreview.style.backgroundImage =
+            "";
+
+            customBackgroundPreview.classList.remove(
+                "has-image"
+            );
+
+            if (customBackgroundEmpty) {
+                customBackgroundEmpty.hidden =
+                false;
+            }
+        }
+    }
+
+    if (useCustomBackgroundBtn) {
+        useCustomBackgroundBtn.disabled =
+        !imageData || enabled;
+
+        useCustomBackgroundBtn.textContent =
+        enabled
+            ? "✓ In use"
+            : "Use photo";
+    }
+
+    if (removeCustomBackgroundBtn) {
+        removeCustomBackgroundBtn.disabled =
+        !imageData;
+    }
+}
+
+function clearCustomBackgroundVisual() {
+
+    if (!backgroundLayer) {
+        return;
+    }
+
+    backgroundLayer.classList.remove(
+        "custom-user-background"
+    );
+
+    backgroundLayer.style.removeProperty(
+        "--custom-background-image"
+    );
+}
+
+function applyCustomBackgroundVisual() {
+
+    const imageData =
+    getStoredCustomBackground();
+
+    if (
+        !imageData ||
+        !isCustomBackgroundEnabled() ||
+        !backgroundLayer
+    ) {
+        clearCustomBackgroundVisual();
+        refreshCustomBackgroundPreview();
+        return false;
+    }
+
+    backgroundLayer.style.setProperty(
+        "--custom-background-image",
+        `url("${imageData}")`
+    );
+
+    backgroundLayer.classList.add(
+        "custom-user-background"
+    );
+
+    document.documentElement.dataset.chatBackground =
+    "custom";
+
+    refreshCustomBackgroundPreview();
+
+    return true;
+}
+
+function disableCustomBackground(
+    keepStoredImage = true
+) {
+
+    try {
+        localStorage.setItem(
+            customBackgroundEnabledKey(),
+            "false"
+        );
+
+        if (!keepStoredImage) {
+            localStorage.removeItem(
+                customBackgroundStorageKey()
+            );
+        }
+    }
+    catch {}
+
+    clearCustomBackgroundVisual();
+    refreshCustomBackgroundPreview();
+}
+
+function enableCustomBackground() {
+
+    if (!getStoredCustomBackground()) {
+        return;
+    }
+
+    try {
+        localStorage.setItem(
+            customBackgroundEnabledKey(),
+            "true"
+        );
+    }
+    catch {}
+
+    applyCustomBackgroundVisual();
+
+    setCustomBackgroundStatus(
+        "Your photo is now the chat background.",
+        "ok"
+    );
+}
+
+function loadImageFromFile(file) {
+
+    return new Promise(
+        (resolve, reject) => {
+
+            const objectUrl =
+            URL.createObjectURL(file);
+
+            const image =
+            new Image();
+
+            image.onload =
+            () => {
+                URL.revokeObjectURL(
+                    objectUrl
+                );
+
+                resolve(image);
+            };
+
+            image.onerror =
+            () => {
+                URL.revokeObjectURL(
+                    objectUrl
+                );
+
+                reject(
+                    new Error(
+                        "Could not read this image."
+                    )
+                );
+            };
+
+            image.src =
+            objectUrl;
+        }
+    );
+}
+
+async function compressCustomBackground(file) {
+
+    if (!file) {
+        throw new Error(
+            "Choose an image first."
+        );
+    }
+
+    if (
+        ![
+            "image/jpeg",
+            "image/png",
+            "image/webp"
+        ].includes(file.type)
+    ) {
+        throw new Error(
+            "Choose a JPG, PNG or WebP image."
+        );
+    }
+
+    if (
+        file.size >
+        MAX_CUSTOM_BACKGROUND_FILE_BYTES
+    ) {
+        throw new Error(
+            "Please choose an image under 6 MB."
+        );
+    }
+
+    const image =
+    await loadImageFromFile(file);
+
+    const longest =
+    Math.max(
+        image.naturalWidth,
+        image.naturalHeight
+    );
+
+    const scale =
+    longest >
+    CUSTOM_BACKGROUND_MAX_EDGE
+        ? CUSTOM_BACKGROUND_MAX_EDGE /
+          longest
+        : 1;
+
+    let width =
+    Math.max(
+        1,
+        Math.round(
+            image.naturalWidth *
+            scale
+        )
+    );
+
+    let height =
+    Math.max(
+        1,
+        Math.round(
+            image.naturalHeight *
+            scale
+        )
+    );
+
+    const canvas =
+    document.createElement(
+        "canvas"
+    );
+
+    canvas.width =
+    width;
+
+    canvas.height =
+    height;
+
+    const context =
+    canvas.getContext(
+        "2d",
+        {
+            alpha: false
+        }
+    );
+
+    if (!context) {
+        throw new Error(
+            "This browser could not prepare the image."
+        );
+    }
+
+    context.fillStyle =
+    "#07101a";
+
+    context.fillRect(
+        0,
+        0,
+        width,
+        height
+    );
+
+    context.drawImage(
+        image,
+        0,
+        0,
+        width,
+        height
+    );
+
+    let dataUrl =
+    canvas.toDataURL(
+        "image/webp",
+        .80
+    );
+
+    /*
+    Keep the saved image small enough for normal browser
+    localStorage. If still large, shrink once more.
+    */
+    if (
+        dataUrl.length >
+        1_800_000
+    ) {
+
+        const reducedScale =
+        Math.min(
+            1,
+            1280 /
+            Math.max(
+                width,
+                height
+            )
+        );
+
+        width =
+        Math.max(
+            1,
+            Math.round(
+                width *
+                reducedScale
+            )
+        );
+
+        height =
+        Math.max(
+            1,
+            Math.round(
+                height *
+                reducedScale
+            )
+        );
+
+        const smaller =
+        document.createElement(
+            "canvas"
+        );
+
+        smaller.width =
+        width;
+
+        smaller.height =
+        height;
+
+        const smallerContext =
+        smaller.getContext(
+            "2d",
+            {
+                alpha: false
+            }
+        );
+
+        smallerContext.fillStyle =
+        "#07101a";
+
+        smallerContext.fillRect(
+            0,
+            0,
+            width,
+            height
+        );
+
+        smallerContext.drawImage(
+            canvas,
+            0,
+            0,
+            width,
+            height
+        );
+
+        dataUrl =
+        smaller.toDataURL(
+            "image/webp",
+            .68
+        );
+    }
+
+    if (
+        dataUrl.length >
+        2_200_000
+    ) {
+        throw new Error(
+            "This image is still too large after compression. Try a smaller photo."
+        );
+    }
+
+    return dataUrl;
+}
+
+async function saveCustomBackgroundFile(
+    file
+) {
+
+    setCustomBackgroundStatus(
+        "Preparing your photo…"
+    );
+
+    if (chooseCustomBackgroundBtn) {
+        chooseCustomBackgroundBtn.disabled =
+        true;
+    }
+
+    try {
+
+        const dataUrl =
+        await compressCustomBackground(
+            file
+        );
+
+        localStorage.setItem(
+            customBackgroundStorageKey(),
+            dataUrl
+        );
+
+        localStorage.setItem(
+            customBackgroundEnabledKey(),
+            "true"
+        );
+
+        applyCustomBackgroundVisual();
+
+        setCustomBackgroundStatus(
+            "Saved on this device.",
+            "ok"
+        );
+    }
+    catch (error) {
+
+        console.error(
+            "CUSTOM BACKGROUND ERROR:",
+            error
+        );
+
+        setCustomBackgroundStatus(
+            error.message ||
+            "Could not use this photo.",
+            "error"
+        );
+    }
+    finally {
+
+        if (chooseCustomBackgroundBtn) {
+            chooseCustomBackgroundBtn.disabled =
+            false;
+        }
+
+        if (customBackgroundInput) {
+            customBackgroundInput.value =
+            "";
+        }
+    }
+}
+
+function removeCustomBackground() {
+
+    try {
+        localStorage.removeItem(
+            customBackgroundStorageKey()
+        );
+
+        localStorage.removeItem(
+            customBackgroundEnabledKey()
+        );
+    }
+    catch {}
+
+    clearCustomBackgroundVisual();
+
+    /*
+    Restore the selected preset immediately.
+    */
+    document.documentElement.dataset.chatBackground =
+    prefBackground?.value ||
+    uiPreferences.background ||
+    "aurora";
+
+    refreshCustomBackgroundPreview();
+
+    setCustomBackgroundStatus(
+        "Personal background removed."
+    );
+}
+
+if (chooseCustomBackgroundBtn) {
+    chooseCustomBackgroundBtn.addEventListener(
+        "click",
+        () => {
+            customBackgroundInput?.click();
+        }
+    );
+}
+
+if (customBackgroundInput) {
+    customBackgroundInput.addEventListener(
+        "change",
+        () => {
+            const file =
+            customBackgroundInput
+                .files?.[0];
+
+            if (file) {
+                saveCustomBackgroundFile(
+                    file
+                );
+            }
+        }
+    );
+}
+
+if (useCustomBackgroundBtn) {
+    useCustomBackgroundBtn.addEventListener(
+        "click",
+        enableCustomBackground
+    );
+}
+
+if (removeCustomBackgroundBtn) {
+    removeCustomBackgroundBtn.addEventListener(
+        "click",
+        removeCustomBackground
+    );
+}
+
+if (prefBackground) {
+    prefBackground.addEventListener(
+        "change",
+        () => {
+            /*
+            Choosing a built-in preset turns the personal
+            photo off, but keeps it saved so the user can
+            press "Use photo" later without uploading again.
+            */
+            disableCustomBackground(
+                true
+            );
+
+            setCustomBackgroundStatus(
+                "Preset background selected. Your photo is still saved on this device."
+            );
+        }
+    );
+}
+
+
 function applyPreferences(preferences) {
 
     uiPreferences = {
@@ -4024,6 +4658,15 @@ function applyPreferences(preferences) {
     );
 
     syncPreferenceControls();
+
+    /*
+    A personal image is intentionally device-local.
+    It overrides the account preset only on this browser.
+    */
+    if (!applyCustomBackgroundVisual()) {
+        document.documentElement.dataset.chatBackground =
+        uiPreferences.background;
+    }
 }
 
 function syncPreferenceControls() {
@@ -4284,6 +4927,7 @@ function openPersonalization() {
     }
 
     syncPreferenceControls();
+    refreshCustomBackgroundPreview();
 
     personalizationModal.classList.add(
         "open"
@@ -4412,9 +5056,17 @@ document
 if (resetPreferencesBtn) {
     resetPreferencesBtn.onclick =
     () => {
+        disableCustomBackground(
+            true
+        );
+
         applyPreferences({
             ...DEFAULT_PREFERENCES
         });
+
+        setCustomBackgroundStatus(
+            "Appearance reset. Your uploaded photo is still saved on this device."
+        );
     };
 }
 
