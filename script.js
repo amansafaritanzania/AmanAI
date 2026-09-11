@@ -3902,105 +3902,386 @@ const TRANSLATIONS = {
     en: {
         newChat: "＋ New Chat",
         chats: "Chats",
-        dashboard: "⚙ Dashboard",
+        dashboard: "Dashboard",
+        sidebarTagline: "Your AI workspace",
+        workspace: "Workspace",
         online: "● Online",
-        placeholder: "Message Aman AI..."
+        placeholder: "Message Aman AI...",
+        composerNote: "Aman AI can make mistakes. Verify important information.",
+        actionTitle: "Chat action",
+        personalizeKicker: "Aman AI Studio",
+        personalizeTitle: "Personalization",
+        personalizeSubtitle: "Make Aman AI feel like yours.",
+        language: "Language",
+        languageHelp: "Changes interface language.",
+        theme: "Theme",
+        themeHelp: "Choose the mood of the whole workspace.",
+        textSize: "Text size",
+        font: "Font",
+        textColor: "Text color",
+        accentColor: "Accent color",
+        chatBackground: "Chat background",
+        chatBackgroundHelp: "Changes the conversation atmosphere.",
+        spacing: "Message spacing",
+        bubbleStyle: "Bubble style",
+        reduceMotion: "Reduce motion",
+        reduceMotionHelp: "Reduces animated backgrounds and transitions.",
+        reset: "Reset",
+        save: "Save changes",
+        saving: "Saving...",
+        customPhoto: "Use your own photo",
+        customPhotoHelp: "Pick a photo from this phone or computer. It stays on this device and is compressed before saving.",
+        noPhoto: "No personal background selected",
+        choosePhoto: "📷 Choose photo",
+        usePhoto: "Use photo",
+        photoInUse: "✓ In use",
+        remove: "Remove",
+        workspaceNames: {
+            general:"🌐 General", school:"🎓 School", coding:"💻 Coding",
+            business:"📊 Business", safari:"🦁 Safari", agriculture:"🌱 Agriculture",
+            health:"🩺 Health", bible:"📖 Bible"
+        },
+        themes: {
+            cinematic:"Cinematic", midnight:"Midnight", amoled:"AMOLED",
+            light:"Light", ocean:"Ocean", sunset:"Sunset"
+        },
+        sizes: {small:"Small",normal:"Normal",large:"Large",xlarge:"Extra large"},
+        fonts: {inter:"Modern",system:"System",serif:"Editorial",rounded:"Rounded",mono:"Mono"},
+        backgrounds: {aurora:"Aurora",nebula:"Nebula",grid:"Digital grid",plain:"Plain",forest:"Forest night",sunset:"Sunset haze"},
+        densities: {compact:"Compact",comfortable:"Comfortable",spacious:"Spacious"},
+        bubbles: {soft:"Soft",glass:"Glass",minimal:"Minimal"}
     },
+
     sw: {
-        newChat: "＋ Mazungumzo Mapya",
-        chats: "Mazungumzo",
-        dashboard: "⚙ Dashibodi",
-        online: "● Mtandaoni",
-        placeholder: "Andika ujumbe kwa Aman AI..."
+        newChat:"＋ Mazungumzo Mapya", chats:"Mazungumzo", dashboard:"Dashibodi",
+        sidebarTagline:"Eneo lako la kazi la AI", workspace:"Eneo la kazi", online:"● Mtandaoni",
+        placeholder:"Andika ujumbe kwa Aman AI...",
+        composerNote:"Aman AI inaweza kukosea. Hakiki taarifa muhimu.",
+        actionTitle:"Kitendo cha mazungumzo", personalizeKicker:"Aman AI Studio",
+        personalizeTitle:"Ubinafsishaji", personalizeSubtitle:"Fanya Aman AI iwe yako.",
+        language:"Lugha", languageHelp:"Hubadilisha lugha ya menyu.",
+        theme:"Mandhari", themeHelp:"Chagua mwonekano wa eneo lote la kazi.",
+        textSize:"Ukubwa wa maandishi", font:"Aina ya herufi", textColor:"Rangi ya maandishi",
+        accentColor:"Rangi kuu", chatBackground:"Mandharinyuma ya mazungumzo",
+        chatBackgroundHelp:"Hubadilisha mwonekano wa eneo la mazungumzo.",
+        spacing:"Nafasi za ujumbe", bubbleStyle:"Mtindo wa ujumbe",
+        reduceMotion:"Punguza miondoko", reduceMotionHelp:"Hupunguza uhuishaji na mabadiliko.",
+        reset:"Rudisha", save:"Hifadhi mabadiliko", saving:"Inahifadhi...",
+        customPhoto:"Tumia picha yako", customPhotoHelp:"Chagua picha kutoka simu au kompyuta hii. Inabaki kwenye kifaa hiki na inapunguzwa kabla ya kuhifadhi.",
+        noPhoto:"Hakuna picha binafsi iliyochaguliwa", choosePhoto:"📷 Chagua picha", usePhoto:"Tumia picha",
+        photoInUse:"✓ Inatumika", remove:"Ondoa",
+        workspaceNames:{general:"🌐 Kawaida",school:"🎓 Shule",coding:"💻 Uandishi wa programu",business:"📊 Biashara",safari:"🦁 Safari",agriculture:"🌱 Kilimo",health:"🩺 Afya",bible:"📖 Biblia"},
+        themes:{cinematic:"Sinema",midnight:"Usiku",amoled:"AMOLED",light:"Mwanga",ocean:"Bahari",sunset:"Machweo"},
+        sizes:{small:"Ndogo",normal:"Kawaida",large:"Kubwa",xlarge:"Kubwa sana"},
+        fonts:{inter:"Kisasa",system:"Mfumo",serif:"Kihariri",rounded:"Mviringo",mono:"Mono"},
+        backgrounds:{aurora:"Aurora",nebula:"Nebula",grid:"Gridi ya kidijitali",plain:"Rahisi",forest:"Msitu wa usiku",sunset:"Ukungu wa machweo"},
+        densities:{compact:"Kubana",comfortable:"Kawaida",spacious:"Nafasi kubwa"},
+        bubbles:{soft:"Laini",glass:"Kioo",minimal:"Rahisi"}
     },
-    fr: {
-        newChat: "＋ Nouveau chat",
-        chats: "Discussions",
-        dashboard: "⚙ Tableau de bord",
-        online: "● En ligne",
-        placeholder: "Écrivez à Aman AI..."
-    },
-    es: {
-        newChat: "＋ Nuevo chat",
-        chats: "Chats",
-        dashboard: "⚙ Panel",
-        online: "● En línea",
-        placeholder: "Escribe a Aman AI..."
-    },
-    pt: {
-        newChat: "＋ Nova conversa",
-        chats: "Conversas",
-        dashboard: "⚙ Painel",
-        online: "● Online",
-        placeholder: "Mensagem para Aman AI..."
-    },
-    de: {
-        newChat: "＋ Neuer Chat",
-        chats: "Chats",
-        dashboard: "⚙ Übersicht",
-        online: "● Online",
-        placeholder: "Nachricht an Aman AI..."
-    },
-    ar: {
-        newChat: "＋ محادثة جديدة",
-        chats: "المحادثات",
-        dashboard: "⚙ لوحة التحكم",
-        online: "● متصل",
-        placeholder: "اكتب رسالة إلى Aman AI..."
-    },
-    hi: {
-        newChat: "＋ नई चैट",
-        chats: "चैट",
-        dashboard: "⚙ डैशबोर्ड",
-        online: "● ऑनलाइन",
-        placeholder: "Aman AI को संदेश लिखें..."
-    },
+
     zh: {
-        newChat: "＋ 新对话",
-        chats: "对话",
-        dashboard: "⚙ 控制面板",
-        online: "● 在线",
-        placeholder: "给 Aman AI 发消息..."
+        newChat:"＋ 新对话", chats:"对话", dashboard:"控制面板",
+        sidebarTagline:"你的 AI 工作空间", workspace:"工作空间", online:"● 在线",
+        placeholder:"给 Aman AI 发消息...",
+        composerNote:"Aman AI 可能会出错，请核实重要信息。",
+        actionTitle:"对话操作", personalizeKicker:"Aman AI 工作室",
+        personalizeTitle:"个性化", personalizeSubtitle:"让 Aman AI 更符合你的喜好。",
+        language:"语言", languageHelp:"更改界面语言。",
+        theme:"主题", themeHelp:"选择整个工作空间的视觉风格。",
+        textSize:"文字大小", font:"字体", textColor:"文字颜色",
+        accentColor:"强调色", chatBackground:"聊天背景",
+        chatBackgroundHelp:"更改聊天区域的氛围。",
+        spacing:"消息间距", bubbleStyle:"气泡样式",
+        reduceMotion:"减少动画", reduceMotionHelp:"减少背景动画和界面过渡。",
+        reset:"重置", save:"保存更改", saving:"正在保存...",
+        customPhoto:"使用自己的照片", customPhotoHelp:"从手机或电脑选择照片。照片只保存在此设备，并会在保存前压缩。",
+        noPhoto:"尚未选择个人背景", choosePhoto:"📷 选择照片", usePhoto:"使用照片",
+        photoInUse:"✓ 使用中", remove:"移除",
+        workspaceNames:{general:"🌐 通用",school:"🎓 学习",coding:"💻 编程",business:"📊 商业",safari:"🦁 旅行",agriculture:"🌱 农业",health:"🩺 健康",bible:"📖 圣经"},
+        themes:{cinematic:"电影感",midnight:"午夜",amoled:"AMOLED",light:"明亮",ocean:"海洋",sunset:"日落"},
+        sizes:{small:"小",normal:"标准",large:"大",xlarge:"超大"},
+        fonts:{inter:"现代",system:"系统",serif:"衬线",rounded:"圆体",mono:"等宽"},
+        backgrounds:{aurora:"极光",nebula:"星云",grid:"数字网格",plain:"纯色",forest:"夜间森林",sunset:"日落薄雾"},
+        densities:{compact:"紧凑",comfortable:"舒适",spacious:"宽松"},
+        bubbles:{soft:"柔和",glass:"玻璃",minimal:"极简"}
     },
+
+    fr: {
+        newChat:"＋ Nouveau chat", chats:"Discussions", dashboard:"Tableau de bord",
+        sidebarTagline:"Votre espace de travail IA", workspace:"Espace de travail", online:"● En ligne",
+        placeholder:"Écrivez à Aman AI...",
+        composerNote:"Aman AI peut se tromper. Vérifiez les informations importantes.",
+        actionTitle:"Action de discussion", personalizeKicker:"Studio Aman AI",
+        personalizeTitle:"Personnalisation", personalizeSubtitle:"Faites d’Aman AI votre espace.",
+        language:"Langue", languageHelp:"Change la langue de l’interface.",
+        theme:"Thème", themeHelp:"Choisissez l’ambiance de l’espace de travail.",
+        textSize:"Taille du texte", font:"Police", textColor:"Couleur du texte",
+        accentColor:"Couleur d’accent", chatBackground:"Arrière-plan du chat",
+        chatBackgroundHelp:"Change l’atmosphère de la conversation.",
+        spacing:"Espacement des messages", bubbleStyle:"Style des bulles",
+        reduceMotion:"Réduire les animations", reduceMotionHelp:"Réduit les animations et transitions.",
+        reset:"Réinitialiser", save:"Enregistrer", saving:"Enregistrement...",
+        customPhoto:"Utiliser votre photo", customPhotoHelp:"Choisissez une photo sur cet appareil. Elle reste sur cet appareil et est compressée avant l’enregistrement.",
+        noPhoto:"Aucun arrière-plan personnel", choosePhoto:"📷 Choisir une photo", usePhoto:"Utiliser la photo", photoInUse:"✓ Utilisée", remove:"Supprimer",
+        workspaceNames:{general:"🌐 Général",school:"🎓 École",coding:"💻 Programmation",business:"📊 Entreprise",safari:"🦁 Safari",agriculture:"🌱 Agriculture",health:"🩺 Santé",bible:"📖 Bible"},
+        themes:{cinematic:"Cinématique",midnight:"Minuit",amoled:"AMOLED",light:"Clair",ocean:"Océan",sunset:"Coucher de soleil"},
+        sizes:{small:"Petit",normal:"Normal",large:"Grand",xlarge:"Très grand"},
+        fonts:{inter:"Moderne",system:"Système",serif:"Éditoriale",rounded:"Arrondie",mono:"Mono"},
+        backgrounds:{aurora:"Aurore",nebula:"Nébuleuse",grid:"Grille numérique",plain:"Uni",forest:"Forêt nocturne",sunset:"Brume du soir"},
+        densities:{compact:"Compact",comfortable:"Confortable",spacious:"Aéré"},
+        bubbles:{soft:"Doux",glass:"Verre",minimal:"Minimal"}
+    },
+
+    es: {
+        newChat:"＋ Nuevo chat", chats:"Chats", dashboard:"Panel",
+        sidebarTagline:"Tu espacio de trabajo con IA", workspace:"Espacio de trabajo", online:"● En línea",
+        placeholder:"Escribe a Aman AI...", composerNote:"Aman AI puede equivocarse. Verifica la información importante.",
+        actionTitle:"Acción del chat", personalizeKicker:"Aman AI Studio", personalizeTitle:"Personalización",
+        personalizeSubtitle:"Haz que Aman AI se sienta tuyo.", language:"Idioma", languageHelp:"Cambia el idioma de la interfaz.",
+        theme:"Tema", themeHelp:"Elige el ambiente del espacio de trabajo.", textSize:"Tamaño del texto", font:"Fuente",
+        textColor:"Color del texto", accentColor:"Color de acento", chatBackground:"Fondo del chat",
+        chatBackgroundHelp:"Cambia el ambiente de la conversación.", spacing:"Espaciado de mensajes", bubbleStyle:"Estilo de burbuja",
+        reduceMotion:"Reducir movimiento", reduceMotionHelp:"Reduce animaciones y transiciones.", reset:"Restablecer",
+        save:"Guardar cambios", saving:"Guardando...", customPhoto:"Usar tu propia foto",
+        customPhotoHelp:"Elige una foto de este teléfono u ordenador. Permanece en este dispositivo y se comprime antes de guardarse.",
+        noPhoto:"No hay fondo personal seleccionado", choosePhoto:"📷 Elegir foto", usePhoto:"Usar foto", photoInUse:"✓ En uso", remove:"Eliminar",
+        workspaceNames:{general:"🌐 General",school:"🎓 Escuela",coding:"💻 Programación",business:"📊 Negocios",safari:"🦁 Safari",agriculture:"🌱 Agricultura",health:"🩺 Salud",bible:"📖 Biblia"},
+        themes:{cinematic:"Cinemático",midnight:"Medianoche",amoled:"AMOLED",light:"Claro",ocean:"Océano",sunset:"Atardecer"},
+        sizes:{small:"Pequeño",normal:"Normal",large:"Grande",xlarge:"Muy grande"},
+        fonts:{inter:"Moderna",system:"Sistema",serif:"Editorial",rounded:"Redondeada",mono:"Mono"},
+        backgrounds:{aurora:"Aurora",nebula:"Nebulosa",grid:"Cuadrícula digital",plain:"Simple",forest:"Bosque nocturno",sunset:"Bruma del atardecer"},
+        densities:{compact:"Compacto",comfortable:"Cómodo",spacious:"Amplio"},
+        bubbles:{soft:"Suave",glass:"Cristal",minimal:"Minimalista"}
+    },
+
+    pt: {
+        newChat:"＋ Nova conversa", chats:"Conversas", dashboard:"Painel",
+        sidebarTagline:"Seu espaço de trabalho com IA", workspace:"Espaço de trabalho", online:"● Online",
+        placeholder:"Mensagem para Aman AI...", composerNote:"Aman AI pode cometer erros. Verifique informações importantes.",
+        actionTitle:"Ação da conversa", personalizeKicker:"Aman AI Studio", personalizeTitle:"Personalização",
+        personalizeSubtitle:"Deixe o Aman AI com a sua cara.", language:"Idioma", languageHelp:"Altera o idioma da interface.",
+        theme:"Tema", themeHelp:"Escolha o visual do espaço de trabalho.", textSize:"Tamanho do texto", font:"Fonte",
+        textColor:"Cor do texto", accentColor:"Cor de destaque", chatBackground:"Fundo do chat",
+        chatBackgroundHelp:"Altera o clima da conversa.", spacing:"Espaçamento das mensagens", bubbleStyle:"Estilo dos balões",
+        reduceMotion:"Reduzir movimento", reduceMotionHelp:"Reduz animações e transições.", reset:"Redefinir",
+        save:"Salvar alterações", saving:"Salvando...", customPhoto:"Usar sua própria foto",
+        customPhotoHelp:"Escolha uma foto deste aparelho. Ela fica neste dispositivo e é comprimida antes de salvar.",
+        noPhoto:"Nenhum fundo pessoal selecionado", choosePhoto:"📷 Escolher foto", usePhoto:"Usar foto", photoInUse:"✓ Em uso", remove:"Remover",
+        workspaceNames:{general:"🌐 Geral",school:"🎓 Escola",coding:"💻 Programação",business:"📊 Negócios",safari:"🦁 Safari",agriculture:"🌱 Agricultura",health:"🩺 Saúde",bible:"📖 Bíblia"},
+        themes:{cinematic:"Cinemático",midnight:"Meia-noite",amoled:"AMOLED",light:"Claro",ocean:"Oceano",sunset:"Pôr do sol"},
+        sizes:{small:"Pequeno",normal:"Normal",large:"Grande",xlarge:"Muito grande"},
+        fonts:{inter:"Moderna",system:"Sistema",serif:"Editorial",rounded:"Arredondada",mono:"Mono"},
+        backgrounds:{aurora:"Aurora",nebula:"Nebulosa",grid:"Grade digital",plain:"Simples",forest:"Floresta noturna",sunset:"Névoa do pôr do sol"},
+        densities:{compact:"Compacto",comfortable:"Confortável",spacious:"Espaçoso"},
+        bubbles:{soft:"Suave",glass:"Vidro",minimal:"Minimalista"}
+    },
+
+    de: {
+        newChat:"＋ Neuer Chat", chats:"Chats", dashboard:"Übersicht",
+        sidebarTagline:"Dein KI-Arbeitsbereich", workspace:"Arbeitsbereich", online:"● Online",
+        placeholder:"Nachricht an Aman AI...", composerNote:"Aman AI kann Fehler machen. Prüfe wichtige Informationen.",
+        actionTitle:"Chat-Aktion", personalizeKicker:"Aman AI Studio", personalizeTitle:"Personalisierung",
+        personalizeSubtitle:"Gestalte Aman AI nach deinem Geschmack.", language:"Sprache", languageHelp:"Ändert die Sprache der Oberfläche.",
+        theme:"Design", themeHelp:"Wähle die Stimmung des Arbeitsbereichs.", textSize:"Textgröße", font:"Schriftart",
+        textColor:"Textfarbe", accentColor:"Akzentfarbe", chatBackground:"Chat-Hintergrund",
+        chatBackgroundHelp:"Ändert die Atmosphäre des Chats.", spacing:"Nachrichtenabstand", bubbleStyle:"Blasenstil",
+        reduceMotion:"Bewegung reduzieren", reduceMotionHelp:"Reduziert Animationen und Übergänge.", reset:"Zurücksetzen",
+        save:"Änderungen speichern", saving:"Speichern...", customPhoto:"Eigenes Foto verwenden",
+        customPhotoHelp:"Wähle ein Foto von diesem Gerät. Es bleibt auf diesem Gerät und wird vor dem Speichern komprimiert.",
+        noPhoto:"Kein persönlicher Hintergrund ausgewählt", choosePhoto:"📷 Foto auswählen", usePhoto:"Foto verwenden", photoInUse:"✓ Aktiv", remove:"Entfernen",
+        workspaceNames:{general:"🌐 Allgemein",school:"🎓 Schule",coding:"💻 Programmierung",business:"📊 Business",safari:"🦁 Safari",agriculture:"🌱 Landwirtschaft",health:"🩺 Gesundheit",bible:"📖 Bibel"},
+        themes:{cinematic:"Kino",midnight:"Mitternacht",amoled:"AMOLED",light:"Hell",ocean:"Ozean",sunset:"Sonnenuntergang"},
+        sizes:{small:"Klein",normal:"Normal",large:"Groß",xlarge:"Sehr groß"},
+        fonts:{inter:"Modern",system:"System",serif:"Serif",rounded:"Abgerundet",mono:"Mono"},
+        backgrounds:{aurora:"Aurora",nebula:"Nebel",grid:"Digitales Raster",plain:"Schlicht",forest:"Nachtwald",sunset:"Abendnebel"},
+        densities:{compact:"Kompakt",comfortable:"Bequem",spacious:"Weit"},
+        bubbles:{soft:"Weich",glass:"Glas",minimal:"Minimal"}
+    },
+
+    ar: {
+        newChat:"＋ محادثة جديدة", chats:"المحادثات", dashboard:"لوحة التحكم",
+        sidebarTagline:"مساحة عملك بالذكاء الاصطناعي", workspace:"مساحة العمل", online:"● متصل",
+        placeholder:"اكتب رسالة إلى Aman AI...", composerNote:"قد يخطئ Aman AI. تحقّق من المعلومات المهمة.",
+        actionTitle:"إجراء المحادثة", personalizeKicker:"استوديو Aman AI", personalizeTitle:"التخصيص",
+        personalizeSubtitle:"اجعل Aman AI مناسبًا لك.", language:"اللغة", languageHelp:"تغيير لغة الواجهة.",
+        theme:"المظهر", themeHelp:"اختر طابع مساحة العمل.", textSize:"حجم النص", font:"الخط",
+        textColor:"لون النص", accentColor:"اللون المميز", chatBackground:"خلفية المحادثة",
+        chatBackgroundHelp:"تغيير أجواء منطقة المحادثة.", spacing:"تباعد الرسائل", bubbleStyle:"نمط الفقاعات",
+        reduceMotion:"تقليل الحركة", reduceMotionHelp:"يقلل الرسوم المتحركة والانتقالات.", reset:"إعادة ضبط",
+        save:"حفظ التغييرات", saving:"جارٍ الحفظ...", customPhoto:"استخدام صورتك",
+        customPhotoHelp:"اختر صورة من هذا الهاتف أو الكمبيوتر. تبقى على هذا الجهاز ويتم ضغطها قبل الحفظ.",
+        noPhoto:"لم يتم اختيار خلفية شخصية", choosePhoto:"📷 اختيار صورة", usePhoto:"استخدام الصورة", photoInUse:"✓ قيد الاستخدام", remove:"إزالة",
+        workspaceNames:{general:"🌐 عام",school:"🎓 الدراسة",coding:"💻 البرمجة",business:"📊 الأعمال",safari:"🦁 السفاري",agriculture:"🌱 الزراعة",health:"🩺 الصحة",bible:"📖 الكتاب المقدس"},
+        themes:{cinematic:"سينمائي",midnight:"منتصف الليل",amoled:"AMOLED",light:"فاتح",ocean:"المحيط",sunset:"الغروب"},
+        sizes:{small:"صغير",normal:"عادي",large:"كبير",xlarge:"كبير جدًا"},
+        fonts:{inter:"حديث",system:"النظام",serif:"تحريري",rounded:"مستدير",mono:"أحادي"},
+        backgrounds:{aurora:"الشفق",nebula:"السديم",grid:"شبكة رقمية",plain:"بسيط",forest:"غابة ليلية",sunset:"ضباب الغروب"},
+        densities:{compact:"مضغوط",comfortable:"مريح",spacious:"واسع"},
+        bubbles:{soft:"ناعم",glass:"زجاجي",minimal:"بسيط"}
+    },
+
+    hi: {
+        newChat:"＋ नई चैट", chats:"चैट", dashboard:"डैशबोर्ड",
+        sidebarTagline:"आपका AI कार्यक्षेत्र", workspace:"कार्यक्षेत्र", online:"● ऑनलाइन",
+        placeholder:"Aman AI को संदेश लिखें...", composerNote:"Aman AI से गलती हो सकती है। महत्वपूर्ण जानकारी जाँच लें।",
+        actionTitle:"चैट कार्रवाई", personalizeKicker:"Aman AI स्टूडियो", personalizeTitle:"व्यक्तिगत सेटिंग",
+        personalizeSubtitle:"Aman AI को अपनी पसंद के अनुसार बनाएं।", language:"भाषा", languageHelp:"इंटरफ़ेस की भाषा बदलें।",
+        theme:"थीम", themeHelp:"पूरे कार्यक्षेत्र का रूप चुनें।", textSize:"टेक्स्ट आकार", font:"फ़ॉन्ट",
+        textColor:"टेक्स्ट रंग", accentColor:"एक्सेंट रंग", chatBackground:"चैट पृष्ठभूमि",
+        chatBackgroundHelp:"चैट का वातावरण बदलें।", spacing:"संदेश अंतर", bubbleStyle:"बबल शैली",
+        reduceMotion:"एनीमेशन कम करें", reduceMotionHelp:"एनीमेशन और ट्रांज़िशन कम करता है।", reset:"रीसेट",
+        save:"बदलाव सहेजें", saving:"सहेजा जा रहा है...", customPhoto:"अपनी फोटो इस्तेमाल करें",
+        customPhotoHelp:"इस फोन या कंप्यूटर से फोटो चुनें। यह इसी डिवाइस पर रहती है और सेव होने से पहले संपीड़ित होती है।",
+        noPhoto:"कोई निजी पृष्ठभूमि चयनित नहीं", choosePhoto:"📷 फोटो चुनें", usePhoto:"फोटो इस्तेमाल करें", photoInUse:"✓ उपयोग में", remove:"हटाएँ",
+        workspaceNames:{general:"🌐 सामान्य",school:"🎓 स्कूल",coding:"💻 कोडिंग",business:"📊 व्यवसाय",safari:"🦁 सफारी",agriculture:"🌱 कृषि",health:"🩺 स्वास्थ्य",bible:"📖 बाइबल"},
+        themes:{cinematic:"सिनेमैटिक",midnight:"मिडनाइट",amoled:"AMOLED",light:"लाइट",ocean:"ओशन",sunset:"सनसेट"},
+        sizes:{small:"छोटा",normal:"सामान्य",large:"बड़ा",xlarge:"बहुत बड़ा"},
+        fonts:{inter:"मॉडर्न",system:"सिस्टम",serif:"सेरिफ",rounded:"राउंडेड",mono:"मोनो"},
+        backgrounds:{aurora:"ऑरोरा",nebula:"नेब्युला",grid:"डिजिटल ग्रिड",plain:"सादा",forest:"रात का जंगल",sunset:"सनसेट धुंध"},
+        densities:{compact:"कॉम्पैक्ट",comfortable:"आरामदायक",spacious:"खुला"},
+        bubbles:{soft:"सॉफ्ट",glass:"ग्लास",minimal:"मिनिमल"}
+    },
+
     ja: {
-        newChat: "＋ 新しいチャット",
-        chats: "チャット",
-        dashboard: "⚙ ダッシュボード",
-        online: "● オンライン",
-        placeholder: "Aman AI にメッセージ..."
+        newChat:"＋ 新しいチャット", chats:"チャット", dashboard:"ダッシュボード",
+        sidebarTagline:"あなたのAIワークスペース", workspace:"ワークスペース", online:"● オンライン",
+        placeholder:"Aman AI にメッセージ...", composerNote:"Aman AI は間違えることがあります。重要な情報は確認してください。",
+        actionTitle:"チャット操作", personalizeKicker:"Aman AI スタジオ", personalizeTitle:"パーソナライズ",
+        personalizeSubtitle:"Aman AI を自分好みに設定しましょう。", language:"言語", languageHelp:"インターフェース言語を変更します。",
+        theme:"テーマ", themeHelp:"ワークスペース全体の雰囲気を選びます。", textSize:"文字サイズ", font:"フォント",
+        textColor:"文字色", accentColor:"アクセント色", chatBackground:"チャット背景",
+        chatBackgroundHelp:"会話画面の雰囲気を変更します。", spacing:"メッセージ間隔", bubbleStyle:"吹き出しスタイル",
+        reduceMotion:"動きを減らす", reduceMotionHelp:"アニメーションと画面遷移を減らします。", reset:"リセット",
+        save:"変更を保存", saving:"保存中...", customPhoto:"自分の写真を使う",
+        customPhotoHelp:"この端末から写真を選びます。写真はこの端末だけに保存され、保存前に圧縮されます。",
+        noPhoto:"個人背景が選択されていません", choosePhoto:"📷 写真を選択", usePhoto:"写真を使う", photoInUse:"✓ 使用中", remove:"削除",
+        workspaceNames:{general:"🌐 一般",school:"🎓 学習",coding:"💻 コーディング",business:"📊 ビジネス",safari:"🦁 サファリ",agriculture:"🌱 農業",health:"🩺 健康",bible:"📖 聖書"},
+        themes:{cinematic:"シネマ",midnight:"ミッドナイト",amoled:"AMOLED",light:"ライト",ocean:"オーシャン",sunset:"サンセット"},
+        sizes:{small:"小",normal:"標準",large:"大",xlarge:"特大"},
+        fonts:{inter:"モダン",system:"システム",serif:"セリフ",rounded:"丸型",mono:"モノ"},
+        backgrounds:{aurora:"オーロラ",nebula:"星雲",grid:"デジタルグリッド",plain:"シンプル",forest:"夜の森",sunset:"夕焼けの霧"},
+        densities:{compact:"コンパクト",comfortable:"標準",spacious:"広め"},
+        bubbles:{soft:"ソフト",glass:"ガラス",minimal:"ミニマル"}
     }
 };
 
-function applyTranslations(language) {
-    const dictionary =
-    TRANSLATIONS[language] ||
-    TRANSLATIONS.en;
-
-    document.documentElement.lang =
-    language;
-
-    document.documentElement.dir =
-    language === "ar"
-        ? "rtl"
-        : "ltr";
-
-    document
-        .querySelectorAll("[data-i18n]")
-        .forEach(element => {
-            const key =
-            element.dataset.i18n;
-
-            if (dictionary[key]) {
-                element.textContent =
-                dictionary[key];
-            }
-        });
-
-    if (input) {
-        input.placeholder =
-        dictionary.placeholder;
+function setText(id, value) {
+    const element = document.getElementById(id);
+    if (element && value !== undefined) {
+        element.textContent = value;
     }
 }
+
+function setOptionText(selectId, values) {
+    const select = document.getElementById(selectId);
+    if (!select || !values) return;
+
+    [...select.options].forEach(option => {
+        if (values[option.value] !== undefined) {
+            option.textContent = values[option.value];
+        }
+    });
+}
+
+function applyTranslations(language) {
+    const t = TRANSLATIONS[language] || TRANSLATIONS.en;
+
+    document.documentElement.lang = language;
+    document.documentElement.dir = language === "ar" ? "rtl" : "ltr";
+
+    document.querySelectorAll("[data-i18n]").forEach(element => {
+        const key = element.dataset.i18n;
+        if (t[key]) element.textContent = t[key];
+    });
+
+    setText("sidebarTagline", t.sidebarTagline);
+    setText("workspaceSectionTitle", t.workspace);
+    setText("headerDashboardLabel", t.dashboard);
+    setText("composerNote", t.composerNote);
+    setText("actionModalTitle", t.actionTitle);
+    setText("personalizationKicker", t.personalizeKicker);
+    setText("personalizationTitle", t.personalizeTitle);
+    setText("personalizationSubtitle", t.personalizeSubtitle);
+    setText("languageLabel", t.language);
+    setText("languageHelp", t.languageHelp);
+    setText("themeLabel", t.theme);
+    setText("themeHelp", t.themeHelp);
+    setText("fontSizeLabel", t.textSize);
+    setText("fontFamilyLabel", t.font);
+    setText("fontColorLabel", t.textColor);
+    setText("accentColorLabel", t.accentColor);
+    setText("backgroundLabel", t.chatBackground);
+    setText("backgroundHelp", t.chatBackgroundHelp);
+    setText("densityLabel", t.spacing);
+    setText("bubbleStyleLabel", t.bubbleStyle);
+    setText("reduceMotionLabel", t.reduceMotion);
+    setText("reduceMotionHelp", t.reduceMotionHelp);
+    setText("customPhotoLabel", t.customPhoto);
+    setText("customPhotoHelp", t.customPhotoHelp);
+
+    if (customBackgroundEmpty && !customBackgroundEmpty.hidden) {
+        customBackgroundEmpty.textContent = t.noPhoto;
+    }
+
+    if (chooseCustomBackgroundBtn) {
+        chooseCustomBackgroundBtn.textContent = t.choosePhoto;
+    }
+
+    if (removeCustomBackgroundBtn) {
+        removeCustomBackgroundBtn.textContent = t.remove;
+    }
+
+    if (useCustomBackgroundBtn) {
+        useCustomBackgroundBtn.textContent =
+            isCustomBackgroundEnabled() ? t.photoInUse : t.usePhoto;
+    }
+
+    if (resetPreferencesBtn) {
+        resetPreferencesBtn.textContent = t.reset;
+    }
+
+    if (savePreferencesBtn && !savePreferencesBtn.disabled) {
+        savePreferencesBtn.textContent = t.save;
+    }
+
+    if (input) {
+        input.placeholder = t.placeholder;
+        input.setAttribute("aria-label", t.placeholder);
+    }
+
+    setOptionText("workspaceSelect", t.workspaceNames);
+    setOptionText("prefFontSize", t.sizes);
+    setOptionText("prefFontFamily", t.fonts);
+    setOptionText("prefBackground", t.backgrounds);
+    setOptionText("prefDensity", t.densities);
+    setOptionText("prefBubbleStyle", t.bubbles);
+
+    document.querySelectorAll(".theme-choice").forEach(button => {
+        const preview = button.querySelector(".theme-preview");
+        const themeName = t.themes?.[button.dataset.theme];
+        if (!themeName) return;
+
+        [...button.childNodes].forEach(node => {
+            if (node.nodeType === Node.TEXT_NODE) node.remove();
+        });
+
+        if (preview) {
+            button.appendChild(document.createTextNode("\n" + themeName));
+        }
+    });
+
+    // Keep current workspace badge translated.
+    if (workspaceBadge) {
+        const current = workspaceSelect?.value || "general";
+        const translated =
+            t.workspaceNames?.[current] ||
+            t.workspaceNames.general;
+
+        workspaceBadge.textContent =
+            translated.replace(/^[^\p{L}\p{N}]+/u, "").trim();
+    }
+}
+
 
 
 function customBackgroundStorageKey() {
@@ -4103,10 +4384,14 @@ function refreshCustomBackgroundPreview() {
         useCustomBackgroundBtn.disabled =
         !imageData || enabled;
 
+        const t =
+        TRANSLATIONS[uiPreferences.language] ||
+        TRANSLATIONS.en;
+
         useCustomBackgroundBtn.textContent =
         enabled
-            ? "✓ In use"
-            : "Use photo";
+            ? t.photoInUse
+            : t.usePhoto;
     }
 
     if (removeCustomBackgroundBtn) {
@@ -4851,7 +5136,7 @@ async function saveUiPreferences() {
         true;
 
         savePreferencesBtn.textContent =
-        "Saving...";
+        (TRANSLATIONS[uiPreferences.language] || TRANSLATIONS.en).saving;
     }
 
     try {
@@ -4915,7 +5200,7 @@ async function saveUiPreferences() {
             false;
 
             savePreferencesBtn.textContent =
-            "Save changes";
+            (TRANSLATIONS[uiPreferences.language] || TRANSLATIONS.en).save;
         }
     }
 }
