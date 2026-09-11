@@ -125,13 +125,11 @@
             class="new-chat-btn"
             type="button"
         >
-            ＋ New Chat
+            <span data-i18n="newChat">＋ New Chat</span>
         </button>
 
 
-        <div class="history-title">
-            Chats
-        </div>
+        <div class="history-title" data-i18n="chats">Chats</div>
 
         <div
             id="chatList"
@@ -146,7 +144,7 @@
                 href="/dashboard"
                 class="sidebar-dashboard-link"
             >
-                ⚙ Dashboard
+                <span data-i18n="dashboard">⚙ Dashboard</span>
             </a>
 
         </div>
@@ -188,9 +186,7 @@
                     </div>
 
                     <div class="header-meta">
-                        <span class="status">
-                            ● Online
-                        </span>
+                        <span class="status" data-i18n="online">● Online</span>
 
                         <span
                             id="workspaceBadge"
@@ -206,6 +202,17 @@
 
 
             <div class="header-actions">
+
+                <button
+                    id="personalizeBtn"
+                    class="icon-btn personalize-btn"
+                    type="button"
+                    aria-label="Personalize Aman AI"
+                    title="Personalize"
+                >
+                    ✨
+                </button>
+
 
                 <a
                     href="/dashboard"
@@ -339,6 +346,211 @@
                 id="actionModalBody"
                 class="action-modal-body"
             ></div>
+        </div>
+    </div>
+
+
+    <!-- Personalization Center -->
+    <div
+        id="personalizationModal"
+        class="personalization-modal"
+        aria-hidden="true"
+    >
+        <div
+            class="personalization-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="personalizationTitle"
+        >
+            <div class="personalization-head">
+                <div>
+                    <div class="personalization-kicker">Aman AI Studio</div>
+                    <h2 id="personalizationTitle">Personalization</h2>
+                    <p>Make Aman AI feel like yours.</p>
+                </div>
+
+                <button
+                    id="personalizationClose"
+                    class="icon-btn"
+                    type="button"
+                    aria-label="Close personalization"
+                >
+                    ✕
+                </button>
+            </div>
+
+            <div class="personalization-scroll">
+
+                <section class="settings-section">
+                    <div class="settings-title">
+                        <span>🌍</span>
+                        <div>
+                            <strong>Language</strong>
+                            <small>Changes interface language.</small>
+                        </div>
+                    </div>
+
+                    <select id="prefLanguage" class="settings-control">
+                        <option value="en">English</option>
+                        <option value="sw">Kiswahili</option>
+                        <option value="fr">Français</option>
+                        <option value="es">Español</option>
+                        <option value="pt">Português</option>
+                        <option value="de">Deutsch</option>
+                        <option value="ar">العربية</option>
+                        <option value="hi">हिन्दी</option>
+                        <option value="zh">中文</option>
+                        <option value="ja">日本語</option>
+                    </select>
+                </section>
+
+                <section class="settings-section">
+                    <div class="settings-title">
+                        <span>🎨</span>
+                        <div>
+                            <strong>Theme</strong>
+                            <small>Choose the mood of the whole workspace.</small>
+                        </div>
+                    </div>
+
+                    <div id="themeChoices" class="theme-grid">
+                        <button type="button" data-theme="cinematic" class="theme-choice">
+                            <span class="theme-preview cinematic-preview"></span>
+                            Cinematic
+                        </button>
+                        <button type="button" data-theme="midnight" class="theme-choice">
+                            <span class="theme-preview midnight-preview"></span>
+                            Midnight
+                        </button>
+                        <button type="button" data-theme="amoled" class="theme-choice">
+                            <span class="theme-preview amoled-preview"></span>
+                            AMOLED
+                        </button>
+                        <button type="button" data-theme="light" class="theme-choice">
+                            <span class="theme-preview light-preview"></span>
+                            Light
+                        </button>
+                        <button type="button" data-theme="ocean" class="theme-choice">
+                            <span class="theme-preview ocean-preview"></span>
+                            Ocean
+                        </button>
+                        <button type="button" data-theme="sunset" class="theme-choice">
+                            <span class="theme-preview sunset-preview"></span>
+                            Sunset
+                        </button>
+                    </div>
+                </section>
+
+                <section class="settings-section two-col-settings">
+                    <label>
+                        <span>Text size</span>
+                        <select id="prefFontSize" class="settings-control">
+                            <option value="small">Small</option>
+                            <option value="normal">Normal</option>
+                            <option value="large">Large</option>
+                            <option value="xlarge">Extra large</option>
+                        </select>
+                    </label>
+
+                    <label>
+                        <span>Font</span>
+                        <select id="prefFontFamily" class="settings-control">
+                            <option value="inter">Modern</option>
+                            <option value="system">System</option>
+                            <option value="serif">Editorial</option>
+                            <option value="rounded">Rounded</option>
+                            <option value="mono">Mono</option>
+                        </select>
+                    </label>
+                </section>
+
+                <section class="settings-section two-col-settings">
+                    <label>
+                        <span>Text color</span>
+                        <div class="color-control">
+                            <input id="prefFontColor" type="color" value="#f8fafc">
+                            <span id="prefFontColorValue">#f8fafc</span>
+                        </div>
+                    </label>
+
+                    <label>
+                        <span>Accent color</span>
+                        <div class="color-control">
+                            <input id="prefAccent" type="color" value="#7c9cff">
+                            <span id="prefAccentValue">#7c9cff</span>
+                        </div>
+                    </label>
+                </section>
+
+                <section class="settings-section">
+                    <div class="settings-title">
+                        <span>🌌</span>
+                        <div>
+                            <strong>Chat background</strong>
+                            <small>Changes the conversation atmosphere.</small>
+                        </div>
+                    </div>
+
+                    <select id="prefBackground" class="settings-control">
+                        <option value="aurora">Aurora</option>
+                        <option value="nebula">Nebula</option>
+                        <option value="grid">Digital grid</option>
+                        <option value="plain">Plain</option>
+                        <option value="forest">Forest night</option>
+                        <option value="sunset">Sunset haze</option>
+                    </select>
+                </section>
+
+                <section class="settings-section two-col-settings">
+                    <label>
+                        <span>Message spacing</span>
+                        <select id="prefDensity" class="settings-control">
+                            <option value="compact">Compact</option>
+                            <option value="comfortable">Comfortable</option>
+                            <option value="spacious">Spacious</option>
+                        </select>
+                    </label>
+
+                    <label>
+                        <span>Bubble style</span>
+                        <select id="prefBubbleStyle" class="settings-control">
+                            <option value="soft">Soft</option>
+                            <option value="glass">Glass</option>
+                            <option value="minimal">Minimal</option>
+                        </select>
+                    </label>
+                </section>
+
+                <section class="settings-section toggle-setting">
+                    <div>
+                        <strong>Reduce motion</strong>
+                        <small>Reduces animated backgrounds and transitions.</small>
+                    </div>
+                    <label class="switch">
+                        <input id="prefReduceMotion" type="checkbox">
+                        <span></span>
+                    </label>
+                </section>
+
+            </div>
+
+            <div class="personalization-actions">
+                <button
+                    id="resetPreferencesBtn"
+                    class="settings-secondary"
+                    type="button"
+                >
+                    Reset
+                </button>
+
+                <button
+                    id="savePreferencesBtn"
+                    class="settings-primary"
+                    type="button"
+                >
+                    Save changes
+                </button>
+            </div>
         </div>
     </div>
 
