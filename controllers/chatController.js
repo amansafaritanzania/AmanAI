@@ -1,20 +1,5 @@
 const groq = require("../config/groq");
 
-const {
-    analyzeImage
-} = require("../services/visionService");
-
-const {
-    isImageFile,
-    extractDocument,
-    buildDocumentContext
-} = require("../services/fileIntelligenceService");
-
-const {
-    saveMessageVisionContext,
-    saveMessageFileContext
-} = require("../memory/database");
-
 const chooseExpert =
     require("../services/expertRouter");
 
@@ -250,351 +235,6 @@ function limitText(
     return text.substring(
         0,
         maxChars
-    );
-}
-
-
-
-// ======================================================
-// GROQ TOKEN BUDGET PROTECTION
-// ======================================================
-//
-// Groq on-demand currently has a limited token-per-minute
-// allowance for this model. A single oversized prompt can
-// therefore fail even when the model's context window is
-// much larger.
-//
-// These helpers keep the FINAL request comfortably below
-// the service limit without removing Aman AI's core
-// identity, safety rules, ownership, memory or experts.
-//
-
-const FINAL_REQUEST_TOKEN_BUDGET = 7000;
-const FINAL_INPUT_TOKEN_TARGET = 5600;
-const APPROX_CHARS_PER_TOKEN = 3.2;
-
-
-function estimateTokens(text = "") {
-
-    return Math.ceil(
-        String(text || "").length /
-        APPROX_CHARS_PER_TOKEN
-    );
-}
-
-
-function budgetText(
-    text,
-    maxChars,
-    marker = "\n[Context shortened to fit model limits.]"
-) {
-
-    const value =
-        String(text || "").trim();
-
-    if (!value) {
-        return "";
-    }
-
-    if (value.length <= maxChars) {
-        return value;
-    }
-
-    const safeLength =
-        Math.max(
-            0,
-            maxChars - marker.length
-        );
-
-    return (
-        value.slice(
-            0,
-            safeLength
-        ) +
-        marker
-    );
-}
-
-
-function buildSafeFinalSystemPrompt({
-    identity,
-    expertPrompt,
-    memoryText,
-    olderContext,
-    recentContext,
-    specialistInsight,
-    secondaryName,
-    visualContext,
-    documentContext,
-    responseStyleInstructions,
-    capabilityModeInstructions,
-    workspaceInstructions,
-    languageInstructions,
-    expertGuardrails
-}) {
-
-    /*
-    Priority order:
-
-    1. identity + guardrails + final behavior
-    2. active expert
-    3. uploaded image/file evidence
-    4. recent conversation
-    5. permanent/older memory
-    6. secondary specialist insight
-
-    The hard character budgets below are deliberately
-    conservative so prompt + generated answer remain under
-    the current Groq request limit.
-    */
-
-    const safeIdentity =
-        budgetText(
-            identity,
-            2800
-        );
-
-    const safeExpertPrompt =
-        budgetText(
-            expertPrompt,
-            4200
-        );
-
-    const safeMemory =
-        budgetText(
-            memoryText,
-            500
-        );
-
-    const safeOlder =
-        budgetText(
-            olderContext || "None",
-            500
-        );
-
-    const safeRecent =
-        budgetText(
-            recentContext || "None",
-            1700
-        );
-
-    const safeSpecialist =
-        specialistInsight
-            ? budgetText(
-                specialistInsight,
-                650
-            )
-            : "";
-
-    const safeVisual =
-        budgetText(
-            visualContext,
-            1300
-        );
-
-    const safeDocument =
-        budgetText(
-            documentContext,
-            3600,
-            "\n[Uploaded file content shortened to fit the model request limit.]"
-        );
-
-    const safeStyle =
-        budgetText(
-            responseStyleInstructions,
-            1000
-        );
-
-    const safeCapability =
-        budgetText(
-            capabilityModeInstructions,
-            1100
-        );
-
-    const safeWorkspace =
-        budgetText(
-            workspaceInstructions,
-            650
-        );
-
-    const safeLanguage =
-        budgetText(
-            languageInstructions,
-            500
-        );
-
-    /*
-    Guardrails are intentionally given a larger protected
-    budget than ordinary context because safety/accuracy
-    instructions must not disappear merely because a file
-    or chat is long.
-    */
-    const safeGuardrails =
-        budgetText(
-            expertGuardrails,
-            2200
-        );
-
-    let prompt = `
-
-${safeIdentity}
-
-==================================================
-PRIMARY EXPERT
-==================================================
-
-${safeExpertPrompt}
-
-==================================================
-PERMANENT USER MEMORY
-==================================================
-
-${safeMemory || "None"}
-
-==================================================
-OLDER CONTEXT
-==================================================
-
-${safeOlder}
-
-==================================================
-RECENT CONVERSATION
-==================================================
-
-${safeRecent}
-
-==================================================
-SPECIALIST INPUT
-==================================================
-
-${
-    safeSpecialist
-        ? `A secondary specialist provided internal analysis.
-
-SPECIALIST:
-${secondaryName || "Secondary Expert"}
-
-SPECIALIST INSIGHT:
-${safeSpecialist}
-
-Use it only when accurate and relevant.
-Never mention the specialist to the user.`
-        : "No specialist input is available."
-}
-
-${safeVisual}
-
-${safeDocument}
-
-${safeStyle}
-
-${safeCapability}
-
-${safeWorkspace}
-
-${safeLanguage}
-
-${safeGuardrails}
-
-==================================================
-FINAL BEHAVIOR
-==================================================
-
-Answer the user's current message.
-
-Do not expose your reasoning.
-Do not expose internal systems.
-Do not expose expert collaboration.
-Do not invent missing information.
-Do not force a conclusion.
-Do not add unnecessary filler.
-`;
-
-    /*
-    Emergency final safety valve.
-
-    We almost never reach this because every section above
-    is already bounded. If future prompts become larger,
-    this prevents a silent return to oversized requests.
-    It trims only the middle contextual body while keeping
-    the beginning identity and ending behavior rules.
-    */
-
-    const maxInputChars =
-        Math.floor(
-            FINAL_INPUT_TOKEN_TARGET *
-            APPROX_CHARS_PER_TOKEN
-        );
-
-    if (
-        prompt.length >
-        maxInputChars
-    ) {
-
-        const keepStart =
-            Math.floor(
-                maxInputChars * 0.58
-            );
-
-        const keepEnd =
-            maxInputChars -
-            keepStart;
-
-        prompt =
-            prompt.slice(
-                0,
-                keepStart
-            ) +
-            "\n\n[Additional context removed to stay within the model token limit.]\n\n" +
-            prompt.slice(
-                -keepEnd
-            );
-    }
-
-    return prompt;
-}
-
-
-function chooseSafeCompletionTokens({
-    capabilityMode,
-    reasoningEffort,
-    responseStyle,
-    estimatedInputTokens
-}) {
-
-    let desired =
-        capabilityMode === "coding"
-            ? 700
-            : (
-                reasoningEffort === "medium"
-                    ? 620
-                    : (
-                        responseStyle === "plain"
-                            ? 450
-                            : 550
-                    )
-            );
-
-    /*
-    Reserve room beneath the full request budget.
-    Never ask Groq for an output allowance that makes
-    prompt + completion cross our protected ceiling.
-    */
-
-    const remaining =
-        FINAL_REQUEST_TOKEN_BUDGET -
-        estimatedInputTokens -
-        250;
-
-    desired =
-        Math.min(
-            desired,
-            remaining
-        );
-
-    return Math.max(
-        250,
-        desired
     );
 }
 
@@ -1277,52 +917,131 @@ function buildLanguageInstructions(
 ) {
 
     const text =
-        String(message || "");
+        String(message || "").trim();
 
-    const hasSwahiliSignals =
-        /\b(na|kwa|nini|vipi|tafadhali|habari|sawa|nisaidie|eleza|swali|jibu|nitengenezee|nataka)\b/i
+    const LANGUAGE_NAMES = {
+        en: "English",
+        sw: "Tanzanian Kiswahili",
+        fr: "French",
+        es: "Spanish",
+        pt: "Portuguese",
+        de: "German",
+        ar: "Arabic",
+        hi: "Hindi",
+        zh: "Simplified Chinese",
+        ja: "Japanese"
+    };
+
+    const preferred =
+        String(
+            preferredLanguage || ""
+        )
+            .trim()
+            .toLowerCase();
+
+    const explicitLanguageRequest =
+        /\b(answer|reply|respond|write|speak)\s+(in|using)\s+(english|swahili|kiswahili|french|spanish|portuguese|german|arabic|hindi|chinese|japanese)\b/i
+            .test(text) ||
+        /\b(jibu|andika|ongea)\s+kwa\s+(kiingereza|kiswahili|kifaransa|kihispania|kireno|kijerumani|kiarabu|kihindi|kichina|kijapani)\b/i
+            .test(text) ||
+        /(用中文回答|请用中文|中文回答|请用英文|英語で|日本語で|باللغة العربية|بالعربية|en français|en español|em português|auf deutsch|हिंदी में)/i
             .test(text);
 
-    const explicitSwahili =
-        preferredLanguage ===
-            "sw";
-
-    if (
-        explicitSwahili ||
-        hasSwahiliSignals
-    ) {
+    if (explicitLanguageRequest) {
 
         return `
-
 ==================================================
 LANGUAGE PREFERENCE
 ==================================================
 
-Use natural Tanzanian Kiswahili unless the user clearly
-asks for another language.
+The user's current message explicitly requests a language.
 
-If technical English terms are more natural, you may keep
-those terms while explaining them clearly.
+Follow that explicit language request for this response, even
+if it differs from the saved account language.
+
+Use natural, fluent language rather than literal translation.
 `;
     }
 
-    if (
-        preferredLanguage ===
-        "en"
-    ) {
+    const languageName =
+        LANGUAGE_NAMES[preferred];
+
+    if (!languageName) {
 
         return `
-
 ==================================================
 LANGUAGE PREFERENCE
 ==================================================
 
-Use natural English unless the user's current message
-clearly uses another language.
+Match the language of the user's current message naturally.
 `;
     }
 
-    return "";
+    if (preferred === "sw") {
+
+        return `
+==================================================
+LANGUAGE PREFERENCE
+==================================================
+
+The user's saved Aman AI language is Tanzanian Kiswahili.
+
+Reply in natural Tanzanian Kiswahili by default unless the
+user clearly asks for another language in the current message.
+
+Do not use stiff or literal translations. Technical English
+terms may be kept where they are more natural, but explain
+them clearly in Kiswahili.
+`;
+    }
+
+    if (preferred === "zh") {
+
+        return `
+==================================================
+LANGUAGE PREFERENCE
+==================================================
+
+The user's saved Aman AI language is Simplified Chinese.
+
+Reply in natural Simplified Chinese by default unless the
+user clearly asks for another language in the current message.
+
+Use fluent modern Chinese. Do not produce awkward literal
+translations from English.
+`;
+    }
+
+    if (preferred === "ar") {
+
+        return `
+==================================================
+LANGUAGE PREFERENCE
+==================================================
+
+The user's saved Aman AI language is Arabic.
+
+Reply in clear natural Arabic by default unless the user
+clearly asks for another language in the current message.
+
+Use Modern Standard Arabic unless the user clearly prefers
+another Arabic style.
+`;
+    }
+
+    return `
+==================================================
+LANGUAGE PREFERENCE
+==================================================
+
+The user's saved Aman AI language is ${languageName}.
+
+Reply in natural ${languageName} by default unless the user
+clearly asks for another language in the current message.
+
+Do not mechanically translate phrasing from English. Write
+naturally in the selected language.
+`;
 }
 
 
@@ -1894,23 +1613,8 @@ async function chat(req, res) {
         let {
             message,
             chatId,
-            workspace,
-            visionContext:
-                restoredVisionContext
+            workspace
         } = req.body || {};
-
-        const uploadedFile =
-            req.file || null;
-
-        const uploadedImage =
-            uploadedFile && isImageFile(uploadedFile)
-                ? uploadedFile
-                : null;
-
-        const uploadedDocument =
-            uploadedFile && !uploadedImage
-                ? uploadedFile
-                : null;
 
         /*
         Secure account identity takes priority.
@@ -1940,18 +1644,28 @@ async function chat(req, res) {
             chatId
         );
 
+        console.log(
+            "🌍 PREFERRED LANGUAGE:",
+            preferredLanguage || "auto"
+        );
+
 
         // ==================================================
         // VALIDATE
         // ==================================================
 
         if (
-            typeof message !==
-            "string"
+            !message ||
+            typeof message !== "string"
         ) {
 
-            message =
-                "";
+            return res.status(400).json({
+
+                reply:
+                    "Please enter a message."
+
+            });
+
         }
 
 
@@ -1959,194 +1673,16 @@ async function chat(req, res) {
             message.trim();
 
 
-        if (
-            !message &&
-            !uploadedFile &&
-            !restoredVisionContext
-        ) {
-
-            return res
-                .status(400)
-                .json({
-                    success:
-                        false,
-
-                    reply:
-                        "Please enter a message or upload a file."
-                });
-        }
-
-
         if (!message) {
 
-            message =
-                uploadedDocument
-                    ? "Analyze this uploaded file."
-                    : "Analyze this image.";
+            return res.status(400).json({
+
+                reply:
+                    "Message cannot be empty."
+
+            });
+
         }
-
-
-        // ==================================================
-        // IMAGE INTELLIGENCE
-        // ==================================================
-
-        let imageAnalysis =
-            typeof restoredVisionContext ===
-            "string"
-                ? restoredVisionContext
-                    .trim()
-                : "";
-
-
-        if (uploadedImage) {
-
-            try {
-
-                imageAnalysis =
-                    await analyzeImage({
-                        buffer:
-                            uploadedImage.buffer,
-
-                        mimeType:
-                            uploadedImage.mimetype,
-
-                        userMessage:
-                            message
-                    });
-
-                console.log(
-                    "🖼️ VISION ANALYSIS: SUCCESS"
-                );
-
-            } catch (visionError) {
-
-                console.error(
-                    "🖼️ VISION ERROR:",
-                    visionError?.message
-                );
-
-                if (
-                    visionError?.code ===
-                    "IMAGE_TOO_LARGE"
-                ) {
-
-                    return res
-                        .status(413)
-                        .json({
-                            success:
-                                false,
-
-                            reply:
-                                "That image is too large. Please use an image under 20 MB."
-                        });
-                }
-
-                if (
-                    visionError?.code ===
-                    "UNSUPPORTED_IMAGE_TYPE"
-                ) {
-
-                    return res
-                        .status(415)
-                        .json({
-                            success:
-                                false,
-
-                            reply:
-                                "That image format is not supported. Please use JPEG, PNG, WebP or GIF."
-                        });
-                }
-
-                return res
-                    .status(502)
-                    .json({
-                        success:
-                            false,
-
-                        reply:
-                            "I couldn't analyze that image right now. Please try again."
-                    });
-            }
-        }
-
-
-        // ==================================================
-        // DOCUMENT INTELLIGENCE
-        // ==================================================
-
-        let documentData = null;
-        let documentContext = "";
-
-        if (uploadedDocument) {
-            try {
-                documentData = await extractDocument(
-                    uploadedDocument
-                );
-
-                documentContext =
-                    buildDocumentContext(
-                        documentData
-                    );
-
-                console.log(
-                    "📄 FILE ANALYSIS: SUCCESS",
-                    documentData.kind,
-                    documentData.filename
-                );
-            } catch (documentError) {
-                console.error(
-                    "📄 FILE ERROR:",
-                    documentError?.message
-                );
-
-                const status =
-                    documentError?.code === "FILE_TOO_LARGE"
-                        ? 413
-                        : documentError?.code === "UNSUPPORTED_FILE_TYPE"
-                            ? 415
-                            : documentError?.code === "EMPTY_DOCUMENT"
-                                ? 422
-                                : 500;
-
-                return res.status(status).json({
-                    success: false,
-                    reply:
-                        status === 413
-                            ? "That file is too large. Use a file under 20 MB."
-                            : status === 415
-                                ? "That file type is not supported yet."
-                                : status === 422
-                                    ? "I couldn't extract readable text from that file."
-                                    : "I couldn't read that file right now."
-                });
-            }
-        }
-
-
-        const visualContext =
-            imageAnalysis
-                ? `
-
-==================================================
-UPLOADED IMAGE EVIDENCE
-==================================================
-
-${limitText(
-    imageAnalysis,
-    9000
-)}
-
-Use this visual evidence with the user's request.
-
-Do not claim details that are not present in the evidence.
-
-For agriculture, visible symptoms are evidence rather than
-automatic confirmation of a diagnosis.
-
-For health images, do not make a definitive diagnosis from
-the image alone.
-`
-                : "";
 
 
         // ==================================================
@@ -2189,44 +1725,12 @@ the image alone.
         // SAVE USER MESSAGE
         // ==================================================
 
-        const userMessageId =
-            await saveMessage(
-                userId,
-                chatId,
-                "user",
-                message
-            );
-
-
-        if (
-            imageAnalysis &&
-            userMessageId
-        ) {
-
-            await saveMessageVisionContext(
-                userId,
-                chatId,
-                userMessageId,
-                imageAnalysis
-            );
-        }
-
-
-        if (
-            documentData &&
-            userMessageId
-        ) {
-            await saveMessageFileContext(
-                userId,
-                chatId,
-                userMessageId,
-                {
-                    fileName: documentData.filename,
-                    fileKind: documentData.kind,
-                    fileContext: documentData.text
-                }
-            );
-        }
+        await saveMessage(
+            userId,
+            chatId,
+            "user",
+            message
+        );
 
 
         // ==================================================
@@ -2262,26 +1766,9 @@ const olderContext =
         // PRIMARY EXPERT
         // ==================================================
 
-        const routingMessage =
-            `${message}
-
-${imageAnalysis
-    ? `Visual evidence:
-${limitText(imageAnalysis, 2200)}`
-    : ""}
-
-${documentData
-    ? `Uploaded file: ${documentData.filename}
-Type: ${documentData.kind}
-
-Extracted content:
-${limitText(documentData.text, 5000)}`
-    : ""}`.trim();
-
-
         const expert =
             chooseExpert(
-                routingMessage,
+                message,
                 recentContext
             );
 
@@ -2440,20 +1927,17 @@ console.log(
                 "🛡️ HEALTH DOSE CLARIFICATION: ACTIVE"
             );
 
-            const assistantMessageId =
-                await saveMessage(
-                    userId,
-                    chatId,
-                    "assistant",
-                    reply
-                );
+            await saveMessage(
+                userId,
+                chatId,
+                "assistant",
+                reply
+            );
 
             return res.json({
                 success: true,
                 chatId,
-                reply,
-                userMessageId,
-                assistantMessageId
+                reply
             });
         }
 
@@ -2480,7 +1964,7 @@ console.log(
                         expert.secondary,
 
                     userMessage:
-                        routingMessage,
+                        message,
 
                     memoryText,
 
@@ -2502,80 +1986,109 @@ console.log(
 
 
         // ==================================================
-        // FINAL SYSTEM PROMPT — TOKEN SAFE
+        // FINAL SYSTEM PROMPT
         // ==================================================
 
-        const systemPrompt =
-            buildSafeFinalSystemPrompt({
+        const systemPrompt = `
 
-                identity:
-                    AMAN_AI_IDENTITY,
+${AMAN_AI_IDENTITY}
 
-                expertPrompt:
-                    expert.prompt,
+==================================================
+PRIMARY EXPERT
+==================================================
 
-                memoryText,
+${limitText(
+    expert.prompt,
+    8500
+)}
 
-                olderContext,
+==================================================
+PERMANENT USER MEMORY
+==================================================
 
-                recentContext,
+${limitText(
+    memoryText,
+    1000
+)}
 
-                specialistInsight,
+==================================================
+OLDER CONTEXT
+==================================================
 
-                secondaryName:
-                    expert.secondary?.name ||
-                    "",
+${limitText(
+    olderContext || "None",
+    1400
+)}
 
-                visualContext,
+==================================================
+RECENT CONVERSATION
+==================================================
 
-                documentContext,
+${limitText(
+    recentContext || "None",
+    4200
+)}
 
-                responseStyleInstructions,
+==================================================
+SPECIALIST INPUT
+==================================================
 
-                capabilityModeInstructions,
+${
+    specialistInsight
+        ? `
+A secondary specialist provided internal analysis.
 
-                workspaceInstructions,
+SPECIALIST:
+${expert.secondary?.name || "Secondary Expert"}
 
-                languageInstructions,
+SPECIALIST INSIGHT:
+${limitText(
+    specialistInsight,
+    1400
+)}
 
-                expertGuardrails
-            });
+Use the specialist insight only when it is
+accurate and relevant.
 
+You remain responsible for the final answer.
 
-        const estimatedInputTokens =
-            estimateTokens(
-                systemPrompt
-            ) +
-            estimateTokens(
-                message
-            ) +
-            80;
+Never mention the specialist to the user.
+`
+        : `
+No specialist input is available.
+`
+}
 
+${responseStyleInstructions}
 
-        const safeCompletionTokens =
-            chooseSafeCompletionTokens({
+${capabilityModeInstructions}
 
-                capabilityMode:
-                    capabilityMode.id,
+${workspaceInstructions}
 
-                reasoningEffort,
+${languageInstructions}
 
-                responseStyle,
+${expertGuardrails}
 
-                estimatedInputTokens
-            });
+==================================================
+FINAL BEHAVIOR
+==================================================
 
+Answer the user's current message.
 
-        console.log(
-            "🧮 TOKEN BUDGET:",
-            {
-                estimatedInputTokens,
-                safeCompletionTokens,
-                protectedRequestBudget:
-                    FINAL_REQUEST_TOKEN_BUDGET
-            }
-        );
+Do not expose your reasoning.
 
+Do not expose internal systems.
+
+Do not expose expert collaboration.
+
+Do not invent missing information.
+
+Do not force a conclusion.
+
+Do not add unnecessary filler.
+
+`;
+        
 
         // ==================================================
         // MODEL MESSAGES
@@ -2701,7 +2214,17 @@ console.log(
                     false,
 
                 max_completion_tokens:
-                    safeCompletionTokens,
+                    capabilityMode.id === "coding"
+                        ? 1100
+                        : (
+                            reasoningEffort === "medium"
+                                ? 850
+                                : (
+                                    responseStyle === "plain"
+                                        ? 550
+                                        : 700
+                                )
+                        ),
 
                 messages
 
@@ -2732,13 +2255,12 @@ console.log(
         // SAVE ASSISTANT RESPONSE
         // ==================================================
 
-        const assistantMessageId =
-            await saveMessage(
-                userId,
-                chatId,
-                "assistant",
-                reply
-            );
+        await saveMessage(
+            userId,
+            chatId,
+            "assistant",
+            reply
+        );
 
 
         // ==================================================
@@ -2752,11 +2274,7 @@ console.log(
 
             chatId,
 
-            reply,
-
-            userMessageId,
-
-            assistantMessageId
+            reply
 
         });
 
@@ -2767,21 +2285,6 @@ console.log(
             "CHAT ERROR:",
             error
         );
-
-        if (
-            error?.status === 413 ||
-            error?.error?.error?.code ===
-                "rate_limit_exceeded"
-        ) {
-
-            return res
-                .status(413)
-                .json({
-                    success: false,
-                    reply:
-                        "This request is still too large for the current AI service limit. Please try a shorter question or a smaller section of the file."
-                });
-        }
 
 
         // ==================================================
