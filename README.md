@@ -130,6 +130,41 @@ GROQ_API_KEY=your_api_key_here
 node server.js
 The server will run locally.
 
+AMAN AI v8 CREATOR MODE
+
+Replace:
+
+routes/chatRoutes.js
+
+index.html
+
+script.js
+
+style.css
+
+Add:
+
+services/mediaCreatorService.js
+
+No npm dependency was added; Node 24 built-in fetch is used.
+
+Render environment variable required:
+FAL_KEY=<your fal API key>
+
+Optional:
+AMAN_IMAGE_MODEL=fal-ai/flux-2
+AMAN_VIDEO_MODEL=fal-ai/kling-video/v3/standard/text-to-video
+
+Creator endpoints are mounted under the existing /chat router:
+POST /chat/creator/image
+POST /chat/creator/video
+GET  /chat/creator//status
+
+Image jobs use FLUX.2.
+Video jobs use Kling Video v3 Standard.
+Both run asynchronously through fal queue.
+Creator jobs are ownership-bound to the authenticated Aman AI account and persisted in PostgreSQL.
+
 ---
 
 # 🧪 Testing
