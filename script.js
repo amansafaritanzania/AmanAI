@@ -34,6 +34,13 @@ document.getElementById("sendBtn");
 
 const voiceBtn =
 document.getElementById("voiceBtn");
+const liveVoiceBtn = document.getElementById("liveVoiceBtn");
+const liveVoicePanel = document.getElementById("liveVoicePanel");
+const liveVoiceTitle = document.getElementById("liveVoiceTitle");
+const liveVoiceStatus = document.getElementById("liveVoiceStatus");
+const liveVoiceHint = document.getElementById("liveVoiceHint");
+const endLiveVoiceBtn = document.getElementById("endLiveVoiceBtn");
+
 
 const menuBtn =
 document.getElementById("menuBtn");
@@ -2021,7 +2028,8 @@ async function sendMessage() {
 async function sendMessageWithText(
     message,
     showUserMessage = true,
-    uploadFile = null
+    uploadFile = null,
+    options = {}
 ) {
 
     if (!message) {
@@ -2238,7 +2246,8 @@ async function sendMessageWithText(
             return sendMessageWithText(
                 message,
                 false,
-                uploadFile
+                uploadFile,
+                options
             );
         }
 
@@ -2309,12 +2318,23 @@ async function sendMessageWithText(
         );
 
 
+        const finalReply =
+            data.reply ||
+            "No response.";
+
         await typeAI(
             bubble,
-            data.reply ||
-            "No response."
+            finalReply
         );
 
+        if (
+            options.liveVoice &&
+            liveVoiceMode
+        ) {
+            await speakLiveReply(
+                finalReply
+            );
+        }
 
         loadChats();
 
@@ -3967,6 +3987,782 @@ if (deleteChatBtn) {
 }
 
 
+
+// ======================================================
+// LIVE VOICE CONVERSATION MODE v11
+// Mobile-safe: MediaRecorder -> Groq Whisper -> Aman AI
+// -> speechSynthesis. Does NOT depend on webkitSpeechRecognition.
+// ======================================================
+
+const LIVE_VOICE_COPY = {
+    en:{title:"Live Voice",ready:"Ready",listening:"Listening…",thinking:"Thinking…",speaking:"Speaking…",hint:"Speak naturally. Pause when you finish and Aman AI will answer.",end:"End voice chat",tooltip:"Live Voice"},
+    sw:{title:"Mazungumzo ya Sauti",ready:"Tayari",listening:"Ninasikiliza…",thinking:"Nafikiria…",speaking:"Ninazungumza…",hint:"Ongea kawaida. Ukimaliza, nyamaza kidogo na Aman AI itajibu.",end:"Maliza mazungumzo",tooltip:"Mazungumzo ya Sauti"},
+    zh:{title:"实时语音",ready:"准备就绪",listening:"正在聆听…",thinking:"正在思考…",speaking:"正在说话…",hint:"自然说话即可。说完后停顿一下，Aman AI 会回答。",end:"结束语音聊天",tooltip:"实时语音"},
+    fr:{title:"Voix en direct",ready:"Prêt",listening:"Écoute…",thinking:"Réflexion…",speaking:"Parle…",hint:"Parlez naturellement. Faites une courte pause quand vous avez terminé.",end:"Terminer le chat vocal",tooltip:"Voix en direct"},
+    es:{title:"Voz en vivo",ready:"Listo",listening:"Escuchando…",thinking:"Pensando…",speaking:"Hablando…",hint:"Habla con naturalidad. Haz una pausa al terminar y Aman AI responderá.",end:"Finalizar chat de voz",tooltip:"Voz en vivo"},
+    pt:{title:"Voz ao vivo",ready:"Pronto",listening:"Ouvindo…",thinking:"Pensando…",speaking:"Falando…",hint:"Fale naturalmente. Faça uma pausa ao terminar e Aman AI responderá.",end:"Encerrar conversa por voz",tooltip:"Voz ao vivo"},
+    de:{title:"Live-Sprache",ready:"Bereit",listening:"Hört zu…",thinking:"Denkt nach…",speaking:"Spricht…",hint:"Sprich normal. Mach am Ende eine kurze Pause, dann antwortet Aman AI.",end:"Sprachchat beenden",tooltip:"Live-Sprache"},
+    ar:{title:"المحادثة الصوتية المباشرة",ready:"جاهز",listening:"أستمع…",thinking:"أفكر…",speaking:"أتحدث…",hint:"تحدث بشكل طبيعي، ثم توقف قليلًا عندما تنتهي.",end:"إنهاء المحادثة الصوتية",tooltip:"المحادثة الصوتية المباشرة"},
+    hi:{title:"लाइव वॉइस",ready:"तैयार",listening:"सुन रहा है…",thinking:"सोच रहा है…",speaking:"बोल रहा है…",hint:"स्वाभाविक रूप से बोलें। पूरा होने पर थोड़ी देर रुकें।",end:"वॉइस चैट समाप्त करें",tooltip:"लाइव वॉइस"},
+    ja:{title:"ライブ音声",ready:"準備完了",listening:"聞いています…",thinking:"考えています…",speaking:"話しています…",hint:"自然に話してください。話し終えたら少し間を置いてください。",end:"音声チャットを終了",tooltip:"ライブ音声"}
+};
+
+let liveVoiceMode = false;
+let liveVoiceBusy = false;
+let liveVoiceTimer = null;
+
+let liveMediaStream = null;
+let liveMediaRecorder = null;
+let liveAudioContext = null;
+let liveAnalyser = null;
+let liveSourceNode = null;
+let liveMeterFrame = null;
+let liveChunks = [];
+let liveSpeechHeard = false;
+let liveLastVoiceAt = 0;
+let liveTurnStartedAt = 0;
+let liveCancelCurrentTurn = false;
+
+function liveVoiceCopy(){
+    const l =
+        uiPreferences?.language ||
+        document.documentElement.lang ||
+        "en";
+
+    return LIVE_VOICE_COPY[l] ||
+        LIVE_VOICE_COPY.en;
+}
+
+function setLiveVoiceState(state){
+    const c = liveVoiceCopy();
+
+    if (!liveVoicePanel) return;
+
+    liveVoicePanel.dataset.state = state;
+    liveVoiceTitle.textContent = c.title;
+    liveVoiceHint.textContent = c.hint;
+    endLiveVoiceBtn.textContent = c.end;
+    liveVoiceStatus.textContent =
+        c[state] || c.ready;
+
+    liveVoiceBtn.dataset.tooltip = c.tooltip;
+    liveVoiceBtn.title = c.tooltip;
+    liveVoiceBtn.setAttribute(
+        "aria-label",
+        c.tooltip
+    );
+}
+
+function openLiveVoice(){
+    liveVoicePanel?.classList.add("open");
+    liveVoicePanel?.setAttribute(
+        "aria-hidden",
+        "false"
+    );
+    document.body.classList.add(
+        "live-voice-open"
+    );
+}
+
+function closeLiveVoice(){
+    liveVoicePanel?.classList.remove("open");
+    liveVoicePanel?.setAttribute(
+        "aria-hidden",
+        "true"
+    );
+    document.body.classList.remove(
+        "live-voice-open"
+    );
+}
+
+function supportedRecordingMime(){
+    const choices = [
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/ogg;codecs=opus",
+        "audio/ogg",
+        "audio/mp4"
+    ];
+
+    for (const type of choices) {
+        if (
+            window.MediaRecorder &&
+            MediaRecorder.isTypeSupported(type)
+        ) {
+            return type;
+        }
+    }
+
+    return "";
+}
+
+function blobToBase64(blob){
+    return new Promise(
+        (resolve, reject) => {
+            const reader =
+                new FileReader();
+
+            reader.onloadend =
+                () => {
+                    const value =
+                        String(
+                            reader.result || ""
+                        );
+
+                    resolve(
+                        value.includes(",")
+                            ? value.split(",")[1]
+                            : value
+                    );
+                };
+
+            reader.onerror =
+                () =>
+                    reject(
+                        new Error(
+                            "Could not read voice recording."
+                        )
+                    );
+
+            reader.readAsDataURL(blob);
+        }
+    );
+}
+
+async function transcribeVoiceBlob(blob){
+    const audioBase64 =
+        await blobToBase64(blob);
+
+    const language =
+        getPreferredSpeechLocale()
+            .split("-")[0]
+            .toLowerCase();
+
+    const response =
+        await fetch(
+            "/api/voice/transcribe",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
+                credentials:
+                    "same-origin",
+                body:
+                    JSON.stringify({
+                        audioBase64,
+                        mimeType:
+                            blob.type ||
+                            "audio/webm",
+                        language
+                    })
+            }
+        );
+
+    if (response.status === 401) {
+        location.replace("/login");
+        throw new Error(
+            "Please sign in again."
+        );
+    }
+
+    const data =
+        await response.json()
+            .catch(() => ({}));
+
+    if (
+        !response.ok ||
+        data.success === false
+    ) {
+        throw new Error(
+            data.message ||
+            "Could not understand the recording."
+        );
+    }
+
+    return String(
+        data.text || ""
+    ).trim();
+}
+
+function stopLiveMeter(){
+    if (liveMeterFrame) {
+        cancelAnimationFrame(
+            liveMeterFrame
+        );
+        liveMeterFrame = null;
+    }
+}
+
+function releaseLiveMedia(){
+    stopLiveMeter();
+
+    if (liveSourceNode) {
+        try {
+            liveSourceNode.disconnect();
+        } catch {}
+        liveSourceNode = null;
+    }
+
+    if (liveAnalyser) {
+        try {
+            liveAnalyser.disconnect();
+        } catch {}
+        liveAnalyser = null;
+    }
+
+    if (liveAudioContext) {
+        try {
+            liveAudioContext.close();
+        } catch {}
+        liveAudioContext = null;
+    }
+
+    if (liveMediaStream) {
+        liveMediaStream
+            .getTracks()
+            .forEach(
+                track => track.stop()
+            );
+        liveMediaStream = null;
+    }
+}
+
+function stopLiveCapture(cancel=false){
+    liveCancelCurrentTurn =
+        liveCancelCurrentTurn || cancel;
+
+    stopLiveMeter();
+
+    if (
+        liveMediaRecorder &&
+        liveMediaRecorder.state !==
+            "inactive"
+    ) {
+        try {
+            liveMediaRecorder.stop();
+        } catch {}
+    }
+}
+
+function startSilenceMeter(stream){
+    const AudioContextClass =
+        window.AudioContext ||
+        window.webkitAudioContext;
+
+    if (!AudioContextClass) {
+        clearTimeout(liveVoiceTimer);
+        liveVoiceTimer =
+            setTimeout(
+                () =>
+                    stopLiveCapture(false),
+                7000
+            );
+        return;
+    }
+
+    if (liveAudioContext) {
+        try {
+            liveAudioContext.close();
+        } catch {}
+    }
+
+    liveAudioContext =
+        new AudioContextClass();
+
+    liveSourceNode =
+        liveAudioContext
+            .createMediaStreamSource(
+                stream
+            );
+
+    liveAnalyser =
+        liveAudioContext
+            .createAnalyser();
+
+    liveAnalyser.fftSize = 1024;
+    liveAnalyser.smoothingTimeConstant =
+        0.35;
+
+    liveSourceNode.connect(
+        liveAnalyser
+    );
+
+    const samples =
+        new Uint8Array(
+            liveAnalyser.fftSize
+        );
+
+    const measure = () => {
+        if (
+            !liveVoiceMode ||
+            !liveMediaRecorder ||
+            liveMediaRecorder.state !==
+                "recording"
+        ) {
+            return;
+        }
+
+        liveAnalyser.getByteTimeDomainData(
+            samples
+        );
+
+        let sum = 0;
+
+        for (
+            let i = 0;
+            i < samples.length;
+            i++
+        ) {
+            const n =
+                (samples[i] - 128) /
+                128;
+
+            sum += n * n;
+        }
+
+        const rms =
+            Math.sqrt(
+                sum / samples.length
+            );
+
+        const now = Date.now();
+
+        if (rms > 0.035) {
+            liveSpeechHeard = true;
+            liveLastVoiceAt = now;
+        }
+
+        const elapsed =
+            now - liveTurnStartedAt;
+
+        const silentFor =
+            now - liveLastVoiceAt;
+
+        if (
+            liveSpeechHeard &&
+            elapsed > 900 &&
+            silentFor > 1150
+        ) {
+            stopLiveCapture(false);
+            return;
+        }
+
+        if (elapsed > 20000) {
+            stopLiveCapture(false);
+            return;
+        }
+
+        if (
+            !liveSpeechHeard &&
+            elapsed > 8000
+        ) {
+            stopLiveCapture(false);
+            return;
+        }
+
+        liveMeterFrame =
+            requestAnimationFrame(
+                measure
+            );
+    };
+
+    liveMeterFrame =
+        requestAnimationFrame(
+            measure
+        );
+}
+
+async function ensureLiveMicrophone(){
+    if (
+        !navigator.mediaDevices?.getUserMedia ||
+        !window.MediaRecorder
+    ) {
+        throw new Error(
+            "This browser cannot record microphone audio."
+        );
+    }
+
+    if (
+        liveMediaStream &&
+        liveMediaStream
+            .getAudioTracks()
+            .some(
+                track =>
+                    track.readyState ===
+                    "live"
+            )
+    ) {
+        return liveMediaStream;
+    }
+
+    liveMediaStream =
+        await navigator.mediaDevices
+            .getUserMedia({
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true,
+                    channelCount: 1
+                }
+            });
+
+    return liveMediaStream;
+}
+
+function scheduleLiveListen(delay=420){
+    clearTimeout(liveVoiceTimer);
+
+    if (
+        !liveVoiceMode ||
+        liveVoiceBusy
+    ) {
+        return;
+    }
+
+    liveVoiceTimer =
+        setTimeout(
+            startLiveListening,
+            delay
+        );
+}
+
+async function startLiveListening(){
+    if (
+        !liveVoiceMode ||
+        liveVoiceBusy
+    ) {
+        return;
+    }
+
+    try {
+        const stream =
+            await ensureLiveMicrophone();
+
+        if (!liveVoiceMode) {
+            return;
+        }
+
+        const mimeType =
+            supportedRecordingMime();
+
+        liveChunks = [];
+        liveSpeechHeard = false;
+        liveLastVoiceAt = Date.now();
+        liveTurnStartedAt = Date.now();
+        liveCancelCurrentTurn = false;
+
+        liveMediaRecorder =
+            mimeType
+                ? new MediaRecorder(
+                    stream,
+                    { mimeType }
+                )
+                : new MediaRecorder(
+                    stream
+                );
+
+        liveMediaRecorder.ondataavailable =
+            event => {
+                if (
+                    event.data &&
+                    event.data.size > 0
+                ) {
+                    liveChunks.push(
+                        event.data
+                    );
+                }
+            };
+
+        liveMediaRecorder.onerror =
+            event => {
+                console.error(
+                    "LIVE VOICE RECORDER ERROR:",
+                    event?.error ||
+                    event
+                );
+            };
+
+        liveMediaRecorder.onstop =
+            async () => {
+                stopLiveMeter();
+
+                const cancelled =
+                    liveCancelCurrentTurn;
+
+                const chunks =
+                    liveChunks;
+
+                liveChunks = [];
+                liveMediaRecorder = null;
+
+                if (
+                    cancelled ||
+                    !liveVoiceMode
+                ) {
+                    return;
+                }
+
+                const blob =
+                    new Blob(
+                        chunks,
+                        {
+                            type:
+                                mimeType ||
+                                chunks[0]?.type ||
+                                "audio/webm"
+                        }
+                    );
+
+                if (
+                    !liveSpeechHeard ||
+                    blob.size < 600
+                ) {
+                    scheduleLiveListen(
+                        350
+                    );
+                    return;
+                }
+
+                liveVoiceBusy = true;
+                setLiveVoiceState(
+                    "thinking"
+                );
+
+                try {
+                    const transcript =
+                        await transcribeVoiceBlob(
+                            blob
+                        );
+
+                    if (
+                        transcript &&
+                        liveVoiceMode
+                    ) {
+                        await sendMessageWithText(
+                            transcript,
+                            false,
+                            null,
+                            {
+                                liveVoice: true
+                            }
+                        );
+                    }
+
+                } catch (error) {
+                    console.error(
+                        "LIVE VOICE ERROR:",
+                        error
+                    );
+
+                    if (
+                        liveVoiceMode
+                    ) {
+                        liveVoiceStatus.textContent =
+                            error?.message ||
+                            "Voice failed. Try again.";
+                    }
+
+                } finally {
+                    liveVoiceBusy = false;
+
+                    if (
+                        liveVoiceMode
+                    ) {
+                        scheduleLiveListen(
+                            500
+                        );
+                    }
+                }
+            };
+
+        liveMediaRecorder.start(
+            250
+        );
+
+        setLiveVoiceState(
+            "listening"
+        );
+
+        startSilenceMeter(
+            stream
+        );
+
+    } catch (error) {
+        console.error(
+            "MICROPHONE ERROR:",
+            error
+        );
+
+        const denied =
+            error?.name ===
+                "NotAllowedError" ||
+            error?.name ===
+                "PermissionDeniedError";
+
+        alert(
+            denied
+                ? "Microphone permission is blocked. Allow microphone access for Aman AI, reload, and try again."
+                : (
+                    error?.message ||
+                    "Aman AI could not start the microphone."
+                )
+        );
+
+        endLiveVoiceMode();
+    }
+}
+
+function speakLiveReply(text){
+    return new Promise(
+        resolve => {
+            if (
+                !liveVoiceMode ||
+                !(
+                    "speechSynthesis" in
+                    window
+                )
+            ) {
+                resolve();
+                return;
+            }
+
+            const spoken =
+                cleanSpeechText(text);
+
+            if (!spoken) {
+                resolve();
+                return;
+            }
+
+            stopReadAloud();
+
+            const utterance =
+                new SpeechSynthesisUtterance(
+                    spoken
+                );
+
+            const locale =
+                getPreferredSpeechLocale();
+
+            utterance.lang =
+                locale;
+
+            const voice =
+                chooseSpeechVoice(
+                    locale
+                );
+
+            if (voice) {
+                utterance.voice =
+                    voice;
+            }
+
+            utterance.rate = 1;
+            utterance.pitch = 1;
+            utterance.volume = 1;
+
+            setLiveVoiceState(
+                "speaking"
+            );
+
+            let finished = false;
+
+            const finish = () => {
+                if (finished) return;
+                finished = true;
+                resolve();
+            };
+
+            utterance.onend =
+                finish;
+
+            utterance.onerror =
+                finish;
+
+            window.speechSynthesis
+                .speak(utterance);
+        }
+    );
+}
+
+function endLiveVoiceMode(){
+    liveVoiceMode = false;
+    liveVoiceBusy = false;
+
+    clearTimeout(
+        liveVoiceTimer
+    );
+
+    stopLiveCapture(true);
+    stopVoiceInput();
+    stopReadAloud();
+
+    if (
+        "speechSynthesis" in window
+    ) {
+        speechSynthesis.cancel();
+    }
+
+    releaseLiveMedia();
+
+    liveVoiceBtn?.classList.remove(
+        "active"
+    );
+
+    closeLiveVoice();
+}
+
+async function startLiveVoiceMode(){
+    if (liveVoiceMode) {
+        endLiveVoiceMode();
+        return;
+    }
+
+    if (
+        !navigator.mediaDevices
+            ?.getUserMedia ||
+        !window.MediaRecorder
+    ) {
+        alert(
+            "Live Voice needs microphone recording support. Open Aman AI in a recent Chrome, Edge, Safari, or Android browser."
+        );
+        return;
+    }
+
+    stopVoiceInput();
+    stopReadAloud();
+
+    liveVoiceMode = true;
+    liveVoiceBusy = false;
+
+    openLiveVoice();
+
+    liveVoiceBtn?.classList.add(
+        "active"
+    );
+
+    setLiveVoiceState(
+        "ready"
+    );
+
+    // getUserMedia is called directly from this user tap,
+    // which is important for mobile permission handling.
+    await startLiveListening();
+}
+
+liveVoiceBtn?.addEventListener(
+    "click",
+    startLiveVoiceMode
+);
+
+endLiveVoiceBtn?.addEventListener(
+    "click",
+    endLiveVoiceMode
+);
+
+
 // ======================================================
 // VOICE INPUT
 // ======================================================
@@ -4790,6 +5586,10 @@ function applyTranslations(language) {
     document.documentElement.dir = language === "ar" ? "rtl" : "ltr";
 
     applyTooltipTranslations(t);
+
+    if (liveVoicePanel?.classList.contains("open")) {
+        setLiveVoiceState(liveVoicePanel.dataset.state || "ready");
+    }
 
     document.querySelectorAll("[data-i18n]").forEach(element => {
         const key = element.dataset.i18n;
