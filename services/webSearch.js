@@ -5,299 +5,623 @@
  *
  * PURPOSE:
  * - Search current information using Groq Compound
- * - Visit websites when deeper verification is needed
- * - Return the final answer
- * - Return raw source information
+ * - Support fast and deep research
+ * - Extract sources returned by Groq
  *
  * IMPORTANT:
- * This file does NOT modify chat memory.
- * This file does NOT modify expert routing.
- * This file does NOT modify the normal AI model.
- *
- * chatController.js will connect to it later.
+ * - No memory modification
+ * - No expert routing
+ * - No citation_options parameter
  */
 
-const FULL_WEB_MODEL = "groq/compound";
-const FAST_WEB_MODEL = "groq/compound-mini";
+const FULL_WEB_MODEL =
+    "groq/compound";
+
+const FAST_WEB_MODEL =
+    "groq/compound-mini";
 
 
 /**
- * Make sure we received valid messages.
+ * Validate messages.
  */
-function validateMessages(messages) {
-  if (!Array.isArray(messages)) {
-    throw new Error("Web search requires a messages array.");
-  }
+function validateMessages(
+    messages
+) {
 
-  if (messages.length === 0) {
-    throw new Error("Web search received an empty messages array.");
-  }
+    if (!Array.isArray(messages)) {
 
-  return messages.filter(
-    msg =>
-      msg &&
-      typeof msg === "object" &&
-      typeof msg.role === "string" &&
-      typeof msg.content === "string"
-  );
+        throw new Error(
+            "Web search requires a messages array."
+        );
+    }
+
+
+    const valid =
+        messages.filter(
+            message =>
+                message &&
+                typeof message === "object" &&
+                typeof message.role === "string" &&
+                typeof message.content === "string" &&
+                message.content.trim()
+        );
+
+
+    if (!valid.length) {
+
+        throw new Error(
+            "Web search received no valid messages."
+        );
+    }
+
+
+    return valid;
 }
 
 
 /**
- * Extract search results returned by Groq Compound.
- *
- * We keep this fairly raw for now.
- * sourceFormatter.js will improve formatting later.
+ * Select Compound system.
  */
-function extractSearchResults(executedTools = []) {
-  const results = [];
+function getWebModel(
+    mode = "deep"
+) {
 
-  if (!Array.isArray(executedTools)) {
+    return mode === "fast"
+        ? FAST_WEB_MODEL
+        : FULL_WEB_MODEL;
+}
+
+
+/**
+ * Extract web-search results from
+ * Compound executed tools.
+ */
+function extractSearchResults(
+    executedTools = []
+) {
+
+    if (
+        !Array.isArray(
+            executedTools
+        )
+    ) {
+
+        return [];
+    }
+
+
+    const results = [];
+
+
+    for (
+        const tool
+        of executedTools
+    ) {
+
+        const searchResults =
+            tool
+                ?.search_results
+                ?.results;
+
+
+        if (
+            !Array.isArray(
+                searchResults
+            )
+        ) {
+
+            continue;
+        }
+
+
+        for (
+            const result
+            of searchResults
+        ) {
+
+            if (
+                !result ||
+                !result.url
+            ) {
+
+                continue;
+            }
+
+
+            results.push({
+
+                title:
+                    typeof result.title ===
+                    "string"
+                        ? result.title.trim()
+                        : "Source",
+
+                url:
+                    result.url,
+
+                content:
+                    typeof result.content ===
+                    "string"
+                        ? result.content.trim()
+                        : "",
+
+                score:
+                    typeof result.score ===
+                    "number"
+                        ? result.score
+                        : null
+            });
+        }
+    }
+
+
     return results;
-  }
+}
 
-  for (const tool of executedTools) {
-    const searchResults = tool?.search_results?.results;
 
-    if (!Array.isArray(searchResults)) {
-      continue;
+/**
+ * Extract websites visited directly
+ * by Compound.
+ */
+function extractVisitedWebsites(
+    executedTools = []
+) {
+
+    if (
+        !Array.isArray(
+            executedTools
+        )
+    ) {
+
+        return [];
     }
 
-    for (const result of searchResults) {
-      if (!result?.url) {
-        continue;
-      }
 
-      results.push({
-        title:
-          typeof result.title === "string"
-            ? result.title.trim()
-            : "Source",
+    const results = [];
 
-        url: result.url,
 
-        content:
-          typeof result.content === "string"
-            ? result.content.trim()
-            : "",
+    for (
+        const tool
+        of executedTools
+    ) {
 
-        score:
-          typeof result.score === "number"
-            ? result.score
-            : null
-      });
+        /**
+         * Groq's executed tool structure
+         * may differ depending on tool/version.
+         *
+         * Search results are our main source
+         * extraction method.
+         *
+         * This block safely handles visited
+         * website URLs when exposed.
+         */
+
+        const url =
+            tool?.arguments?.url ||
+            tool?.args?.url ||
+            tool?.url;
+
+
+        if (
+            typeof url !== "string" ||
+            !url.startsWith("http")
+        ) {
+
+            continue;
+        }
+
+
+        results.push({
+
+            title:
+                "Visited website",
+
+            url,
+
+            content:
+                "",
+
+            score:
+                null
+        });
     }
-  }
 
-  return results;
+
+    return results;
 }
 
 
 /**
  * Remove duplicate URLs.
- *
- * Final advanced source filtering will still live
- * inside sourceFormatter.js later.
  */
-function removeDuplicateSources(sources = []) {
-  const seen = new Set();
+function removeDuplicateSources(
+    sources = []
+) {
 
-  return sources.filter(source => {
-    if (!source?.url) {
-      return false;
+    const seen =
+        new Set();
+
+    const unique =
+        [];
+
+
+    for (
+        const source
+        of sources
+    ) {
+
+        if (
+            !source ||
+            !source.url
+        ) {
+
+            continue;
+        }
+
+
+        const normalized =
+            String(source.url)
+                .trim()
+                .replace(
+                    /\/$/,
+                    ""
+                )
+                .toLowerCase();
+
+
+        if (
+            seen.has(
+                normalized
+            )
+        ) {
+
+            continue;
+        }
+
+
+        seen.add(
+            normalized
+        );
+
+
+        unique.push(
+            source
+        );
     }
 
-    const normalizedUrl = source.url
-      .trim()
-      .replace(/\/$/, "")
-      .toLowerCase();
 
-    if (seen.has(normalizedUrl)) {
-      return false;
-    }
-
-    seen.add(normalizedUrl);
-
-    return true;
-  });
+    return unique;
 }
 
 
 /**
- * Decide which Compound model to use.
- *
- * FAST:
- * groq/compound-mini
- * - one tool call
- * - lower latency
- *
- * DEEP:
- * groq/compound
- * - multiple tool calls
- * - better for research / verification
+ * Build optional search settings.
  */
-function getWebModel(mode = "deep") {
-  return mode === "fast"
-    ? FAST_WEB_MODEL
-    : FULL_WEB_MODEL;
+function buildSearchSettings({
+    country = null,
+    includeDomains = [],
+    excludeDomains = []
+} = {}) {
+
+    const settings =
+        {};
+
+
+    if (
+        typeof country === "string" &&
+        country.trim()
+    ) {
+
+        settings.country =
+            country.trim();
+    }
+
+
+    if (
+        Array.isArray(
+            includeDomains
+        ) &&
+        includeDomains.length
+    ) {
+
+        settings.include_domains =
+            includeDomains
+                .filter(Boolean);
+    }
+
+
+    if (
+        Array.isArray(
+            excludeDomains
+        ) &&
+        excludeDomains.length
+    ) {
+
+        settings.exclude_domains =
+            excludeDomains
+                .filter(Boolean);
+    }
+
+
+    return settings;
 }
 
 
 /**
  * Main web research function.
- *
- * groqClient:
- * We receive the existing Groq client from chatController later.
- * This means this file does NOT need to know how config/groq.js exports it.
  */
 async function runWebResearch({
-  groqClient,
-  messages,
-  mode = "deep",
-  country = null,
-  includeDomains = [],
-  excludeDomains = []
-}) {
-  if (
-    !groqClient ||
-    !groqClient.chat ||
-    !groqClient.chat.completions ||
-    typeof groqClient.chat.completions.create !== "function"
-  ) {
-    throw new Error(
-      "A valid Groq client was not provided to webSearch."
-    );
-  }
 
-  const validMessages = validateMessages(messages);
+    groqClient,
 
-  if (validMessages.length === 0) {
-    throw new Error(
-      "No valid messages were available for web research."
-    );
-  }
+    messages,
 
-  const model = getWebModel(mode);
+    mode = "deep",
 
-  const searchSettings = {};
+    country = null,
 
-  // Country is optional.
-  // We won't hardcode Tanzania yet.
-  if (
-    typeof country === "string" &&
-    country.trim()
-  ) {
-    searchSettings.country = country.trim();
-  }
+    includeDomains = [],
 
-  if (
-    Array.isArray(includeDomains) &&
-    includeDomains.length > 0
-  ) {
-    searchSettings.include_domains =
-      includeDomains.filter(Boolean);
-  }
+    excludeDomains = []
 
-  if (
-    Array.isArray(excludeDomains) &&
-    excludeDomains.length > 0
-  ) {
-    searchSettings.exclude_domains =
-      excludeDomains.filter(Boolean);
-  }
+} = {}) {
 
-  const request = {
-    model,
 
-    messages: validMessages,
+    if (
+        !groqClient ||
+        !groqClient.chat ||
+        !groqClient.chat.completions ||
+        typeof groqClient
+            .chat
+            .completions
+            .create !== "function"
+    ) {
 
-    // Ask Groq to include citations in generated answers.
-    citation_options: "enabled",
-
-    // For this service we ONLY need internet research.
-    // No code execution or Wolfram here.
-    compound_custom: {
-      tools: {
-        enabled_tools: [
-          "web_search",
-          "visit_website"
-        ]
-      }
+        throw new Error(
+            "A valid Groq client was not provided to webSearch."
+        );
     }
-  };
 
-  if (Object.keys(searchSettings).length > 0) {
-    request.search_settings = searchSettings;
-  }
 
-  let completion;
+    const validMessages =
+        validateMessages(
+            messages
+        );
 
-  try {
-    completion =
-      await groqClient.chat.completions.create(request);
-  } catch (error) {
-    console.error(
-      "🌐 WEB RESEARCH ERROR:",
-      error?.message || error
+
+    const model =
+        getWebModel(
+            mode
+        );
+
+
+    const searchSettings =
+        buildSearchSettings({
+
+            country,
+
+            includeDomains,
+
+            excludeDomains
+        });
+
+
+    // ==========================================
+    // REQUEST
+    // ==========================================
+
+    const request = {
+
+        model,
+
+        messages:
+            validMessages,
+
+        /**
+         * IMPORTANT:
+         *
+         * DO NOT send:
+         *
+         * citation_options: "enabled"
+         *
+         * Compound web search already handles
+         * source citations automatically.
+         *
+         * Explicit citation_options currently
+         * causes compound-mini to return HTTP 400.
+         */
+
+        compound_custom: {
+
+            tools: {
+
+                enabled_tools: [
+                    "web_search",
+                    "visit_website"
+                ]
+            }
+        }
+    };
+
+
+    if (
+        Object.keys(
+            searchSettings
+        ).length > 0
+    ) {
+
+        request.search_settings =
+            searchSettings;
+    }
+
+
+    // ==========================================
+    // GROQ CALL
+    // ==========================================
+
+    let completion;
+
+
+    try {
+
+        console.log(
+            "🌐 WEB MODEL:",
+            model
+        );
+
+
+        completion =
+            await groqClient
+                .chat
+                .completions
+                .create(
+                    request
+                );
+
+
+    } catch (error) {
+
+        console.error(
+            "🌐 WEB RESEARCH ERROR:",
+            error?.status ||
+            "",
+            error?.message ||
+            error
+        );
+
+
+        throw error;
+    }
+
+
+    // ==========================================
+    // RESPONSE
+    // ==========================================
+
+    const aiMessage =
+        completion
+            ?.choices?.[0]
+            ?.message;
+
+
+    if (!aiMessage) {
+
+        throw new Error(
+            "Web research returned no AI message."
+        );
+    }
+
+
+    const answer =
+        typeof aiMessage.content ===
+        "string"
+            ? aiMessage
+                .content
+                .trim()
+            : "";
+
+
+    if (!answer) {
+
+        throw new Error(
+            "Web research returned an empty answer."
+        );
+    }
+
+
+    // ==========================================
+    // EXECUTED TOOLS
+    // ==========================================
+
+    const executedTools =
+        Array.isArray(
+            aiMessage
+                .executed_tools
+        )
+            ? aiMessage
+                .executed_tools
+            : [];
+
+
+    console.log(
+        "🌐 TOOLS EXECUTED:",
+        executedTools.length
     );
 
-    throw new Error(
-      "Aman AI could not complete web research."
+
+    // ==========================================
+    // SOURCES
+    // ==========================================
+
+    const searchSources =
+        extractSearchResults(
+            executedTools
+        );
+
+
+    const visitedSources =
+        extractVisitedWebsites(
+            executedTools
+        );
+
+
+    const sources =
+        removeDuplicateSources([
+            ...searchSources,
+            ...visitedSources
+        ]);
+
+
+    console.log(
+        "🌐 SOURCES FOUND:",
+        sources.length
     );
-  }
 
-  const aiMessage =
-    completion?.choices?.[0]?.message;
 
-  if (!aiMessage) {
-    throw new Error(
-      "Web research returned no AI message."
-    );
-  }
+    // ==========================================
+    // RESULT
+    // ==========================================
 
-  const answer =
-    typeof aiMessage.content === "string"
-      ? aiMessage.content.trim()
-      : "";
+    return {
 
-  const executedTools = Array.isArray(
-    aiMessage.executed_tools
-  )
-    ? aiMessage.executed_tools
-    : [];
+        success:
+            true,
 
-  const rawSources =
-    extractSearchResults(executedTools);
+        answer,
 
-  const sources =
-    removeDuplicateSources(rawSources);
+        model:
+            completion?.model ||
+            model,
 
-  return {
-    success: true,
+        searchedWeb:
+            executedTools.length > 0,
 
-    answer,
+        sources,
 
-    model:
-      completion?.model ||
-      model,
+        sourceCount:
+            sources.length,
 
-    searchedWeb:
-      executedTools.length > 0,
+        executedToolCount:
+            executedTools.length,
 
-    sources,
-
-    sourceCount:
-      sources.length,
-
-    usage:
-      completion?.usage || null
-  };
+        usage:
+            completion?.usage ||
+            null
+    };
 }
 
 
 module.exports = {
-  runWebResearch,
-  extractSearchResults,
-  removeDuplicateSources,
-  getWebModel
+
+    runWebResearch,
+
+    extractSearchResults,
+
+    extractVisitedWebsites,
+
+    removeDuplicateSources,
+
+    buildSearchSettings,
+
+    getWebModel
 };
