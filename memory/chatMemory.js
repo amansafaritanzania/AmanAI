@@ -61,6 +61,54 @@ function cleanValue(
 
 
 // ======================================================
+// CLEAN PROJECT VALUE
+// ======================================================
+//
+// Project memory should be durable but conservative.
+// Keep the actual project name/description, not the whole
+// sentence that happened to mention it.
+// ======================================================
+
+function cleanProjectValue(
+    value
+) {
+
+    let project =
+        cleanValue(
+            value,
+            180
+        );
+
+    project =
+        project
+            .split(
+                /\s+(?:and\s+i|but\s+i|because\s+i|so\s+i|while\s+i)\b/i
+            )[0]
+            .trim()
+            .replace(
+                /^(?:a|an|the)\s+/i,
+                ""
+            );
+
+    if (
+        !project ||
+        project.length < 2
+    ) {
+        return "";
+    }
+
+    const blocked =
+        /^(?:it|this|that|something|project|work|school|coding|website|app)$/i;
+
+    if (blocked.test(project)) {
+        return "";
+    }
+
+    return project;
+}
+
+
+// ======================================================
 // VALIDATE NAME
 // ======================================================
 //
@@ -157,7 +205,7 @@ function addUniqueFact(
     Keep permanent memory intentionally compact.
     This also protects the Groq token budget.
     */
-    return facts.slice(-20);
+    return facts.slice(-40);
 }
 
 
@@ -377,37 +425,58 @@ function extractMemory(message) {
 
 
     // ==================================================
-    // ACTIVE / DURABLE PROJECTS
+    // DURABLE PROJECT / WORK MEMORY
     // ==================================================
     //
-    // Save projects the user clearly says they are
-    // building, developing or working on. Projects are
-    // account-wide so every workspace can use them.
+    // Examples intentionally supported:
+    // "My project is Aman AI"
+    // "I'm working on Aman Safari"
+    // "I am building Shamba GPT"
+    // "We are developing Aman AI"
+    // "I have a project called Aman AI"
+    //
+    // This is account-wide memory, so the same project can
+    // be recalled from General, Coding, Business, School,
+    // Safari, Agriculture, etc.
     // ==================================================
 
     const projectPatterns = [
 
-        /\bmy\s+(?:work\s+)?project\s+is\s+(.{2,180})$/i,
+        /\bmy\s+(?:current\s+)?project\s+is\s+(.{2,180})$/i,
 
-        /\bmy\s+current\s+project\s+is\s+(.{2,180})$/i,
+        /\bmy\s+(?:main\s+)?project\s+is\s+(.{2,180})$/i,
 
-        /\bi(?:'m|\s+am)\s+working\s+on\s+(.{2,180})$/i,
+        /\bthe\s+project\s+i(?:'m|\s+am)\s+working\s+on\s+is\s+(.{2,180})$/i,
 
-        /\bi(?:'m|\s+am)\s+building\s+(.{2,180})$/i,
+        /\bi\s+have\s+(?:a\s+)?project\s+(?:called|named)\s+(.{2,180})$/i,
 
-        /\bi(?:'m|\s+am)\s+developing\s+(.{2,180})$/i,
+        /\bi(?:'m|\s+am)\s+(?:currently\s+)?working\s+on\s+(.{2,180})$/i,
 
-        /\bi\s+started\s+(?:a\s+project\s+called\s+)?(.{2,180})$/i,
+        /\bi\s+work\s+on\s+(.{2,180})$/i,
+
+        /\bi(?:'m|\s+am)\s+(?:currently\s+)?building\s+(.{2,180})$/i,
+
+        /\bi(?:'m|\s+am)\s+(?:currently\s+)?developing\s+(.{2,180})$/i,
+
+        /\bi(?:'m|\s+am)\s+(?:currently\s+)?creating\s+(.{2,180})$/i,
+
+        /\bour\s+(?:main\s+)?project\s+is\s+(.{2,180})$/i,
+
+        /\bwe(?:'re|\s+are)\s+(?:currently\s+)?working\s+on\s+(.{2,180})$/i,
+
+        /\bwe\s+work\s+on\s+(.{2,180})$/i,
+
+        /\bwe(?:'re|\s+are)\s+(?:currently\s+)?building\s+(.{2,180})$/i,
+
+        /\bwe(?:'re|\s+are)\s+(?:currently\s+)?developing\s+(.{2,180})$/i,
 
         /\bmradi\s+wangu\s+ni\s+(.{2,180})$/i,
 
-        /\bninafanya\s+(?:project|projekti|mradi)\s+(.{2,180})$/i,
-
-        /\bninaendeleza\s+(.{2,180})$/i,
-
-        /\bninatengeneza\s+(.{2,180})$/i
+        /\bninafanya\s+kazi\s+kwenye\s+mradi\s+(?:wa\s+)?(.{2,180})$/i
     ];
 
+
+    const projects = [];
 
     for (
         const pattern
@@ -425,22 +494,24 @@ function extractMemory(message) {
         ) {
 
             const project =
-                cleanValue(
-                    match[1],
-                    180
+                cleanProjectValue(
+                    match[1]
                 );
 
-            if (
-                project &&
-                project.length >= 2
-            ) {
-
-                memories.projects =
-                    [project];
+            if (project) {
+                projects.push(
+                    project
+                );
             }
 
             break;
         }
+    }
+
+
+    if (projects.length) {
+        memories.projects =
+            projects;
     }
 
 
@@ -478,69 +549,6 @@ function mergeMemory(
         ...previous,
         ...incoming
     };
-
-
-    // ==================================================
-    // MERGE PROJECTS ACCOUNT-WIDE
-    // ==================================================
-
-    let projects =
-        Array.isArray(
-            previous.projects
-        )
-            ? [...previous.projects]
-            : [];
-
-    const incomingProjects =
-        Array.isArray(
-            incoming.projects
-        )
-            ? incoming.projects
-            : [];
-
-    for (
-        const project
-        of incomingProjects
-    ) {
-
-        const cleanProject =
-            cleanValue(
-                project,
-                180
-            );
-
-        if (!cleanProject) {
-            continue;
-        }
-
-        const exists =
-            projects.some(
-                item =>
-                    String(item)
-                        .toLowerCase() ===
-                    cleanProject
-                        .toLowerCase()
-            );
-
-        if (!exists) {
-            projects.push(
-                cleanProject
-            );
-        }
-    }
-
-    /*
-    Keep several durable projects, not only the latest one.
-    This allows Coding, Business, School, Safari and other
-    workspaces to remember the same account projects.
-    */
-    projects =
-        projects.slice(-12);
-
-    if (projects.length) {
-        merged.projects =
-            projects;
-    }
 
 
     // ==================================================
@@ -601,21 +609,70 @@ function mergeMemory(
     }
 
 
-    if (
+    // ==================================================
+    // MERGE PROJECTS ACROSS ALL WORKSPACES
+    // ==================================================
+
+    const previousProjects =
+        Array.isArray(
+            previous.projects
+        )
+            ? previous.projects
+            : [];
+
+    const incomingProjects =
         Array.isArray(
             incoming.projects
         )
+            ? incoming.projects
+            : [];
+
+    const projects = [];
+
+    for (
+        const item
+        of [
+            ...previousProjects,
+            ...incomingProjects
+        ]
     ) {
+
+        const project =
+            cleanProjectValue(
+                item
+            );
+
+        if (
+            project &&
+            !projects.some(
+                existing =>
+                    existing
+                        .toLowerCase() ===
+                    project
+                        .toLowerCase()
+            )
+        ) {
+            projects.push(
+                project
+            );
+        }
+    }
+
+
+    if (projects.length) {
+
+        merged.projects =
+            projects.slice(-20);
 
         for (
             const project
-            of incoming.projects
+            of incomingProjects
         ) {
 
             facts =
                 addUniqueFact(
                     facts,
-                    `User project: ${project}`
+                    `User is working on project: ${project}`
                 );
         }
     }
