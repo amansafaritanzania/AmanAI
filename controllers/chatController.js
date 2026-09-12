@@ -1,5 +1,38 @@
 const groq = require("../config/groq");
 
+const {
+    getWebSearchDecision
+} = require("../services/webRouter");
+
+const {
+    getResearchDecision
+} = require("../services/researchRouter");
+
+const {
+    runWebResearch
+} = require("../services/webSearch");
+
+const {
+    formatSources
+} = require("../services/sourceFormatter");
+
+const {
+    verifyResearchAnswer,
+    getVerificationSummary
+} = require("../services/answerVerifier");
+
+const {
+    getCoreQualityPrompt
+} = require("../prompts/coreQuality");
+
+const {
+    getLanguageInstruction
+} = require("../services/languageRouter");
+
+const {
+    getResearchPrompt
+} = require("../services/researchPrompt");
+
 const chooseExpert =
     require("../services/expertRouter");
 
@@ -13,8 +46,8 @@ const {
 
 
 // ======================================================
-// AMAN AI CORE v8
-// Memory + Reasoning + Collaboration + Response Style
+// AMAN AI CORE v9
+// Memory + Reasoning + Collaboration + Response Style + Live Research + Quality
 // ======================================================
 
 
@@ -813,9 +846,11 @@ Do NOT make an absolute claim about:
 - government entry rules
 
 unless verified current information has actually been
-provided to you in the conversation or system context.
+provided in the conversation/system context OR obtained
+through live web research tools during this response.
 
-If verified current information is NOT available:
+If verified current information is NOT available after
+using any live research tools that are available:
 
 1. Explain briefly that the requirement can depend on
    factors such as nationality, origin, transit route or
@@ -1612,56 +1647,56 @@ Do not add unnecessary filler.
         
 
         // ==================================================
-        // MODEL MESSAGES
+        // AMAN AI v9 QUALITY + LIVE RESEARCH ROUTING
         // ==================================================
 
-        const messages = [
+        const webDecision =
+            getWebSearchDecision(
+                message
+            );
 
-            {
-                role:
-                    "system",
+        const shouldSearchWeb =
+            Boolean(
+                webDecision.shouldSearch
+            );
 
-                content:
-                    systemPrompt
-            },
-
-            {
-                role:
-                    "user",
-
-                content:
+        const researchDecision =
+            shouldSearchWeb
+                ? getResearchDecision(
                     message
-            }
+                )
+                : {
+                    mode: "none",
+                    model: null,
+                    complexity: 0
+                };
 
-        ];
+        console.log(
+            "🌐 WEB SEARCH:",
+            shouldSearchWeb
+                ? "YES"
+                : "NO",
+            "| REASON:",
+            webDecision.reason,
+            "| MODE:",
+            researchDecision.mode
+        );
 
 
         // ==================================================
-        // NATURAL CONVERSATIONAL PREFILL
+        // SHARED QUALITY LAYER
         // ==================================================
-        //
-        // Groq supports assistant-message prefilling for
-        // steering output. We only use it in plain mode.
-        //
-        // The prefill is intentionally tiny so the model
-        // does not get locked into an unnatural opening.
-        //
 
-        if (
-            responseStyle === "plain"
-        ) {
-
-            messages.push({
-
-                role:
-                    "assistant",
-
-                content:
-                    ""
-
+        const coreQualityPrompt =
+            getCoreQualityPrompt({
+                webAvailable:
+                    shouldSearchWeb,
+                expert:
+                    expert.id
             });
 
-        }
+        const languageInstruction =
+            getLanguageInstruction();
 
 
         // ==================================================
@@ -1706,56 +1741,351 @@ Do not add unnecessary filler.
 
 
         // ==================================================
-        // FINAL GROQ REQUEST
+        // RESPONSE STATE
         // ==================================================
 
-        console.log(
-            "\n========== GROQ FINAL REQUEST ==========\n"
-        );
+        let reply = "";
+        let sources = [];
+        let verification = null;
+        let responseModel =
+            "openai/gpt-oss-20b";
+        let searchedWeb = false;
+        let researchMode = "none";
+        let webFallback = false;
 
 
-        const completion =
-            await groq.chat.completions.create({
+        // ==================================================
+        // LIVE WEB RESEARCH PATH
+        // ==================================================
 
-                model:
-                    "openai/gpt-oss-20b",
+        if (shouldSearchWeb) {
 
-                temperature:
-                    0.2,
+            const researchPrompt =
+                getResearchPrompt({
+                    topic:
+                        expert.id
+                });
 
-                reasoning_effort:
-                    reasoningEffort,
+            const researchSystemPrompt = `
 
-                include_reasoning:
-                    false,
+${coreQualityPrompt}
 
-                max_completion_tokens:
+${languageInstruction}
+
+${systemPrompt}
+
+${researchPrompt}
+
+==================================================
+LIVE RESEARCH EXECUTION RULE
+==================================================
+
+This response has live research tools available.
+
+Use them for claims that can change over time.
+
+Do not say a current fact is verified unless the
+research evidence actually supports it.
+
+Prefer primary/official sources when available.
+`;
+
+            const researchMessages = [
+                {
+                    role:
+                        "system",
+                    content:
+                        researchSystemPrompt
+                },
+                {
+                    role:
+                        "user",
+                    content:
+                        message
+                }
+            ];
+
+            console.log(
+                "\n========== GROQ WEB RESEARCH REQUEST ==========\n"
+            );
+
+            try {
+
+                const research =
+                    await runWebResearch({
+
+                        groqClient:
+                            groq,
+
+                        messages:
+                            researchMessages,
+
+                        mode:
+                            researchDecision.mode
+                    });
+
+                reply =
+                    research.answer || "";
+
+                responseModel =
+                    research.model ||
+                    responseModel;
+
+                searchedWeb =
+                    Boolean(
+                        research.searchedWeb
+                    );
+
+                researchMode =
+                    researchDecision.mode;
+
+                sources =
+                    formatSources(
+                        research.sources,
+                        {
+                            maxSources: 6,
+                            includeContent: false
+                        }
+                    );
+
+                verification =
+                    verifyResearchAnswer({
+
+                        message,
+
+                        answer:
+                            reply,
+
+                        sources,
+
+                        searchedWeb,
+
+                        mode:
+                            researchDecision.mode
+                    });
+
+                console.log(
+                    "🔎 RESEARCH VERIFICATION:",
+                    getVerificationSummary(
+                        verification
+                    )
+                );
+
+                if (!reply) {
+                    throw new Error(
+                        "Web research returned an empty response."
+                    );
+                }
+
+            } catch (researchError) {
+
+                // ==========================================
+                // SAFE FALLBACK IF LIVE SEARCH FAILS
+                // ==========================================
+
+                console.error(
+                    "🌐 WEB RESEARCH FAILED:",
+                    researchError?.status,
+                    researchError?.message ||
+                        researchError
+                );
+
+                webFallback = true;
+                searchedWeb = false;
+                researchMode = "fallback";
+                sources = [];
+
+                verification = {
+                    verified: false,
+                    confidence: "low",
+                    warnings: [
+                        "live_web_search_failed"
+                    ]
+                };
+
+                const fallbackQualityPrompt =
+                    getCoreQualityPrompt({
+                        webAvailable:
+                            false,
+                        expert:
+                            expert.id
+                    });
+
+                const fallbackSystemPrompt = `
+
+${fallbackQualityPrompt}
+
+${languageInstruction}
+
+${systemPrompt}
+
+==================================================
+LIVE SEARCH FAILURE
+==================================================
+
+A live web-search attempt was required for this
+question, but the live research request failed.
+
+Do NOT pretend current information was verified.
+
+Do NOT invent current facts.
+
+If the answer depends on changing information,
+state the limitation naturally and give only stable
+background information that you can support.
+`;
+
+                const fallbackMessages = [
+                    {
+                        role:
+                            "system",
+                        content:
+                            fallbackSystemPrompt
+                    },
+                    {
+                        role:
+                            "user",
+                        content:
+                            message
+                    }
+                ];
+
+                if (
                     responseStyle === "plain"
-                        ? 550
-                        : 700,
+                ) {
+                    fallbackMessages.push({
+                        role:
+                            "assistant",
+                        content:
+                            ""
+                    });
+                }
 
-                messages
+                const fallbackCompletion =
+                    await groq.chat.completions.create({
 
-            });
+                        model:
+                            "openai/gpt-oss-20b",
 
+                        temperature:
+                            0.2,
 
-        // ==================================================
-        // GET RESPONSE
-        // ==================================================
+                        reasoning_effort:
+                            reasoningEffort,
 
-        let reply =
-            completion
-                .choices?.[0]
-                ?.message
-                ?.content
-                ?.trim();
+                        include_reasoning:
+                            false,
 
+                        max_completion_tokens:
+                            responseStyle === "plain"
+                                ? 550
+                                : 700,
 
-        if (!reply) {
+                        messages:
+                            fallbackMessages
+                    });
+
+                reply =
+                    fallbackCompletion
+                        .choices?.[0]
+                        ?.message
+                        ?.content
+                        ?.trim() || "";
+
+                responseModel =
+                    fallbackCompletion?.model ||
+                    "openai/gpt-oss-20b";
+            }
+
+        } else {
+
+            // ==================================================
+            // NORMAL AI PATH
+            // ==================================================
+
+            const normalSystemPrompt = `
+
+${coreQualityPrompt}
+
+${languageInstruction}
+
+${systemPrompt}
+`;
+
+            const messages = [
+                {
+                    role:
+                        "system",
+                    content:
+                        normalSystemPrompt
+                },
+                {
+                    role:
+                        "user",
+                    content:
+                        message
+                }
+            ];
+
+            // Preserve v8 natural conversational prefill.
+            if (
+                responseStyle === "plain"
+            ) {
+                messages.push({
+                    role:
+                        "assistant",
+                    content:
+                        ""
+                });
+            }
+
+            console.log(
+                "\n========== GROQ NORMAL REQUEST ==========\n"
+            );
+
+            const completion =
+                await groq.chat.completions.create({
+
+                    model:
+                        "openai/gpt-oss-20b",
+
+                    temperature:
+                        0.2,
+
+                    reasoning_effort:
+                        reasoningEffort,
+
+                    include_reasoning:
+                        false,
+
+                    max_completion_tokens:
+                        responseStyle === "plain"
+                            ? 550
+                            : 700,
+
+                    messages
+                });
 
             reply =
-                "Sorry, I couldn't generate a response.";
+                completion
+                    .choices?.[0]
+                    ?.message
+                    ?.content
+                    ?.trim() || "";
 
+            responseModel =
+                completion?.model ||
+                "openai/gpt-oss-20b";
+        }
+
+
+        // ==================================================
+        // FINAL RESPONSE SAFETY
+        // ==================================================
+
+        if (!reply) {
+            reply =
+                "Sorry, I couldn't generate a response.";
         }
 
 
@@ -1782,7 +2112,46 @@ Do not add unnecessary filler.
 
             chatId,
 
-            reply
+            reply,
+
+            expert:
+                expert.id,
+
+            model:
+                responseModel,
+
+            searchedWeb,
+
+            researchMode,
+
+            webFallback,
+
+            sources,
+
+            verification:
+                verification
+                    ? {
+                        verified:
+                            Boolean(
+                                verification.verified
+                            ),
+
+                        confidence:
+                            verification.confidence ||
+                            "unknown",
+
+                        sourceCount:
+                            verification.sourceCount ??
+                            sources.length,
+
+                        warnings:
+                            Array.isArray(
+                                verification.warnings
+                            )
+                                ? verification.warnings
+                                : []
+                    }
+                    : null
 
         });
 
