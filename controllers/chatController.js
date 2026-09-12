@@ -169,99 +169,142 @@ function formatMemory(memory) {
 
     if (
         !memory ||
+        typeof memory !== "object" ||
         Object.keys(memory).length === 0
     ) {
-
         return "No permanent user memories yet.";
     }
 
     const lines = [];
+    const seen = new Set();
+
+    function addLine(value) {
+
+        const clean =
+            String(value || "")
+                .trim()
+                .replace(/\s+/g, " ");
+
+        if (!clean) {
+            return;
+        }
+
+        const key =
+            clean.toLowerCase();
+
+        if (seen.has(key)) {
+            return;
+        }
+
+        seen.add(key);
+        lines.push(clean);
+    }
 
     if (memory.name) {
-        lines.push(
-            `Preferred/name: ${memory.name}`
+        addLine(
+            `Name: ${memory.name}`
         );
     }
 
     if (memory.preferredLanguage) {
-        lines.push(
+        addLine(
             `Preferred language: ${memory.preferredLanguage}`
         );
     }
 
     if (memory.preference) {
-        lines.push(
+        addLine(
             `Preference: ${memory.preference}`
         );
     }
 
     if (memory.goal) {
-        lines.push(
+        addLine(
             `Long-term goal: ${memory.goal}`
         );
     }
 
-    if (
-        Array.isArray(
-            memory.projects
-        ) &&
-        memory.projects.length
-    ) {
-
-        lines.push(
-            "Active / durable projects:"
-        );
+    if (Array.isArray(memory.projects)) {
 
         memory.projects
-            .slice(-12)
-            .forEach(
-                project => {
-                    lines.push(
-                        `- ${String(project).trim()}`
-                    );
-                }
-            );
-    }
-
-    /*
-    Older memory versions may already contain useful
-    account-wide facts. Include them too so upgrades do
-    not make those memories invisible.
-    */
-    if (
-        Array.isArray(
-            memory.facts
-        ) &&
-        memory.facts.length
-    ) {
-
-        lines.push(
-            "Other remembered facts:"
-        );
-
-        memory.facts
             .slice(-20)
             .forEach(
-                fact => {
-                    const value =
-                        String(
-                            fact || ""
-                        ).trim();
-
-                    if (value) {
-                        lines.push(
-                            `- ${value}`
-                        );
-                    }
-                }
+                project =>
+                    addLine(
+                        `Active/remembered project: ${project}`
+                    )
             );
     }
 
-    return (
-        lines.join("\n") ||
-        "No permanent user memories yet."
-    );
+    if (Array.isArray(memory.facts)) {
+
+        memory.facts
+            .slice(-40)
+            .forEach(
+                fact =>
+                    addLine(
+                        `Remembered fact: ${fact}`
+                    )
+            );
+    }
+
+    return lines.length
+        ? lines.join("\n")
+        : "No permanent user memories yet.";
 }
+
+
+function normalizeWorkspace(value) {
+
+    const allowed =
+        new Set([
+            "general",
+            "school",
+            "coding",
+            "business",
+            "safari",
+            "agriculture",
+            "health",
+            "bible"
+        ]);
+
+    const workspace =
+        String(
+            value || "general"
+        )
+            .trim()
+            .toLowerCase();
+
+    return allowed.has(
+        workspace
+    )
+        ? workspace
+        : "general";
+}
+
+
+function buildWorkspaceInstructions(
+    workspace
+) {
+
+    return `
+==================================================
+ACTIVE WORKSPACE
+==================================================
+
+Workspace:
+${workspace}
+
+The workspace changes the current task focus only.
+
+Permanent account memory is shared across ALL
+workspaces and ALL chats.
+
+Do not forget a remembered project merely because
+the user moved to another workspace.
+`;
+}
+
 
 
 // ======================================================
@@ -1175,8 +1218,19 @@ async function chat(req, res) {
         let {
             message,
             userId = "guest",
-            chatId
+            chatId,
+            workspace = "general"
         } = req.body;
+
+        workspace =
+            normalizeWorkspace(
+                workspace
+            );
+
+        const workspaceInstructions =
+            buildWorkspaceInstructions(
+                workspace
+            );
 
 
         console.log(
@@ -1233,7 +1287,9 @@ async function chat(req, res) {
 
             chatId =
                 await createChat(
-                    userId
+                    userId,
+                    "New Chat",
+                    workspace
                 );
 
             console.log(
@@ -1460,13 +1516,27 @@ ${limitText(
 )}
 
 ==================================================
-PERMANENT USER MEMORY
+PERMANENT USER MEMORY — ACCOUNT WIDE
 ==================================================
 
 ${limitText(
     memoryText,
-    1000
+    2600
 )}
+
+MEMORY RULES:
+
+- This memory belongs to the signed-in account.
+- It persists across new chats and every workspace.
+- Use remembered facts when they are relevant.
+- Do not ask the user to repeat a fact already
+  present here.
+- The user's current explicit statement overrides
+  an older conflicting memory.
+- Never invent details that are not present in
+  memory or the current conversation.
+
+${workspaceInstructions}
 
 ==================================================
 OLDER CONTEXT
