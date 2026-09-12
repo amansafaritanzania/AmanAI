@@ -2025,6 +2025,86 @@ async function sendMessage() {
 }
 
 
+let creatingChatPromise = null;
+
+async function ensureCurrentChatId() {
+
+    if (
+        isValidChatId(
+            currentChatId
+        )
+    ) {
+        return currentChatId;
+    }
+
+    if (creatingChatPromise) {
+        return creatingChatPromise;
+    }
+
+    creatingChatPromise =
+        (async () => {
+
+            const res =
+                await fetch(
+                    `${API}/new-chat`,
+                    {
+                        method:
+                            "POST",
+
+                        headers: {
+                            "Content-Type":
+                                "application/json"
+                        },
+
+                        credentials:
+                            "same-origin",
+
+                        body:
+                            JSON.stringify({
+                                workspace:
+                                    currentWorkspace
+                            })
+                    }
+                );
+
+            const data =
+                await res.json()
+                    .catch(
+                        () => ({})
+                    );
+
+            if (
+                !res.ok ||
+                !isValidChatId(
+                    data.chatId
+                )
+            ) {
+                throw new Error(
+                    data.message ||
+                    "Could not create a chat."
+                );
+            }
+
+            currentChatId =
+                data.chatId;
+
+            localStorage.setItem(
+                "AmanChat",
+                currentChatId
+            );
+
+            return currentChatId;
+        })();
+
+    try {
+        return await creatingChatPromise;
+    }
+    finally {
+        creatingChatPromise = null;
+    }
+}
+
+
 async function sendMessageWithText(
     message,
     showUserMessage = true,
@@ -2075,14 +2155,17 @@ async function sendMessageWithText(
 
         /*
         ==================================================
-        IMPORTANT
+        CHAT ID GUARANTEE
 
-        If there is no valid current chat,
-        DO NOT send 0/null/undefined.
+        Create/reuse one real database chat BEFORE
+        sending the message.
 
-        The backend will create a real chat.
+        This prevents duplicate first-message chats
+        and prevents CHAT ID: undefined.
         ==================================================
         */
+
+        await ensureCurrentChatId();
 
         const requestBody = {
 
@@ -2094,15 +2177,8 @@ async function sendMessageWithText(
         };
 
 
-        if (
-            isValidChatId(
-                currentChatId
-            )
-        ) {
-
-            requestBody.chatId =
-                currentChatId;
-        }
+        requestBody.chatId =
+            currentChatId;
 
 
         let fetchOptions;
@@ -3808,86 +3884,38 @@ async function loadCurrentChat() {
 
 async function createNewChat() {
 
+    if (creatingChatPromise) {
+
+        try {
+            await creatingChatPromise;
+        }
+        catch {}
+    }
+
+    currentChatId =
+        null;
+
+    localStorage.removeItem(
+        "AmanChat"
+    );
+
     try {
 
-        const res =
-        await fetch(
-            `${API}/new-chat`,
-            {
-
-                method: "POST",
-
-                headers: {
-
-                    "Content-Type":
-                    "application/json"
-
-                },
-
-                credentials:
-                "same-origin",
-
-                body:
-                JSON.stringify({
-                    workspace:
-                        currentWorkspace
-                })
-
-            }
-        );
-
-
-        const data =
-        await res.json();
-
-
-        /*
-        ==================================================
-        ONLY ACCEPT A REAL DATABASE CHAT ID
-        ==================================================
-        */
-
-        if (
-            !data.chatId ||
-            !isValidChatId(
-                data.chatId
-            )
-        ) {
-
-            console.error(
-                "INVALID CHAT ID:",
-                data
-            );
-
-            return;
-
-        }
-
-
-        currentChatId =
-        data.chatId;
-
-
-        localStorage.setItem(
-            "AmanChat",
-            currentChatId
-        );
-
+        const id =
+            await ensureCurrentChatId();
 
         showWelcome();
 
-
         loadChats();
-
 
         closeSidebar();
 
-
         console.log(
             "NEW CHAT:",
-            currentChatId
+            id
         );
 
+        return id;
     }
     catch (err) {
 
@@ -3896,8 +3924,8 @@ async function createNewChat() {
             err
         );
 
+        return null;
     }
-
 }
 
 
